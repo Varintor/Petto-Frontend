@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'src/core/theme/app_theme.dart';
+import 'src/core/config/app_config.dart';
 import 'src/features/health_assessment/presentation/controllers/health_assessment_controller.dart';
 import 'src/features/health_assessment/data/repositories/health_assessment_repository.dart';
 import 'src/features/health_assessment/presentation/screens/home_screen.dart';
 
 void main() {
+  // Debug: Print API configuration
+  AppConfig.printConfig();
+
   runApp(const PettoApp());
 }
 

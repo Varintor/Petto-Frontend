@@ -1,11 +1,16 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../controllers/health_assessment_controller.dart';
 import '../widgets/image_uploader_widget.dart';
 import '../widgets/result_display_widget.dart';
 
 class HealthAssessmentScreen extends StatefulWidget {
-  const HealthAssessmentScreen({super.key});
+  final int? petId; // Optional: สามารถส่ง Pet ID มาจากภายนอกได้
+
+  const HealthAssessmentScreen({super.key, this.petId});
 
   @override
   State<HealthAssessmentScreen> createState() => _HealthAssessmentScreenState();
@@ -13,14 +18,12 @@ class HealthAssessmentScreen extends StatefulWidget {
 
 class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _petNameController = TextEditingController();
   final _symptomsController = TextEditingController();
-  String _selectedPetType = 'dog';
+  File? _selectedImageFile;
   dynamic _selectedImage;
 
   @override
   void dispose() {
-    _petNameController.dispose();
     _symptomsController.dispose();
     super.dispose();
   }
@@ -28,18 +31,33 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
   void _onImageSelected(dynamic image) {
     setState(() {
       _selectedImage = image;
+      // แปลงเป็น File ถ้าเป็น mobile platform
+      if (image is File) {
+        _selectedImageFile = image;
+      }
     });
   }
 
   Future<void> _submitAssessment() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_selectedImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('กรุณาเลือกรูปภาพ')),
+      );
+      return;
+    }
 
     final controller = context.read<HealthAssessmentController>();
+
+    // ใช้ petId จาก widget หรือใช้ค่า default = 1
+    final petId = widget.petId ?? 1;
+
     await controller.submitAssessment(
-      petName: _petNameController.text,
-      petType: _selectedPetType,
-      symptoms: _symptomsController.text.isEmpty ? null : _symptomsController.text,
-      imageData: _selectedImage,
+      petId: petId,
+      symptomDescription: _symptomsController.text.isEmpty
+          ? 'ไม่ระบุอาการเพิ่มเติม'
+          : _symptomsController.text,
+      imageFile: _selectedImageFile,
+      imageBytes: _selectedImage is! File ? _selectedImage : null,
     );
   }
 
@@ -51,14 +69,36 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
       ),
       body: Consumer<HealthAssessmentController>(
         builder: (context, controller, child) {
+          // ==================== Loading State ====================
           if (controller.isLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('กำลังส่งข้อมูลไปยัง AI...'),
+                ],
+              ),
+            );
           }
 
+          // ==================== Success State ====================
           if (controller.currentAssessment != null) {
-            return ResultDisplayWidget(assessment: controller.currentAssessment!);
+            return ResultDisplayWidget(
+              assessment: controller.currentAssessment!,
+              onReset: () {
+                controller.reset();
+                setState(() {
+                  _selectedImage = null;
+                  _selectedImageFile = null;
+                  _symptomsController.clear();
+                });
+              },
+            );
           }
 
+          // ==================== Error State ====================
           if (controller.hasError) {
             return Center(
               child: Padding(
@@ -68,11 +108,21 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
                   children: [
                     const Icon(Icons.error_outline, size: 48, color: Colors.red),
                     const SizedBox(height: 16),
-                    Text(controller.errorMessage ?? 'An error occurred'),
+                    Text(
+                      controller.error?.message ?? 'An error occurred',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                    const SizedBox(height: 8),
+                    if (controller.error?.statusCode != null)
+                      Text(
+                        'HTTP ${controller.error?.statusCode}',
+                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: controller.reset,
-                      child: const Text('Try Again'),
+                      child: const Text('ลองใหม่'),
                     ),
                   ],
                 ),
@@ -80,6 +130,7 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
             );
           }
 
+          // ==================== Form State ====================
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
             child: Form(
@@ -87,55 +138,66 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // ส่วนอัปโหลดรูปภาพ
                   ImageUploaderWidget(
                     onImageSelected: _onImageSelected,
                     initialImage: _selectedImage,
                   ),
                   const SizedBox(height: 24),
-                  TextFormField(
-                    controller: _petNameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Pet Name',
-                      hintText: 'Enter your pet\'s name',
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter pet name';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: _selectedPetType,
-                    decoration: const InputDecoration(
-                      labelText: 'Pet Type',
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'dog', child: Text('Dog')),
-                      DropdownMenuItem(value: 'cat', child: Text('Cat')),
-                      DropdownMenuItem(value: 'bird', child: Text('Bird')),
-                      DropdownMenuItem(value: 'other', child: Text('Other')),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedPetType = value!;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
+
+                  // ส่วนกรอกอาการ
                   TextFormField(
                     controller: _symptomsController,
                     decoration: const InputDecoration(
-                      labelText: 'Symptoms',
-                      hintText: 'Describe any symptoms',
+                      labelText: 'อาการเพิ่มเติม (ถ้ามี)',
+                      hintText: 'ระบุอาการเพิ่มเติมของสัตว์เลี้ยง...',
+                      border: OutlineInputBorder(),
                     ),
-                    maxLines: 3,
+                    maxLines: 4,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // แสดง Pet ID ที่จะส่ง
+                  Card(
+                    color: Colors.blue.shade50,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.pets, color: Colors.blue),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Pet ID: ${widget.petId ?? 1}',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 24),
+
+                  // ปุ่มส่งข้อมูล
                   ElevatedButton(
-                    onPressed: _submitAssessment,
-                    child: const Text('Submit Assessment'),
+                    onPressed: _selectedImage == null ? null : _submitAssessment,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Colors.blue.shade700,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text(
+                      'ส่งให้ AI วินิจฉัย',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+                  Text(
+                    '* กรุณาเลือกรูปภาพก่อนกดส่ง',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
                 ],
               ),

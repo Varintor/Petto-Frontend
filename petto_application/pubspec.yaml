@@ -35,6 +35,7 @@ dependencies:
   dio: ^5.4.1                # ใช้ยิง API คุยกับ FastAPI (รองรับ Multipart/Form-data)
   image_picker: ^1.0.7       # ใช้ดึงรูปภาพจากกล้องหรือแกลเลอรีในมือถือ
   provider: ^6.1.1           # ตัวจัดการ State Management (สำหรับ ChangeNotifier Controller)
+  share_plus: ^7.2.1         # ใช้แชร์ผลลัพธ์การวินิจฉัย
   cupertino_icons: ^1.0.8
 
 dev_dependencies:

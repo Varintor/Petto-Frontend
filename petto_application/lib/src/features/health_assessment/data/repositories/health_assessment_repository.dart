@@ -1,141 +1,247 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:dio/dio.dart';
 import '../../../../core/config/app_config.dart';
 import '../../domain/entities/assessment_entity.dart';
 import '../models/assessment_model.dart';
 
+/// Abstract Repository สำหรับ Health Assessment
 abstract class HealthAssessmentRepository {
   Future<AssessmentEntity> submitAssessment({
-    required String petName,
-    required String petType,
-    String? symptoms,
-    dynamic imageData, // File for mobile, Uint8List for web
+    required int petId,
+    required String symptomDescription,
+    File? imageFile,
+    Uint8List? imageBytes,
   });
 
   Future<List<AssessmentEntity>> getAssessmentHistory();
+
+  Future<Map<String, dynamic>> checkConnection();
 }
 
+/// Repository Implementation สำหรับเชื่อมต่อกับ Railway FastAPI Backend
+///
+/// Railway Production URL: https://petto-backend-production.up.railway.app
+///
+/// Parameters ที่ส่งไป Backend:
+/// - pet_id (int): ID ของสัตว์เลี้ยง
+/// - symptom_description (String): รายละเอียดอาการ
+/// - image (File): ไฟล์รูปภาพ (optional)
 class HealthAssessmentRepositoryImpl implements HealthAssessmentRepository {
   final Dio dio;
 
   HealthAssessmentRepositoryImpl({Dio? dio})
-      : dio = dio ?? Dio(BaseOptions(
-          baseUrl: AppConfig.apiBaseUrl,
-          connectTimeout: AppConfig.connectionTimeout,
-          receiveTimeout: AppConfig.receiveTimeout,
-          sendTimeout: AppConfig.sendTimeout,
-          // Enable detailed logging for debugging
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        ))..interceptors.add(LogInterceptor(
-            request: true,
-            requestHeader: true,
-            requestBody: true,
-            responseHeader: false,
-            responseBody: true,
-            error: true,
-          ));
+      : dio = dio ?? _createDioInstance();
+
+  /// สร้าง Dio Instance พร้อมการตั้งค่าครบถ้วนสำหรับ Railway
+  static Dio _createDioInstance() {
+    final dio = Dio(BaseOptions(
+      // Base URL จาก AppConfig (Railway Production)
+      baseUrl: AppConfig.apiBaseUrl,
+
+      // Timeout Settings (60 วินาทีสำหรับ AI Gemini processing บน Cloud)
+      connectTimeout: const Duration(seconds: 60),
+      receiveTimeout: const Duration(seconds: 60),
+      sendTimeout: const Duration(seconds: 60),
+
+      // Headers สำหรับ Railway (HTTPS + CORS)
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'multipart/form-data',
+        // ไม่ต้องใส่ Content-Type ที่นี่ เพราะ Dio จะใส่ให้อัตโนมีติเมื่อใช้ FormData
+      },
+
+      // รองรับ response codes
+      validateStatus: (status) {
+        return status != null && status >= 200 && status < 300;
+      },
+    ));
+
+    // Interceptor: Logging
+    dio.interceptors.add(LogInterceptor(
+      request: true,
+      requestHeader: true,
+      requestBody: false, // ไม่ log binary data
+      responseHeader: false,
+      responseBody: true,
+      error: true,
+      logPrint: (obj) {
+        if (kDebugMode) print(obj);
+      },
+    ));
+
+    // Interceptor: Retry กรณี timeout (AI ประมวลผลนาน)
+    dio.interceptors.add(InterceptorsWrapper(
+      onError: (error, handler) async {
+        if (error.type == DioExceptionType.connectionTimeout ||
+            error.type == DioExceptionType.receiveTimeout ||
+            error.type == DioExceptionType.sendTimeout) {
+          if (kDebugMode) {
+            print('🔄 Timeout occurred (AI processing), retrying...');
+          }
+
+          try {
+            final opts = Options(
+              method: error.requestOptions.method,
+              sendTimeout: const Duration(seconds: 60),
+              receiveTimeout: const Duration(seconds: 60),
+            );
+
+            final response = await dio.request(
+              error.requestOptions.path,
+              data: error.requestOptions.data,
+              queryParameters: error.requestOptions.queryParameters,
+              options: opts,
+            );
+
+            if (kDebugMode) {
+              print('✅ Retry successful!');
+            }
+
+            return handler.resolve(response);
+          } catch (e) {
+            if (kDebugMode) {
+              print('❌ Retry failed: $e');
+            }
+          }
+        }
+
+        return handler.next(error);
+      },
+    ));
+
+    return dio;
+  }
 
   @override
   Future<AssessmentEntity> submitAssessment({
-    required String petName,
-    required String petType,
-    String? symptoms,
-    dynamic imageData,
+    required int petId,
+    required String symptomDescription,
+    File? imageFile,
+    Uint8List? imageBytes,
   }) async {
     try {
+      // ============================================================
+      // สร้าง FormData ตามที่ Backend Railway ต้องการ
+      // ============================================================
       final formData = FormData.fromMap({
-        'pet_name': petName,
-        'pet_type': petType,
-        if (symptoms != null) 'symptoms': symptoms,
+        'pet_id': petId,                           // ← int: Pet ID
+        'symptom_description': symptomDescription,  // ← String: อาการ
       });
 
-      // Handle image differently for web vs mobile
-      if (imageData != null) {
+      // ============================================================
+      // แนบไฟล์รูปภาพ (ถ้ามี)
+      // ============================================================
+      if (imageFile != null || imageBytes != null) {
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+
         if (kIsWeb) {
-          // Web: imageData is List<int> or Uint8List
-          if (imageData is Uint8List) {
+          // Web: ใช้ bytes (Uint8List)
+          final bytes = imageBytes ?? await imageFile?.readAsBytes();
+          if (bytes != null) {
             formData.files.add(MapEntry(
-              'image',
+              'image',  // ← Key ตามที่ Backend ต้องการ
               MultipartFile.fromBytes(
-                imageData,
-                filename: 'image_${DateTime.now().millisecondsSinceEpoch}.jpg',
-              ),
-            ));
-          } else if (imageData is List<int>) {
-            formData.files.add(MapEntry(
-              'image',
-              MultipartFile.fromBytes(
-                imageData,
-                filename: 'image_${DateTime.now().millisecondsSinceEpoch}.jpg',
+                bytes,
+                filename: 'pet_image_$timestamp.jpg',
               ),
             ));
           }
         } else {
-          // Mobile: imageData is File
-          if (imageData is File) {
+          // Mobile: ใช้ File
+          if (imageFile != null) {
             formData.files.add(MapEntry(
-              'image',
+              'image',  // ← Key ตามที่ Backend ต้องการ
               await MultipartFile.fromFile(
-                imageData.path,
-                filename: 'image_${DateTime.now().millisecondsSinceEpoch}.jpg',
+                imageFile.path,
+                filename: 'pet_image_$timestamp.jpg',
               ),
             ));
           }
         }
       }
 
+      // ============================================================
+      // Debug Log ก่อนส่ง
+      // ============================================================
+      if (kDebugMode) {
+        print('');
+        print('═══════════════════════════════════════════════════════════════');
+        print('📤 Railway API - Submit Assessment');
+        print('═══════════════════════════════════════════════════════════════');
+        print('Environment: ${AppConfig.currentEnvironment}');
+        print('URL: ${AppConfig.fullAssessmentsUrl}');
+        print('');
+        print('Parameters:');
+        print('  • pet_id: $petId');
+        print('  • symptom_description: $symptomDescription');
+        print('  • image: ${imageFile != null || imageBytes != null ? "Yes" : "No"}');
+        print('');
+        print('Timeout: 60s (for Gemini AI processing)');
+        print('═══════════════════════════════════════════════════════════════');
+        print('');
+      }
+
+      // ============================================================
+      // ส่ง Request ไปยัง Railway
+      // ============================================================
       final response = await dio.post(
-        AppConfig.healthAssessmentEndpoint,
+        AppConfig.assessmentsEndpoint,
         data: formData,
         onSendProgress: (sent, total) {
-          if (total != -1) {
+          if (total != -1 && kDebugMode) {
             final progress = (sent / total * 100).toStringAsFixed(0);
-            print('Upload progress: $progress%');
+            print('⬆️  Upload Progress: $progress% ($sent/${total} bytes)');
           }
         },
         onReceiveProgress: (received, total) {
-          if (total != -1) {
+          if (total != -1 && kDebugMode) {
             final progress = (received / total * 100).toStringAsFixed(0);
-            print('Download progress: $progress%');
+            print('⬇️  Download Progress: $progress%');
           }
         },
       );
+
+      // ============================================================
+      // รับ Response และ Parse JSON
+      // ============================================================
+      if (kDebugMode) {
+        print('');
+        print('✅ Response received!');
+        print('   Status: ${response.statusCode}');
+        print('   Data: ${response.data}');
+        print('');
+      }
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final model = AssessmentModel.fromJson(response.data);
         return model.toEntity();
       } else {
-        throw Exception('Failed to submit assessment: ${response.statusCode}');
+        throw DioException(
+          requestOptions: response.requestOptions,
+          response: response,
+          type: DioExceptionType.badResponse,
+        );
       }
-    } on DioException catch (e) {
-      String errorMessage = 'Network error occurred';
-
-      if (e.type == DioExceptionType.connectionTimeout) {
-        errorMessage = 'Connection timeout (60s). Backend may be down or IP unreachable.';
-      } else if (e.type == DioExceptionType.receiveTimeout) {
-        errorMessage = 'Receive timeout (60s). AI processing may be taking too long.';
-      } else if (e.type == DioExceptionType.sendTimeout) {
-        errorMessage = 'Send timeout (60s). Image upload may be too large.';
-      } else if (e.type == DioExceptionType.connectionError) {
-        errorMessage = 'Connection error: Cannot reach ${AppConfig.apiBaseUrl}. Check if backend is running and IP is correct.';
-      } else if (e.type == DioExceptionType.badResponse) {
-        errorMessage = 'Server error: ${e.response?.statusCode} - ${e.response?.statusMessage}';
-      }
-
-      throw Exception('$errorMessage\nDetails: ${e.message}');
+    } on DioException {
+      rethrow;
     } catch (e) {
-      throw Exception('Error submitting assessment: $e');
+      if (kDebugMode) {
+        print('❌ Unexpected error: $e');
+      }
+      throw Exception('Unexpected error: $e');
     }
   }
 
   @override
   Future<List<AssessmentEntity>> getAssessmentHistory() async {
     try {
-      final response = await dio.get(AppConfig.healthAssessmentEndpoint);
+      if (kDebugMode) {
+        print('📥 Fetching assessment history from Railway...');
+      }
+
+      final response = await dio.get(AppConfig.assessmentsEndpoint);
 
       if (response.statusCode == 200) {
         final List<dynamic> jsonData = response.data;
@@ -143,18 +249,39 @@ class HealthAssessmentRepositoryImpl implements HealthAssessmentRepository {
             .map((json) => AssessmentModel.fromJson(json).toEntity())
             .toList();
       } else {
-        throw Exception('Failed to fetch history: ${response.statusCode}');
+        throw DioException(
+          requestOptions: response.requestOptions,
+          response: response,
+          type: DioExceptionType.badResponse,
+        );
       }
-    } on DioException catch (e) {
-      String errorMessage = 'Network error occurred';
-
-      if (e.type == DioExceptionType.connectionError) {
-        errorMessage = 'Cannot connect to ${AppConfig.apiBaseUrl}';
-      }
-
-      throw Exception('$errorMessage\nDetails: ${e.message}');
+    } on DioException {
+      rethrow;
     } catch (e) {
       throw Exception('Error fetching assessment history: $e');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> checkConnection() async {
+    try {
+      if (kDebugMode) {
+        print('🔍 Checking Railway connection...');
+      }
+
+      final response = await dio.get(AppConfig.healthCheckEndpoint);
+
+      if (kDebugMode) {
+        print('✅ Railway is connected!');
+        print('   Response: ${response.data}');
+      }
+
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Railway connection failed: $e');
+      }
+      rethrow;
     }
   }
 }
