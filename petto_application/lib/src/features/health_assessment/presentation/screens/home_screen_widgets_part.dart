@@ -880,18 +880,20 @@ class _PetChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final petAccent = Color(
+      int.parse(appearance.colorHex.replaceFirst('#', '0xFF')),
+    );
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(999),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(6, 6, 18, 6),
+        padding: const EdgeInsets.fromLTRB(5, 5, 18, 5),
         decoration: BoxDecoration(
           color: selected ? Colors.white : Colors.white.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: selected
-                ? AppTheme.primaryColor.withValues(alpha: 0.2)
-                : Colors.white,
+            color: selected ? petAccent.withValues(alpha: 0.34) : Colors.white,
             width: 2,
           ),
           boxShadow: AppTheme.subtleShadow,
@@ -899,13 +901,17 @@ class _PetChip extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 52,
+              height: 52,
               decoration: BoxDecoration(
                 color: selected
-                    ? AppTheme.primaryColor.withValues(alpha: 0.1)
+                    ? petAccent.withValues(alpha: 0.12)
                     : const Color(0xFFF8F7F4),
                 borderRadius: BorderRadius.circular(999),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.9),
+                  width: 1,
+                ),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(999),
@@ -916,7 +922,7 @@ class _PetChip extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Text(
               pet.name,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -960,7 +966,7 @@ class _PetChipAvatar extends StatelessWidget {
       child: _SpeciesAvatarIcon(
         species: appearance.species,
         appearance: appearance,
-        size: 30,
+        size: 42,
         dimmed: dimmed,
       ),
     );

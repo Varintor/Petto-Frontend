@@ -136,6 +136,13 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
     }
   }
 
+  Color _petSelectionColor(HealthAssessmentPetOption pet) {
+    if (pet.colorHex != null) {
+      return _colorFromHex(pet.colorHex!);
+    }
+    return _petAccentColor(pet.species);
+  }
+
   Color _colorFromHex(String hex) {
     return Color(int.parse(hex.replaceFirst('#', '0xFF')));
   }
@@ -374,7 +381,7 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
       (pet) => pet.id == _selectedPetId,
       orElse: () => widget.availablePets.first,
     );
-    final selectedAccent = _petAccentColor(selectedPet.species);
+    final selectedAccent = _petSelectionColor(selectedPet);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -388,7 +395,7 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
             itemBuilder: (context, index) {
               final pet = widget.availablePets[index];
               final isSelected = pet.id == _selectedPetId;
-              final accent = _petAccentColor(pet.species);
+              final accent = _petSelectionColor(pet);
               return InkWell(
                 onTap: () {
                   setState(() {
