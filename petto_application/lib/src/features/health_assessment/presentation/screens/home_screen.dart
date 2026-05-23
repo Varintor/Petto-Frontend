@@ -1,59 +1,498 @@
+import 'dart:async';
+import 'dart:io';
+import 'dart:math' as math;
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../../../core/theme/app_theme.dart';
 import 'health_assessment_screen.dart';
+import '../widgets/pet_avatar_widget.dart';
+part 'home_calendar_screen_part.dart';
+part 'home_consult_screen_part.dart';
+part 'home_dashboard_screen_part.dart';
+part 'home_history_screen_part.dart';
+part 'home_profile_screen_part.dart';
+part 'home_screen_modals_part.dart';
+part 'home_screen_models_part.dart';
+part 'home_screen_widgets_part.dart';
+part 'home_wardrobe_screen_part.dart';
+part 'home_wellness_screen_part.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  _View _activeView = _View.dashboard;
+  int _activePetIndex = 0;
+  DateTime _focusedMonth = DateTime(DateTime.now().year, DateTime.now().month);
+  DateTime _selectedDate = DateTime.now();
+  _VetFilter _vetFilter = _VetFilter.all;
+
+  bool _showActionMenu = false;
+  bool _showAssessment = false;
+  bool _showNotesModal = false;
+  bool _showConfetti = false;
+  int _confettiSeed = 0;
+  Offset _confettiOrigin = const Offset(0, 0);
+  String? _burstMissionId;
+  _JourneyNodeData? _selectedNode;
+  _VetData? _activeChatVet;
+
+  final TextEditingController _chatMessageController = TextEditingController();
+  final TextEditingController _notesController = TextEditingController();
+  final Set<String> _completedMissionIds = {'water'};
+  String _selectedSpecies = 'Cat';
+  String _selectedColor = '#F58071';
+  String _selectedEyeType = 'default';
+  String _selectedMouthType = 'smile';
+  String _selectedPattern = 'none';
+  final Set<String> _draftEquippedAccessoryIds = {'acc_collar'};
+  late final Map<int, _PetAppearanceData> _savedAppearances;
+  late final Map<String, List<_VetChatMessageData>> _vetConversations;
+  final Map<int, Object?> _petProfileImages = {};
+
+  static const List<_PetData> _pets = [
+    _PetData(
+      name: 'Milo',
+      species: 'Cat',
+      breed: 'Scottish Fold',
+      ageLabel: '2 Years Old',
+      weightLabel: '4.5kg',
+      status: 'Currently Resting',
+    ),
+    _PetData(
+      name: 'Buddy',
+      species: 'Dog',
+      breed: 'Golden Retriever',
+      ageLabel: '4 Years Old',
+      weightLabel: '18.2kg',
+      status: 'Ready to Play',
+    ),
+  ];
+
+  static const List<_MissionData> _missions = [
+    _MissionData(
+      id: 'walk',
+      title: 'Walk for 15 mins',
+      reward: '50 Treats',
+      icon: Icons.pets_rounded,
+    ),
+    _MissionData(
+      id: 'water',
+      title: 'Water Log',
+      reward: '20 Treats',
+      icon: Icons.water_drop_rounded,
+    ),
+    _MissionData(
+      id: 'ai_check',
+      title: 'AI Quick Check',
+      reward: '100 Treats',
+      icon: Icons.search_rounded,
+    ),
+  ];
+
+  static const List<_CalendarEventData> _calendarEvents = [
+    _CalendarEventData(
+      id: 'e1',
+      title: 'Morning medication',
+      timeLabel: '08:00 AM',
+      type: 'medication',
+      completed: false,
+      day: 19,
+      color: AppTheme.accentColor,
+      icon: Icons.medication_rounded,
+    ),
+    _CalendarEventData(
+      id: 'e2',
+      title: 'Vet follow-up',
+      timeLabel: '03:30 PM',
+      type: 'vet',
+      completed: false,
+      day: 21,
+      color: AppTheme.primaryColor,
+      icon: Icons.medical_services_rounded,
+    ),
+    _CalendarEventData(
+      id: 'e3',
+      title: 'Grooming',
+      timeLabel: '11:00 AM',
+      type: 'grooming',
+      completed: true,
+      day: 25,
+      color: AppTheme.secondaryColor,
+      icon: Icons.content_cut_rounded,
+    ),
+    _CalendarEventData(
+      id: 'e4',
+      title: 'Outdoor walk',
+      timeLabel: '06:00 PM',
+      type: 'exercise',
+      completed: false,
+      day: 22,
+      color: Color(0xFFE79E85),
+      icon: Icons.directions_walk_rounded,
+    ),
+  ];
+
+  static const List<_VetData> _vets = [
+    _VetData(
+      id: 'v1',
+      name: 'Dr. Sarah',
+      specialty: 'General Wellness',
+      rating: '4.9',
+      online: true,
+    ),
+    _VetData(
+      id: 'v2',
+      name: 'Dr. Mike',
+      specialty: 'Diet Specialist',
+      rating: '4.8',
+      online: false,
+    ),
+    _VetData(
+      id: 'v3',
+      name: 'Dr. Emily',
+      specialty: 'Behavioral',
+      rating: '4.7',
+      online: true,
+    ),
+  ];
+
+  static const List<_HistoryData> _history = [
+    _HistoryData(
+      date: '15 MAY',
+      title: 'Skin irritation review',
+      result:
+          'Monitor scratching and redness. Consider a consultation if symptoms persist for 48 hours.',
+      urgency: 'Normal',
+    ),
+    _HistoryData(
+      date: '10 MAY',
+      title: 'Digestive discomfort',
+      result:
+          'Observation recommended. Maintain hydration and note any appetite changes.',
+      urgency: 'Abnormal',
+    ),
+    _HistoryData(
+      date: '04 MAY',
+      title: 'Respiratory concern',
+      result:
+          'If breathing changes continue or worsen, consult a veterinarian immediately.',
+      urgency: 'Critical',
+    ),
+  ];
+
+  static const List<_AccessoryData> _accessories = [
+    _AccessoryData(
+      id: 'acc_hat',
+      name: 'Cool Hat',
+      emoji: '🎩',
+      unlocked: true,
+    ),
+    _AccessoryData(
+      id: 'acc_collar',
+      name: 'Golden Collar',
+      emoji: '🎗️',
+      unlocked: true,
+    ),
+    _AccessoryData(
+      id: 'acc_glasses',
+      name: 'Funky Shades',
+      emoji: '🕶️',
+      unlocked: false,
+    ),
+  ];
+
+  _PetData get _activePet => _pets[_activePetIndex];
+  _PetAppearanceData get _activeAppearance =>
+      _savedAppearances[_activePetIndex] ??
+      _defaultAppearanceForSpecies(_activePet.species);
+
+  @override
+  void initState() {
+    super.initState();
+    _savedAppearances = {
+      for (var i = 0; i < _pets.length; i++)
+        i: _defaultAppearanceForSpecies(_pets[i].species),
+    };
+    _vetConversations = {
+      for (final vet in _vets) vet.id: _seedVetConversation(vet),
+    };
+    _loadDraftForPet(_activePetIndex);
+  }
+
+  @override
+  void dispose() {
+    _chatMessageController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  void _update(VoidCallback action) => setState(action);
+
+  List<_VetChatMessageData> _seedVetConversation(_VetData vet) {
+    return [
+      _VetChatMessageData(
+        fromVet: true,
+        timeLabel: '09:12',
+        text:
+            'Hi, I\'m ${vet.name}. You can send ${_activePet.name}\'s profile, AI health check, or recent records here anytime.',
+      ),
+      _VetChatMessageData(
+        fromVet: false,
+        timeLabel: '09:14',
+        text:
+            'I\'d like help reviewing ${_activePet.name}\'s recent health updates.',
+      ),
+    ];
+  }
+
+  List<_VetChatMessageData> _conversationForVet(String vetId) {
+    return _vetConversations.putIfAbsent(vetId, () => <_VetChatMessageData>[]);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Petto - Pet Health'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      body: Container(
+        decoration: const BoxDecoration(
+          color: AppTheme.backgroundColor,
+          gradient: AppTheme.appBackgroundGradient,
+        ),
+        child: Stack(
           children: [
-            const Icon(
-              Icons.pets,
-              size: 100,
-              color: Color(0xFF6C63FF),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Welcome to Petto',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'AI-Powered Pet Health Assessment',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            const SizedBox(height: 48),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const HealthAssessmentScreen(),
+            _BackgroundDecor(),
+            SafeArea(
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 18, 24, 8),
+                    child: _buildHeader(context),
                   ),
-                );
-              },
-              icon: const Icon(Icons.medical_services),
-              label: const Text('Start Assessment'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 16,
-                ),
+                  Expanded(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 280),
+                      child: KeyedSubtree(
+                        key: ValueKey(_activeView),
+                        child: _buildCurrentView(context),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
+            Positioned(
+              left: 20,
+              right: 20,
+              bottom: 28,
+              child: _buildDockedNav(context),
+            ),
+            if (_showAssessment) _buildAssessmentModal(context),
+            if (_activeChatVet != null) _buildVetChatModal(context),
+            if (_showNotesModal) _buildNotesModal(context),
+            if (_selectedNode != null) _buildJourneyDetailModal(context),
+            if (_showConfetti)
+              _ConfettiOverlay(
+                key: ValueKey(_confettiSeed),
+                origin: _confettiOrigin,
+                seed: _confettiSeed,
+              ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Row(
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: AppTheme.cardShadow,
+              ),
+              child: const Icon(Icons.favorite_rounded, color: Colors.white),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'PETTO',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.headlineSmall?.copyWith(fontSize: 28),
+                ),
+                Text(
+                  'Healthy & Happy',
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+              ],
+            ),
+          ],
+        ),
+        const Spacer(),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: AppTheme.glassCardDecoration(
+            color: Colors.white.withValues(alpha: 0.72),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                'Level 12',
+                style: Theme.of(
+                  context,
+                ).textTheme.labelSmall?.copyWith(color: AppTheme.primaryColor),
+              ),
+              const SizedBox(height: 6),
+              SizedBox(
+                width: 64,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: const LinearProgressIndicator(
+                    value: 0.75,
+                    minHeight: 6,
+                    backgroundColor: Color(0x143F6174),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppTheme.primaryColor,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDockedNav(BuildContext context) {
+    final items = [
+      (_View.dashboard, Icons.favorite_rounded),
+      (_View.calendar, Icons.calendar_month_rounded),
+      (_View.wellness, Icons.map_outlined),
+      (_View.consult, Icons.chat_bubble_outline_rounded),
+      (_View.profile, Icons.person_outline_rounded),
+    ];
+
+    return Container(
+      decoration: AppTheme.glassCardDecoration(
+        color: Colors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(38),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      child: Row(
+        children: [
+          for (final item in items)
+            Expanded(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(26),
+                onTap: () {
+                  setState(() {
+                    _activeView = item.$1;
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        item.$2,
+                        size: 24,
+                        color: _activeView == item.$1
+                            ? AppTheme.secondaryColor
+                            : AppTheme.mutedText.withValues(alpha: 0.55),
+                      ),
+                      const SizedBox(height: 8),
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 220),
+                        width: 4,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: _activeView == item.$1
+                              ? AppTheme.secondaryColor
+                              : Colors.transparent,
+                          shape: BoxShape.circle,
+                          boxShadow: _activeView == item.$1
+                              ? const [
+                                  BoxShadow(
+                                    color: Color(0x883F6174),
+                                    blurRadius: 8,
+                                  ),
+                                ]
+                              : null,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCurrentView(BuildContext context) {
+    switch (_activeView) {
+      case _View.dashboard:
+        return _buildDashboardView(context);
+      case _View.calendar:
+        return _buildCalendarView(context);
+      case _View.wellness:
+        return _buildWellnessView(context);
+      case _View.consult:
+        return _buildConsultView(context);
+      case _View.profile:
+        return _buildProfileView(context);
+      case _View.wardrobe:
+        return _buildWardrobeView(context);
+      case _View.history:
+        return _buildHistoryView(context);
+    }
+  }
+
+  void _showPreviewSnackBar(String label) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$label is shown as UI-only preview.')),
+    );
+  }
+
+  _PetAppearanceData _defaultAppearanceForSpecies(String species) {
+    return species.toLowerCase() == 'dog'
+        ? const _PetAppearanceData(
+            species: 'Dog',
+            colorHex: '#F2C766',
+            eyeType: 'default',
+            mouthType: 'smile',
+            pattern: 'none',
+            equipped: {'acc_collar'},
+          )
+        : const _PetAppearanceData(
+            species: 'Cat',
+            colorHex: '#A3D2CA',
+            eyeType: 'default',
+            mouthType: 'smile',
+            pattern: 'none',
+            equipped: {'acc_collar'},
+          );
+  }
+
+  Color _colorFromHex(String hex) {
+    return Color(int.parse(hex.replaceFirst('#', '0xFF')));
   }
 }

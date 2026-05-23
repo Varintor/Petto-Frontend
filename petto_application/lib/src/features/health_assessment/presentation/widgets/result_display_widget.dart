@@ -1,13 +1,35 @@
 import 'package:flutter/material.dart';
+
 import '../../domain/entities/assessment_entity.dart';
 
 class ResultDisplayWidget extends StatelessWidget {
-  final AssessmentEntity assessment;
+  const ResultDisplayWidget({
+    super.key,
+    required this.assessment,
+    this.onReset,
+    this.onBackToDashboard,
+    this.compactMode = false,
+    this.onTalkToVet,
+    this.onSaveNotes,
+  });
 
-  const ResultDisplayWidget({super.key, required this.assessment});
+  final AssessmentEntity assessment;
+  final VoidCallback? onReset;
+  final VoidCallback? onBackToDashboard;
+  final bool compactMode;
+  final VoidCallback? onTalkToVet;
+  final VoidCallback? onSaveNotes;
 
   @override
   Widget build(BuildContext context) {
+    final defaultBack =
+        onBackToDashboard ??
+        () {
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          }
+        };
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -43,10 +65,7 @@ class ResultDisplayWidget extends StatelessWidget {
           if (assessment.symptoms != null && assessment.symptoms!.isNotEmpty)
             _buildInfoCard('Symptoms', assessment.symptoms!),
           const SizedBox(height: 24),
-          Text(
-            'AI Diagnosis',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
+          Text('AI Diagnosis', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(16),
@@ -55,7 +74,7 @@ class ResultDisplayWidget extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                 ),
               ],
@@ -83,8 +102,8 @@ class ResultDisplayWidget extends StatelessWidget {
                     assessment.confidenceScore > 0.7
                         ? Colors.green
                         : assessment.confidenceScore > 0.4
-                            ? Colors.orange
-                            : Colors.red,
+                        ? Colors.orange
+                        : Colors.red,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -99,12 +118,45 @@ class ResultDisplayWidget extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: const Text('Back to Home'),
-          ),
+          if (compactMode) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: onReset ?? defaultBack,
+                    child: const Text('New Scan'),
+                  ),
+                ),
+                if (onTalkToVet != null || onBackToDashboard != null) ...[
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: onTalkToVet ?? onBackToDashboard,
+                      child: const Text('Talk to Vet'),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            if (onSaveNotes != null) ...[
+              const SizedBox(height: 12),
+              OutlinedButton(
+                onPressed: onSaveNotes,
+                child: const Text('Save Notes'),
+              ),
+            ],
+          ] else ...[
+            if (onReset != null)
+              ElevatedButton(
+                onPressed: onReset,
+                child: const Text('Analyze Another Case'),
+              ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: defaultBack,
+              child: const Text('Back to Home'),
+            ),
+          ],
         ],
       ),
     );
@@ -119,10 +171,7 @@ class ResultDisplayWidget extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Text(
-            '$label: ',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
+          Text('$label: ', style: const TextStyle(fontWeight: FontWeight.bold)),
           Expanded(child: Text(value)),
         ],
       ),

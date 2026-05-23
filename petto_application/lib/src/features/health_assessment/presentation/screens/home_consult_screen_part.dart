@@ -1,0 +1,427 @@
+part of 'home_screen.dart';
+
+extension _HomeConsultScreenPart on _HomeScreenState {
+  String _chatTimeLabel() {
+    final now = DateTime.now();
+    final hour = now.hour % 12 == 0 ? 12 : now.hour % 12;
+    final minute = now.minute.toString().padLeft(2, '0');
+    final suffix = now.hour >= 12 ? 'PM' : 'AM';
+    return '$hour:$minute $suffix';
+  }
+
+  void _openVetChat(_VetData vet) {
+    _chatMessageController.clear();
+    _update(() {
+      _activeView = _View.consult;
+      _activeChatVet = vet;
+    });
+  }
+
+  void _closeVetChat() {
+    _update(() {
+      _activeChatVet = null;
+    });
+  }
+
+  void _sendChatText() {
+    final vet = _activeChatVet;
+    final text = _chatMessageController.text.trim();
+    if (vet == null || text.isEmpty) return;
+    _chatMessageController.clear();
+    _update(() {
+      _conversationForVet(vet.id).add(
+        _VetChatMessageData(
+          fromVet: false,
+          timeLabel: _chatTimeLabel(),
+          text: text,
+        ),
+      );
+    });
+    _queueVetReply(
+      vet,
+      vet.online
+          ? 'Got it. I\'m reviewing that now and will guide you next.'
+          : 'I saved your message for ${vet.name}. They\'ll reply when they\'re back online.',
+    );
+  }
+
+  void _startVetCall(_VetData vet) {
+    _showPreviewSnackBar('Calling ${vet.name}');
+  }
+
+  void _sharePetProfileWithVet() {
+    final vet = _activeChatVet;
+    if (vet == null) return;
+    _update(() {
+      _conversationForVet(vet.id).add(
+        _VetChatMessageData(
+          fromVet: false,
+          timeLabel: _chatTimeLabel(),
+          title: '${_activePet.name} Profile',
+          text:
+              '${_activePet.species} • ${_activePet.breed}\n${_activePet.ageLabel} • ${_activePet.weightLabel}\nStatus: ${_activePet.status}',
+          icon: Icons.pets_rounded,
+          tint: AppTheme.accentColor,
+        ),
+      );
+    });
+    _queueVetReply(
+      vet,
+      'Received ${_activePet.name}\'s profile. I\'ll use this for context.',
+    );
+  }
+
+  void _shareHealthSnapshotWithVet() {
+    final vet = _activeChatVet;
+    if (vet == null) return;
+    _update(() {
+      _conversationForVet(vet.id).add(
+        _VetChatMessageData(
+          fromVet: false,
+          timeLabel: _chatTimeLabel(),
+          title: 'Health Snapshot',
+          text:
+              'Happiness: 85%\nEnergy: 40%\nCurrent status: ${_activePet.status}\nLatest weight: ${_activePet.weightLabel}',
+          icon: Icons.favorite_rounded,
+          tint: AppTheme.primaryColor,
+        ),
+      );
+    });
+    _queueVetReply(vet, 'Thanks. The snapshot came through clearly.');
+  }
+
+  void _shareAiCheckWithVet({_VetData? vetOverride}) {
+    final vet = vetOverride ?? _activeChatVet;
+    if (vet == null) return;
+    final latestCheck = _HomeScreenState._history.first;
+    _update(() {
+      _conversationForVet(vet.id).add(
+        _VetChatMessageData(
+          fromVet: false,
+          timeLabel: _chatTimeLabel(),
+          title: 'AI Health Check',
+          text: '${latestCheck.title}\n${latestCheck.result}',
+          icon: Icons.auto_awesome_rounded,
+          tint: AppTheme.secondaryColor,
+        ),
+      );
+    });
+    _queueVetReply(
+      vet,
+      'I received the AI health check. I\'ll review the summary and recommend the next step.',
+    );
+  }
+
+  void _queueVetReply(_VetData vet, String message) {
+    Timer(const Duration(milliseconds: 850), () {
+      if (!mounted) return;
+      _update(() {
+        _conversationForVet(vet.id).add(
+          _VetChatMessageData(
+            fromVet: true,
+            timeLabel: _chatTimeLabel(),
+            text: message,
+          ),
+        );
+      });
+    });
+  }
+
+  Widget _buildConsultView(BuildContext context) {
+    final visibleVets = _HomeScreenState._vets
+        .where((vet) => _vetFilter == _VetFilter.all || vet.online)
+        .toList();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 150),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 2),
+            child: Text(
+              'Assistant',
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: _ConsultActionCard(
+                  dark: true,
+                  icon: Icons.auto_awesome_rounded,
+                  title: 'Smart AI Scan',
+                  subtitle: 'Health insights',
+                  onTap: () {
+                    _update(() {
+                      _showAssessment = true;
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: _ConsultActionCard(
+                  dark: false,
+                  icon: Icons.camera_alt_rounded,
+                  title: 'Photo Analysis',
+                  subtitle: 'Upload to Scan',
+                  onTap: () {
+                    _update(() {
+                      _showAssessment = true;
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Text(
+                  'Talk to a Vet',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.headlineSmall?.copyWith(fontSize: 26),
+                ),
+              ),
+              const SizedBox(width: 12),
+              _FilterToggle(
+                current: _vetFilter,
+                onChanged: (filter) {
+                  _update(() {
+                    _vetFilter = filter;
+                  });
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          for (final vet in visibleVets) ...[
+            _VetCard(
+              vet: vet,
+              onChat: () => _openVetChat(vet),
+              onCall: vet.online ? () => _startVetCall(vet) : null,
+            ),
+            const SizedBox(height: 12),
+          ],
+          const SizedBox(height: 18),
+          _SectionTitle(
+            title: 'Recent Consultations',
+            actionLabel: 'View All',
+            onAction: () {
+              _update(() {
+                _activeView = _View.history;
+              });
+            },
+          ),
+          const SizedBox(height: 12),
+          for (final item in _HomeScreenState._history.take(3)) ...[
+            _HistoryPreviewCard(item: item),
+            const SizedBox(height: 12),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVetChatModal(BuildContext context) {
+    final vet = _activeChatVet!;
+    final conversation = _conversationForVet(vet.id);
+    return _BottomOverlay(
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.8,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
+              child: Row(
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Center(
+                      child: Text(
+                        vet.name.substring(4, 5),
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(color: AppTheme.secondaryText),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          vet.name,
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          vet.specialty,
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: AppTheme.primaryColor,
+                                letterSpacing: 1,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _SquareIconButton(
+                    icon: Icons.call_rounded,
+                    onTap: () => _startVetCall(vet),
+                  ),
+                  const SizedBox(width: 8),
+                  _SquareIconButton(
+                    icon: Icons.close_rounded,
+                    onTap: _closeVetChat,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF7F1),
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.favorite_rounded,
+                        color: AppTheme.primaryColor,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Secure vet chat. Share pet profile, recent health updates, and AI health checks instantly.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTheme.secondaryText.withValues(alpha: 0.74),
+                          height: 1.35,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              height: 42,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                children: [
+                  _VetChatQuickAction(
+                    icon: Icons.pets_rounded,
+                    label: 'Pet Profile',
+                    color: AppTheme.accentColor,
+                    onTap: _sharePetProfileWithVet,
+                  ),
+                  const SizedBox(width: 10),
+                  _VetChatQuickAction(
+                    icon: Icons.favorite_rounded,
+                    label: 'Health Snapshot',
+                    color: AppTheme.primaryColor,
+                    onTap: _shareHealthSnapshotWithVet,
+                  ),
+                  const SizedBox(width: 10),
+                  _VetChatQuickAction(
+                    icon: Icons.auto_awesome_rounded,
+                    label: 'AI Health Check',
+                    color: AppTheme.secondaryColor,
+                    onTap: _shareAiCheckWithVet,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+                itemCount: conversation.length,
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  return _VetChatBubble(message: conversation[index]);
+                },
+              ),
+            ),
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _chatMessageController,
+                        decoration: const InputDecoration(
+                          hintText: 'Type a message for your vet...',
+                        ),
+                        textInputAction: TextInputAction.send,
+                        onSubmitted: (_) => _sendChatText(),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    InkWell(
+                      onTap: _sendChatText,
+                      borderRadius: BorderRadius.circular(18),
+                      child: Ink(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [AppTheme.primaryColor, Color(0xFFFFA18C)],
+                          ),
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.primaryColor.withValues(
+                                alpha: 0.24,
+                              ),
+                              blurRadius: 16,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.send_rounded,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
