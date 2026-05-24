@@ -20,54 +20,98 @@ class ResultDisplayWidget extends StatelessWidget {
   final VoidCallback? onTalkToVet;
   final VoidCallback? onSaveNotes;
 
+  ({Color color, IconData icon, String label}) get _risk {
+    switch (assessment.riskBucket) {
+      case 'high':
+        return (
+          color: const Color(0xFFE57373),
+          icon: Icons.error_rounded,
+          label: assessment.riskLevel.isEmpty ? 'High Risk' : assessment.riskLevel,
+        );
+      case 'low':
+        return (
+          color: const Color(0xFF57C785),
+          icon: Icons.check_circle_rounded,
+          label: assessment.riskLevel.isEmpty ? 'Low Risk' : assessment.riskLevel,
+        );
+      default:
+        return (
+          color: const Color(0xFFFFB74D),
+          icon: Icons.warning_amber_rounded,
+          label:
+              assessment.riskLevel.isEmpty ? 'Moderate Risk' : assessment.riskLevel,
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final defaultBack =
-        onBackToDashboard ??
+    final defaultBack = onBackToDashboard ??
         () {
           if (Navigator.canPop(context)) {
             Navigator.pop(context);
           }
         };
+    final risk = _risk;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Risk banner (driven by the backend risk_level)
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.green[50],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.green[200]!),
+              color: risk.color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: risk.color.withValues(alpha: 0.4)),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.green, size: 32),
-                SizedBox(width: 12),
-                Text(
-                  'Assessment Complete',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
+                Icon(risk.icon, color: risk.color, size: 32),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Assessment Complete',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: risk.color,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        risk.label,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: risk.color,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 24),
-          _buildInfoCard('Pet Name', assessment.petName),
-          const SizedBox(height: 12),
-          _buildInfoCard('Pet Type', assessment.petType),
-          const SizedBox(height: 12),
+          if (assessment.petName.isNotEmpty)
+            _buildInfoCard('Pet Name', assessment.petName),
+          if (assessment.petName.isNotEmpty) const SizedBox(height: 12),
+          if (assessment.petType.isNotEmpty)
+            _buildInfoCard('Pet Type', assessment.petType),
+          if (assessment.petType.isNotEmpty) const SizedBox(height: 12),
           if (assessment.symptoms != null && assessment.symptoms!.isNotEmpty)
             _buildInfoCard('Symptoms', assessment.symptoms!),
           const SizedBox(height: 24),
-          Text('AI Diagnosis', style: Theme.of(context).textTheme.titleLarge),
+          Text('AI Analysis', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 12),
           Container(
+            width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
@@ -80,42 +124,17 @@ class ResultDisplayWidget extends StatelessWidget {
               ],
             ),
             child: Text(
-              assessment.diagnosis,
-              style: const TextStyle(fontSize: 16),
+              assessment.aiResponse.isEmpty
+                  ? 'ไม่มีรายละเอียดจาก AI'
+                  : assessment.aiResponse,
+              style: const TextStyle(fontSize: 15, height: 1.5),
             ),
           ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              children: [
-                const Text('Confidence Score', style: TextStyle(fontSize: 14)),
-                const SizedBox(height: 8),
-                LinearProgressIndicator(
-                  value: assessment.confidenceScore,
-                  backgroundColor: Colors.grey[300],
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    assessment.confidenceScore > 0.7
-                        ? Colors.green
-                        : assessment.confidenceScore > 0.4
-                        ? Colors.orange
-                        : Colors.red,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${(assessment.confidenceScore * 100).toStringAsFixed(1)}%',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
+          const SizedBox(height: 12),
+          Text(
+            '⚠️ นี่เป็นการคัดกรองเบื้องต้นด้วย AI ไม่ใช่การวินิจฉัยทางการแพทย์ '
+            'หากกังวลควรปรึกษาสัตวแพทย์',
+            style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 24),
           if (compactMode) ...[
@@ -170,6 +189,7 @@ class ResultDisplayWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('$label: ', style: const TextStyle(fontWeight: FontWeight.bold)),
           Expanded(child: Text(value)),

@@ -84,6 +84,14 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
   Future<void> _submitAssessment() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // The backend requires a photo for the AI scan, so guard early.
+    if (_selectedImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('กรุณาเพิ่มรูปภาพสัตว์เลี้ยงก่อนเริ่มวิเคราะห์')),
+      );
+      return;
+    }
+
     final controller = context.read<HealthAssessmentController>();
     await controller.submitAssessment(
       petName: _petNameController.text,

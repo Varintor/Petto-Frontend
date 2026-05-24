@@ -21,16 +21,18 @@ class HealthAssessmentRepositoryImpl implements HealthAssessmentRepository {
   final Dio dio;
 
   HealthAssessmentRepositoryImpl({Dio? dio})
-      : dio = dio ?? Dio(BaseOptions(
-          baseUrl: AppConfig.apiBaseUrl,
-          connectTimeout: AppConfig.connectionTimeout,
-          receiveTimeout: AppConfig.receiveTimeout,
-          sendTimeout: AppConfig.sendTimeout,
-          // Enable detailed logging for debugging
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        ))..interceptors.add(LogInterceptor(
+      : dio = dio ??
+            Dio(BaseOptions(
+              baseUrl: AppConfig.apiBaseUrl,
+              connectTimeout: AppConfig.connectionTimeout,
+              receiveTimeout: AppConfig.receiveTimeout,
+              sendTimeout: AppConfig.sendTimeout,
+              // NOTE: do NOT hard-code a multipart Content-Type here. Dio sets
+              // the correct multipart boundary automatically for FormData, and
+              // forcing it would corrupt both uploads and plain GET requests.
+              headers: {'Accept': 'application/json'},
+            ))
+          ..interceptors.add(LogInterceptor(
             request: true,
             requestHeader: true,
             requestBody: true,
@@ -46,87 +48,53 @@ class HealthAssessmentRepositoryImpl implements HealthAssessmentRepository {
     String? symptoms,
     dynamic imageData,
   }) async {
+    // The backend requires an image (image: UploadFile = File(...)). Fail fast
+    // with a friendly message instead of letting it 400 server-side.
+    if (imageData == null) {
+      throw Exception('กรุณาเพิ่มรูปภาพสัตว์เลี้ยงก่อนเริ่มวิเคราะห์');
+    }
+
     try {
       final formData = FormData.fromMap({
-        'pet_name': petName,
-        'pet_type': petType,
-        if (symptoms != null) 'symptoms': symptoms,
+        // Backend Form fields: pet_id (int), symptom_description (str)
+        'pet_id': AppConfig.defaultPetId,
+        'symptom_description': (symptoms == null || symptoms.trim().isEmpty)
+            ? 'เจ้าของไม่ได้ระบุอาการเพิ่มเติม'
+            : symptoms.trim(),
       });
 
-      // Handle image differently for web vs mobile
-      if (imageData != null) {
-        if (kIsWeb) {
-          // Web: imageData is List<int> or Uint8List
-          if (imageData is Uint8List) {
-            formData.files.add(MapEntry(
-              'image',
-              MultipartFile.fromBytes(
-                imageData,
-                filename: 'image_${DateTime.now().millisecondsSinceEpoch}.jpg',
-              ),
-            ));
-          } else if (imageData is List<int>) {
-            formData.files.add(MapEntry(
-              'image',
-              MultipartFile.fromBytes(
-                imageData,
-                filename: 'image_${DateTime.now().millisecondsSinceEpoch}.jpg',
-              ),
-            ));
-          }
-        } else {
-          // Mobile: imageData is File
-          if (imageData is File) {
-            formData.files.add(MapEntry(
-              'image',
-              await MultipartFile.fromFile(
-                imageData.path,
-                filename: 'image_${DateTime.now().millisecondsSinceEpoch}.jpg',
-              ),
-            ));
-          }
+      final filename = 'pet_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      if (kIsWeb) {
+        if (imageData is Uint8List) {
+          formData.files.add(MapEntry(
+            'image',
+            MultipartFile.fromBytes(imageData, filename: filename),
+          ));
+        } else if (imageData is List<int>) {
+          formData.files.add(MapEntry(
+            'image',
+            MultipartFile.fromBytes(imageData, filename: filename),
+          ));
         }
+      } else if (imageData is File) {
+        formData.files.add(MapEntry(
+          'image',
+          await MultipartFile.fromFile(imageData.path, filename: filename),
+        ));
       }
 
       final response = await dio.post(
-        AppConfig.healthAssessmentEndpoint,
+        AppConfig.assessmentsEndpoint,
         data: formData,
-        onSendProgress: (sent, total) {
-          if (total != -1) {
-            final progress = (sent / total * 100).toStringAsFixed(0);
-            print('Upload progress: $progress%');
-          }
-        },
-        onReceiveProgress: (received, total) {
-          if (total != -1) {
-            final progress = (received / total * 100).toStringAsFixed(0);
-            print('Download progress: $progress%');
-          }
-        },
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final model = AssessmentModel.fromJson(response.data);
-        return model.toEntity();
-      } else {
-        throw Exception('Failed to submit assessment: ${response.statusCode}');
+        return AssessmentModel.fromJson(response.data)
+            .toEntity(petName: petName, petType: petType);
       }
+      throw Exception('Failed to submit assessment: ${response.statusCode}');
     } on DioException catch (e) {
-      String errorMessage = 'Network error occurred';
-
-      if (e.type == DioExceptionType.connectionTimeout) {
-        errorMessage = 'Connection timeout (60s). Backend may be down or IP unreachable.';
-      } else if (e.type == DioExceptionType.receiveTimeout) {
-        errorMessage = 'Receive timeout (60s). AI processing may be taking too long.';
-      } else if (e.type == DioExceptionType.sendTimeout) {
-        errorMessage = 'Send timeout (60s). Image upload may be too large.';
-      } else if (e.type == DioExceptionType.connectionError) {
-        errorMessage = 'Connection error: Cannot reach ${AppConfig.apiBaseUrl}. Check if backend is running and IP is correct.';
-      } else if (e.type == DioExceptionType.badResponse) {
-        errorMessage = 'Server error: ${e.response?.statusCode} - ${e.response?.statusMessage}';
-      }
-
-      throw Exception('$errorMessage\nDetails: ${e.message}');
+      throw Exception(_describeDioError(e));
     } catch (e) {
       throw Exception('Error submitting assessment: $e');
     }
@@ -135,26 +103,41 @@ class HealthAssessmentRepositoryImpl implements HealthAssessmentRepository {
   @override
   Future<List<AssessmentEntity>> getAssessmentHistory() async {
     try {
-      final response = await dio.get(AppConfig.healthAssessmentEndpoint);
+      final response = await dio.get(AppConfig.assessmentsEndpoint);
 
       if (response.statusCode == 200) {
         final List<dynamic> jsonData = response.data;
         return jsonData
-            .map((json) => AssessmentModel.fromJson(json).toEntity())
+            .map((json) =>
+                AssessmentModel.fromJson(json as Map<String, dynamic>).toEntity())
             .toList();
-      } else {
-        throw Exception('Failed to fetch history: ${response.statusCode}');
       }
+      throw Exception('Failed to fetch history: ${response.statusCode}');
     } on DioException catch (e) {
-      String errorMessage = 'Network error occurred';
-
-      if (e.type == DioExceptionType.connectionError) {
-        errorMessage = 'Cannot connect to ${AppConfig.apiBaseUrl}';
-      }
-
-      throw Exception('$errorMessage\nDetails: ${e.message}');
+      throw Exception(_describeDioError(e));
     } catch (e) {
       throw Exception('Error fetching assessment history: $e');
+    }
+  }
+
+  String _describeDioError(DioException e) {
+    switch (e.type) {
+      case DioExceptionType.connectionTimeout:
+        return 'Connection timeout. Backend may be down or unreachable.';
+      case DioExceptionType.receiveTimeout:
+        return 'Receive timeout. AI processing may be taking too long.';
+      case DioExceptionType.sendTimeout:
+        return 'Send timeout. The image upload may be too large.';
+      case DioExceptionType.connectionError:
+        return 'Cannot reach ${AppConfig.apiBaseUrl}. '
+            'Check the backend is running and the IP/URL is correct.';
+      case DioExceptionType.badResponse:
+        final detail = e.response?.data is Map
+            ? (e.response?.data['detail'] ?? '')
+            : '';
+        return 'Server error ${e.response?.statusCode}: $detail';
+      default:
+        return 'Network error: ${e.message}';
     }
   }
 }

@@ -1,79 +1,62 @@
 import '../../domain/entities/assessment_entity.dart';
 
+/// Data model that maps the backend `AssessmentResponse` JSON
+/// (app/schemas.py) to/from the domain [AssessmentEntity].
+///
+/// Backend JSON shape:
+/// {
+///   "id": 1,
+///   "pet_id": 1,
+///   "symptom_description": "....",
+///   "image_uri": "https://....",
+///   "risk_level": "Low Risk",        // enum value
+///   "ai_raw_response": "....",
+///   "created_at": "2026-05-24T..."
+/// }
 class AssessmentModel {
-  final String id;
-  final String petName;
-  final String petType;
-  final String? symptoms;
-  final String? imageUrl;
-  final String diagnosis;
-  final double confidenceScore;
+  final int id;
+  final int petId;
+  final String? symptomDescription;
+  final String? imageUri;
+  final String riskLevel;
+  final String? aiRawResponse;
   final DateTime createdAt;
 
   AssessmentModel({
     required this.id,
-    required this.petName,
-    required this.petType,
-    this.symptoms,
-    this.imageUrl,
-    required this.diagnosis,
-    required this.confidenceScore,
+    required this.petId,
+    this.symptomDescription,
+    this.imageUri,
+    required this.riskLevel,
+    this.aiRawResponse,
     required this.createdAt,
   });
 
-  // From JSON
   factory AssessmentModel.fromJson(Map<String, dynamic> json) {
     return AssessmentModel(
-      id: json['id'] as String,
-      petName: json['pet_name'] as String,
-      petType: json['pet_type'] as String,
-      symptoms: json['symptoms'] as String?,
-      imageUrl: json['image_url'] as String?,
-      diagnosis: json['diagnosis'] as String,
-      confidenceScore: (json['confidence_score'] as num).toDouble(),
+      id: json['id'] as int,
+      petId: json['pet_id'] as int,
+      symptomDescription: json['symptom_description'] as String?,
+      imageUri: json['image_uri'] as String?,
+      riskLevel: (json['risk_level'] ?? 'Moderate Risk').toString(),
+      aiRawResponse: json['ai_raw_response'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
 
-  // To JSON
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'pet_name': petName,
-      'pet_type': petType,
-      'symptoms': symptoms,
-      'image_url': imageUrl,
-      'diagnosis': diagnosis,
-      'confidence_score': confidenceScore,
-      'created_at': createdAt.toIso8601String(),
-    };
-  }
-
-  // To Entity
-  AssessmentEntity toEntity() {
+  /// Convert to a domain entity. [petName] / [petType] are supplied by the
+  /// caller because the backend does not echo them back in the response.
+  AssessmentEntity toEntity({String petName = '', String petType = ''}) {
     return AssessmentEntity(
       id: id,
+      petId: petId,
       petName: petName,
       petType: petType,
-      symptoms: symptoms,
-      imageUrl: imageUrl,
-      diagnosis: diagnosis,
-      confidenceScore: confidenceScore,
+      symptoms: symptomDescription,
+      imageUri: imageUri,
+      riskLevel: riskLevel,
+      aiResponse: aiRawResponse ?? '',
       createdAt: createdAt,
-    );
-  }
-
-  // From Entity
-  factory AssessmentModel.fromEntity(AssessmentEntity entity) {
-    return AssessmentModel(
-      id: entity.id,
-      petName: entity.petName,
-      petType: entity.petType,
-      symptoms: entity.symptoms,
-      imageUrl: entity.imageUrl,
-      diagnosis: entity.diagnosis,
-      confidenceScore: entity.confidenceScore,
-      createdAt: entity.createdAt,
     );
   }
 }
