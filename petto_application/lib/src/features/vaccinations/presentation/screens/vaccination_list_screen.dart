@@ -109,6 +109,9 @@ class _VaccinationListScreenState extends State<VaccinationListScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
+          // Capture before the await so we don't use context across the gap,
+          // and so the controller is in scope here (outside the Consumer).
+          final controller = context.read<VaccinationController>();
           final result = await Navigator.push<bool>(
             context,
             MaterialPageRoute(
@@ -174,7 +177,7 @@ class _VaccinationCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: _getStatusColor(vaccination).withOpacity(0.1),
+                  color: _getStatusColor(vaccination).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -250,7 +253,7 @@ class _VaccinationCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: _getStatusColor(vaccination).withOpacity(0.15),
+        color: _getStatusColor(vaccination).withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Text(
