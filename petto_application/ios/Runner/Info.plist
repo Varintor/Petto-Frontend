@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Petto uses your location to track walks with your pet in real time.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Petto needs the camera to take a photo of your pet for the AI health scan.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Petto needs photo access to pick a picture of your pet for the AI health scan.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
