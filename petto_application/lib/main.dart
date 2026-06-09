@@ -3,11 +3,11 @@ import 'package:provider/provider.dart';
 import 'src/core/theme/app_theme.dart';
 import 'src/features/health_assessment/presentation/controllers/health_assessment_controller.dart';
 import 'src/features/health_assessment/data/repositories/health_assessment_repository.dart';
-import 'src/features/health_assessment/presentation/screens/home_screen.dart';
 import 'src/features/activity_tracking/presentation/controllers/activity_tracking_controller.dart';
 import 'src/features/activity_tracking/data/repositories/activity_repository.dart';
 import 'src/features/vaccinations/presentation/controllers/vaccination_controller.dart';
 import 'src/features/vaccinations/data/repositories/vaccination_repository.dart';
+import 'src/features/pet_management/presentation/screens/login_screen.dart';
 
 void main() {
   runApp(const PettoApp());
@@ -41,7 +41,7 @@ class PettoApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.light,
-        home: const HomeScreen(),
+        home: const LoginScreen(),
         debugShowCheckedModeBanner: false,
       ),
     );

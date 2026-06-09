@@ -18,8 +18,8 @@ class AppConfig {
   static const String _lanUrl = 'http://192.168.1.22:8000';
 
   /// Root URL of the backend (no trailing slash, no path).
-  /// Currently using Ngrok for development.
-  static const String apiBaseUrl = _ngrokUrl;
+  /// Production: Railway (stable HTTPS, always-on — no ngrok/dev machine).
+  static const String apiBaseUrl = _railwayUrl;
 
   /// Shared API version prefix.
   static const String apiPrefix = '/api/v1';
@@ -44,6 +44,14 @@ class AppConfig {
   /// Aggregated activity stats -> /api/v1/pets/{petId}/activities/stats
   static String petActivityStatsEndpoint(int petId) =>
       '$apiPrefix/pets/$petId/activities/stats';
+
+  /// Today's activities -> /api/v1/pets/{petId}/activities/today
+  static String petTodayActivitiesEndpoint(int petId) =>
+      '$apiPrefix/pets/$petId/activities/today';
+
+  /// Single activity detail -> /api/v1/activities/{activityId}
+  static String activityDetailEndpoint(int activityId) =>
+      '$apiPrefix/activities/$activityId';
 
   /// Vaccinations (สมุดวัคซีน) -> /api/v1/vaccinations
   static const String vaccinationsEndpoint = '$apiPrefix/vaccinations';
