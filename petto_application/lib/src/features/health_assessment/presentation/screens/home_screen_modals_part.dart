@@ -12,7 +12,7 @@ extension _HomeScreenModalsPart on _HomeScreenState {
               children: [
                 Expanded(
                   child: Text(
-                    'Health Check',
+                    _assessmentModalTitle,
                     style: Theme.of(context).textTheme.headlineMedium,
                   ),
                 ),

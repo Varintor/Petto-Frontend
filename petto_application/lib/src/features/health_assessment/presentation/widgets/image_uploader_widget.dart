@@ -106,11 +106,11 @@ class _ImageUploaderWidgetState extends State<ImageUploaderWidget>
     }
     switch (widget.petSpecies.toLowerCase()) {
       case 'dog':
-        return const Color(0xFFF5C44F);
+        return AppTheme.accentColor;
       case 'bird':
-        return const Color(0xFF7AC8F7);
+        return AppTheme.warmSurfaceColor;
       default:
-        return const Color(0xFFF6A253);
+        return AppTheme.primaryColor;
     }
   }
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/pet_entity.dart';
-import '../widgets/auth_widgets.dart';
+import '../widgets/pet_form_widgets.dart';
 
 /// Feature 1 - UC: Add / Edit Pet Profile.
 ///
@@ -88,11 +88,15 @@ class _PetFormScreenState extends State<PetFormScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Text(widget.isEdit ? 'แก้ไขข้อมูลน้อง' : 'เพิ่มสัตว์เลี้ยง',
-            style: Theme.of(context).textTheme.titleLarge),
+        title: Text(
+          widget.isEdit ? 'แก้ไขข้อมูลน้อง' : 'เพิ่มสัตว์เลี้ยง',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
       ),
       body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.appBackgroundGradient),
+        decoration: const BoxDecoration(
+          gradient: AppTheme.appBackgroundGradient,
+        ),
         child: Form(
           key: _formKey,
           child: ListView(
@@ -126,7 +130,9 @@ class _PetFormScreenState extends State<PetFormScreen> {
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
-                      side: const BorderSide(color: Color(0xFFEDE6DD)),
+                      side: BorderSide(
+                        color: AppTheme.warmSurfaceColor.withValues(alpha: 0.7),
+                      ),
                     ),
                   );
                 }).toList(),
@@ -142,7 +148,9 @@ class _PetFormScreenState extends State<PetFormScreen> {
                 children: [
                   Expanded(child: _genderSelector('male', 'ผู้', Icons.male)),
                   const SizedBox(width: 12),
-                  Expanded(child: _genderSelector('female', 'เมีย', Icons.female)),
+                  Expanded(
+                    child: _genderSelector('female', 'เมีย', Icons.female),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -165,7 +173,9 @@ class _PetFormScreenState extends State<PetFormScreen> {
                 controller: _weight,
                 label: 'น้ำหนัก (กก.)',
                 icon: Icons.monitor_weight_outlined,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
               ),
               const SizedBox(height: 28),
               PettoPrimaryButton(
@@ -180,12 +190,18 @@ class _PetFormScreenState extends State<PetFormScreen> {
                     // TODO: DELETE /pets/{id} once wired. For now just signal back.
                     Navigator.of(context).pop();
                   },
-                  icon: const Icon(Icons.delete_outline, color: AppTheme.dangerColor),
-                  label: const Text('ลบสัตว์เลี้ยงนี้',
-                      style: TextStyle(
-                          fontFamily: AppTheme.sansFontFamily,
-                          color: AppTheme.dangerColor,
-                          fontWeight: FontWeight.w600)),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: AppTheme.dangerColor,
+                  ),
+                  label: const Text(
+                    'ลบสัตว์เลี้ยงนี้',
+                    style: TextStyle(
+                      fontFamily: AppTheme.sansFontFamily,
+                      color: AppTheme.dangerColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ],
             ],
@@ -195,12 +211,15 @@ class _PetFormScreenState extends State<PetFormScreen> {
     );
   }
 
-  Widget _label(String text) => Text(text,
-      style: const TextStyle(
-          fontFamily: AppTheme.sansFontFamily,
-          color: AppTheme.secondaryText,
-          fontWeight: FontWeight.w700,
-          fontSize: 14));
+  Widget _label(String text) => Text(
+    text,
+    style: const TextStyle(
+      fontFamily: AppTheme.sansFontFamily,
+      color: AppTheme.secondaryText,
+      fontWeight: FontWeight.w700,
+      fontSize: 14,
+    ),
+  );
 
   Widget _genderSelector(String value, String label, IconData icon) {
     final selected = _gender == value;
@@ -212,19 +231,29 @@ class _PetFormScreenState extends State<PetFormScreen> {
           color: selected ? AppTheme.secondaryColor : Colors.white,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-              color: selected ? AppTheme.secondaryColor : const Color(0xFFEDE6DD),
-              width: 1.5),
+            color: selected
+                ? AppTheme.secondaryColor
+                : AppTheme.warmSurfaceColor.withValues(alpha: 0.7),
+            width: 1.5,
+          ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 20, color: selected ? Colors.white : AppTheme.mutedText),
+            Icon(
+              icon,
+              size: 20,
+              color: selected ? Colors.white : AppTheme.mutedText,
+            ),
             const SizedBox(width: 8),
-            Text(label,
-                style: TextStyle(
-                    fontFamily: AppTheme.sansFontFamily,
-                    color: selected ? Colors.white : AppTheme.secondaryText,
-                    fontWeight: FontWeight.w600)),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: AppTheme.sansFontFamily,
+                color: selected ? Colors.white : AppTheme.secondaryText,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
       ),

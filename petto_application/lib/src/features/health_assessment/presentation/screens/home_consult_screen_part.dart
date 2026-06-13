@@ -137,90 +137,154 @@ extension _HomeConsultScreenPart on _HomeScreenState {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 2),
-            child: Text(
-              'Assistant',
-              style: Theme.of(context).textTheme.headlineMedium,
+          _SoftReveal(
+            child: Padding(
+              padding: const EdgeInsets.only(left: 2),
+              child: Text(
+                'Assistant',
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
             ),
           ),
           const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: _ConsultActionCard(
-                  dark: true,
-                  icon: Icons.auto_awesome_rounded,
-                  title: 'Smart AI Scan',
-                  subtitle: 'Health insights',
-                  onTap: () {
-                    _update(() {
-                      _showAssessment = true;
-                    });
-                  },
+          _SoftReveal(
+            delay: 0.08,
+            child: Row(
+              children: [
+                Expanded(
+                  child: _ConsultActionCard(
+                    dark: true,
+                    icon: Icons.auto_awesome_rounded,
+                    title: 'Smart AI Scan',
+                    subtitle: 'Health insights',
+                    onTap: () {
+                      _update(() {
+                        _showAssessment = true;
+                      });
+                    },
+                  ),
                 ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: _ConsultActionCard(
-                  dark: false,
-                  icon: Icons.camera_alt_rounded,
-                  title: 'Photo Analysis',
-                  subtitle: 'Upload to Scan',
-                  onTap: () {
-                    _update(() {
-                      _showAssessment = true;
-                    });
-                  },
+                const SizedBox(width: 14),
+                Expanded(
+                  child: _ConsultActionCard(
+                    dark: false,
+                    icon: Icons.camera_alt_rounded,
+                    title: 'Photo Analysis',
+                    subtitle: 'Upload to Scan',
+                    onTap: () {
+                      _update(() {
+                        _showAssessment = true;
+                      });
+                    },
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 24),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: Text(
-                  'Talk to a Vet',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.headlineSmall?.copyWith(fontSize: 26),
+          _SoftReveal(
+            delay: 0.16,
+            child: Row(
+              children: [
+                Container(
+                  width: 5,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              _FilterToggle(
-                current: _vetFilter,
-                onChanged: (filter) {
-                  _update(() {
-                    _vetFilter = filter;
-                  });
-                },
-              ),
-            ],
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Talk to a Vet',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: AppTheme.secondaryText,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                _FilterToggle(
+                  current: _vetFilter,
+                  onChanged: (filter) {
+                    _update(() {
+                      _vetFilter = filter;
+                    });
+                  },
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 12),
-          for (final vet in visibleVets) ...[
-            _VetCard(
-              vet: vet,
-              onChat: () => _openVetChat(vet),
-              onCall: vet.online ? () => _startVetCall(vet) : null,
+          for (final entry in visibleVets.indexed) ...[
+            _SoftReveal(
+              delay: 0.22 + (entry.$1 * 0.05),
+              child: _VetCard(
+                vet: entry.$2,
+                onChat: () => _openVetChat(entry.$2),
+                onCall: entry.$2.online ? () => _startVetCall(entry.$2) : null,
+              ),
             ),
             const SizedBox(height: 12),
           ],
           const SizedBox(height: 18),
-          _SectionTitle(
-            title: 'Recent Consultations',
-            actionLabel: 'View All',
-            onAction: () {
-              _update(() {
-                _activeView = _View.history;
-              });
-            },
+          _SoftReveal(
+            delay: 0.34,
+            child: Row(
+              children: [
+                Container(
+                  width: 5,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Recent Consultations',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: AppTheme.secondaryText,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                InkWell(
+                  onTap: () {
+                    _update(() {
+                      _activeView = _View.history;
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(999),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      'View All',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 12),
-          for (final item in _HomeScreenState._history.take(3)) ...[
-            _HistoryPreviewCard(item: item),
+          for (final entry in _HomeScreenState._history.take(3).indexed) ...[
+            _SoftReveal(
+              delay: 0.4 + (entry.$1 * 0.05),
+              child: _HistoryPreviewCard(item: entry.$2),
+            ),
             const SizedBox(height: 12),
           ],
         ],
@@ -233,7 +297,7 @@ extension _HomeConsultScreenPart on _HomeScreenState {
     final conversation = _conversationForVet(vet.id);
     return _BottomOverlay(
       child: SizedBox(
-        height: MediaQuery.of(context).size.height * 0.8,
+        height: MediaQuery.of(context).size.height * 0.86,
         child: Column(
           children: [
             Padding(
@@ -328,31 +392,35 @@ extension _HomeConsultScreenPart on _HomeScreenState {
               ),
             ),
             const SizedBox(height: 14),
-            SizedBox(
-              height: 42,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
                 children: [
-                  _VetChatQuickAction(
-                    icon: Icons.pets_rounded,
-                    label: 'Pet Profile',
-                    color: AppTheme.accentColor,
-                    onTap: _sharePetProfileWithVet,
+                  Expanded(
+                    child: _VetChatQuickAction(
+                      icon: Icons.pets_rounded,
+                      label: 'Pet Profile',
+                      color: AppTheme.accentColor,
+                      onTap: _sharePetProfileWithVet,
+                    ),
                   ),
-                  const SizedBox(width: 10),
-                  _VetChatQuickAction(
-                    icon: Icons.favorite_rounded,
-                    label: 'Health Snapshot',
-                    color: AppTheme.primaryColor,
-                    onTap: _shareHealthSnapshotWithVet,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _VetChatQuickAction(
+                      icon: Icons.favorite_rounded,
+                      label: 'Snapshot',
+                      color: AppTheme.primaryColor,
+                      onTap: _shareHealthSnapshotWithVet,
+                    ),
                   ),
-                  const SizedBox(width: 10),
-                  _VetChatQuickAction(
-                    icon: Icons.auto_awesome_rounded,
-                    label: 'AI Health Check',
-                    color: AppTheme.secondaryColor,
-                    onTap: _shareAiCheckWithVet,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _VetChatQuickAction(
+                      icon: Icons.auto_awesome_rounded,
+                      label: 'AI Check',
+                      color: AppTheme.secondaryColor,
+                      onTap: _shareAiCheckWithVet,
+                    ),
                   ),
                 ],
               ),
@@ -372,50 +440,95 @@ extension _HomeConsultScreenPart on _HomeScreenState {
             SafeArea(
               top: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _chatMessageController,
-                        decoration: const InputDecoration(
-                          hintText: 'Type a message for your vet...',
-                        ),
-                        textInputAction: TextInputAction.send,
-                        onSubmitted: (_) => _sendChatText(),
-                      ),
+                padding: const EdgeInsets.fromLTRB(18, 8, 18, 14),
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(8, 7, 7, 7),
+                  decoration: BoxDecoration(
+                    color: AppTheme.blushSurfaceColor.withValues(alpha: 0.44),
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.16),
+                      width: 1.4,
                     ),
-                    const SizedBox(width: 10),
-                    InkWell(
-                      onTap: _sendChatText,
-                      borderRadius: BorderRadius.circular(18),
-                      child: Ink(
-                        width: 52,
-                        height: 52,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 38,
+                        height: 38,
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [AppTheme.primaryColor, Color(0xFFFFA18C)],
-                          ),
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.primaryColor.withValues(
-                                alpha: 0.24,
-                              ),
-                              blurRadius: 16,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
+                          color: Colors.white.withValues(alpha: 0.88),
+                          shape: BoxShape.circle,
                         ),
                         child: const Icon(
-                          Icons.send_rounded,
-                          color: Colors.white,
+                          Icons.chat_bubble_outline_rounded,
+                          color: AppTheme.primaryColor,
+                          size: 18,
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: _chatMessageController,
+                          cursorColor: AppTheme.primaryColor,
+                          cursorWidth: 2.4,
+                          cursorHeight: 24,
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
+                                color: AppTheme.secondaryText,
+                                fontWeight: FontWeight.w700,
+                              ),
+                          decoration: InputDecoration(
+                            hintText: 'Type a message...',
+                            hintStyle: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(
+                                  color: AppTheme.mutedText.withValues(
+                                    alpha: 0.82,
+                                  ),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                            filled: false,
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 12,
+                            ),
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                          ),
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (_) => _sendChatText(),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      InkWell(
+                        onTap: _sendChatText,
+                        borderRadius: BorderRadius.circular(22),
+                        child: Ink(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor,
+                            borderRadius: BorderRadius.circular(22),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.primaryColor.withValues(
+                                  alpha: 0.18,
+                                ),
+                                blurRadius: 12,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.send_rounded,
+                            color: Colors.white,
+                            size: 21,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

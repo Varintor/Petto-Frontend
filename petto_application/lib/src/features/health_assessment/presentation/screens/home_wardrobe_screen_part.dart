@@ -153,12 +153,12 @@ extension _HomeWardrobeScreenPart on _HomeScreenState {
               child: Row(
                 children: [
                   for (final color in const [
-                    '#F58071',
-                    '#3F6174',
-                    '#FFD25A',
-                    '#A3D2CA',
-                    '#E79E85',
-                    '#9B89B3',
+                    '#C83F4E',
+                    '#7B3034',
+                    '#C98287',
+                    '#FFE1D9',
+                    '#C47A45',
+                    '#FFFFFF',
                   ]) ...[
                     _ColorSwatchButton(
                       colorHex: color,
@@ -169,7 +169,7 @@ extension _HomeWardrobeScreenPart on _HomeScreenState {
                         });
                       },
                     ),
-                    if (color != '#9B89B3') const SizedBox(width: 12),
+                    if (color != '#FFFFFF') const SizedBox(width: 12),
                   ],
                 ],
               ),

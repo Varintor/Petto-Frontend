@@ -87,7 +87,9 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
     // The backend requires a photo for the AI scan, so guard early.
     if (_selectedImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('กรุณาเพิ่มรูปภาพสัตว์เลี้ยงก่อนเริ่มวิเคราะห์')),
+        const SnackBar(
+          content: Text('กรุณาเพิ่มรูปภาพสัตว์เลี้ยงก่อนเริ่มวิเคราะห์'),
+        ),
       );
       return;
     }
@@ -125,20 +127,20 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
 
     switch (species.toLowerCase()) {
       case 'dog':
-        return const Color(0xFFF5C44F);
+        return AppTheme.accentColor;
       case 'bird':
-        return const Color(0xFF7AC8F7);
+        return AppTheme.warmSurfaceColor;
       default:
-        return const Color(0xFFF6A253);
+        return AppTheme.primaryColor;
     }
   }
 
   Color _petAccentColor(String species) {
     switch (species.toLowerCase()) {
       case 'dog':
-        return const Color(0xFFE7B645);
+        return AppTheme.secondaryColor;
       case 'bird':
-        return const Color(0xFF69AEDD);
+        return AppTheme.accentColor;
       default:
         return AppTheme.primaryColor;
     }

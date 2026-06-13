@@ -3,9 +3,8 @@ import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/pet_entity.dart';
 import '../../../health_assessment/presentation/screens/home_screen.dart';
 import 'pet_form_screen.dart';
-import 'login_screen.dart';
 
-/// Feature 1 - UC: Pet Profile Management (list / add / edit / logout).
+/// Feature 1 - UC: Pet Profile Management (list / add / edit).
 ///
 /// Holds pets in local state for now so the UI is fully browsable. Swap the
 /// in-memory list for a PetRepository (GET/POST/PUT/DELETE /pets) later.
@@ -43,13 +42,6 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
     });
   }
 
-  void _logout() {
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -57,31 +49,34 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Text('สัตว์เลี้ยงของฉัน',
-            style: Theme.of(context).textTheme.titleLarge),
+        title: Text(
+          'สัตว์เลี้ยงของฉัน',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         actions: [
           IconButton(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const HomeScreen()),
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const HomeScreen())),
+            icon: const Icon(
+              Icons.home_outlined,
+              color: AppTheme.secondaryText,
             ),
-            icon: const Icon(Icons.home_outlined, color: AppTheme.secondaryText),
             tooltip: 'ไปหน้าหลัก',
-          ),
-          IconButton(
-            onPressed: _logout,
-            icon: const Icon(Icons.logout, color: AppTheme.secondaryText),
-            tooltip: 'ออกจากระบบ',
           ),
         ],
       ),
       body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.appBackgroundGradient),
+        decoration: const BoxDecoration(
+          gradient: AppTheme.appBackgroundGradient,
+        ),
         child: _pets.isEmpty
             ? _emptyState()
             : ListView.separated(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
                 itemCount: _pets.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 14),
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 14),
                 itemBuilder: (_, i) => _PetCard(
                   pet: _pets[i],
                   onTap: () => _openForm(pet: _pets[i], index: i),
@@ -93,9 +88,13 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
         backgroundColor: AppTheme.primaryColor,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
-        label: const Text('เพิ่มสัตว์เลี้ยง',
-            style: TextStyle(
-                fontFamily: AppTheme.displayFontFamily, fontWeight: FontWeight.w700)),
+        label: const Text(
+          'เพิ่มสัตว์เลี้ยง',
+          style: TextStyle(
+            fontFamily: AppTheme.displayFontFamily,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ),
     );
   }
@@ -105,18 +104,29 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.pets, size: 64, color: AppTheme.mutedText.withValues(alpha: 0.5)),
+          Icon(
+            Icons.pets,
+            size: 64,
+            color: AppTheme.mutedText.withValues(alpha: 0.5),
+          ),
           const SizedBox(height: 16),
-          const Text('ยังไม่มีสัตว์เลี้ยง',
-              style: TextStyle(
-                  fontFamily: AppTheme.displayFontFamily,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.secondaryText)),
+          const Text(
+            'ยังไม่มีสัตว์เลี้ยง',
+            style: TextStyle(
+              fontFamily: AppTheme.displayFontFamily,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.secondaryText,
+            ),
+          ),
           const SizedBox(height: 6),
-          const Text('กดปุ่ม + เพื่อเพิ่มน้องตัวแรกของคุณ',
-              style: TextStyle(
-                  fontFamily: AppTheme.sansFontFamily, color: AppTheme.mutedText)),
+          const Text(
+            'กดปุ่ม + เพื่อเพิ่มน้องตัวแรกของคุณ',
+            style: TextStyle(
+              fontFamily: AppTheme.sansFontFamily,
+              color: AppTheme.mutedText,
+            ),
+          ),
         ],
       ),
     );
@@ -136,7 +146,9 @@ class _PetCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
-        decoration: AppTheme.glassCardDecoration(borderRadius: BorderRadius.circular(24)),
+        decoration: AppTheme.glassCardDecoration(
+          borderRadius: BorderRadius.circular(24),
+        ),
         child: Row(
           children: [
             Container(
@@ -146,20 +158,26 @@ class _PetCard extends StatelessWidget {
                 color: AppTheme.accentColor.withValues(alpha: 0.25),
                 borderRadius: BorderRadius.circular(18),
               ),
-              child: Icon(isCat ? Icons.pets : Icons.cruelty_free,
-                  color: AppTheme.primaryColor, size: 30),
+              child: Icon(
+                isCat ? Icons.pets : Icons.cruelty_free,
+                color: AppTheme.primaryColor,
+                size: 30,
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(pet.name,
-                      style: const TextStyle(
-                          fontFamily: AppTheme.displayFontFamily,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: AppTheme.secondaryText)),
+                  Text(
+                    pet.name,
+                    style: const TextStyle(
+                      fontFamily: AppTheme.displayFontFamily,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.secondaryText,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     [
@@ -168,9 +186,10 @@ class _PetCard extends StatelessWidget {
                       if (pet.weightKg != null) '${pet.weightKg} กก.',
                     ].whereType<String>().join(' • '),
                     style: const TextStyle(
-                        fontFamily: AppTheme.sansFontFamily,
-                        color: AppTheme.mutedText,
-                        fontSize: 13),
+                      fontFamily: AppTheme.sansFontFamily,
+                      color: AppTheme.mutedText,
+                      fontSize: 13,
+                    ),
                   ),
                 ],
               ),

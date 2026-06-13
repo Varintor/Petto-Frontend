@@ -2,10 +2,14 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../activity_tracking/presentation/controllers/activity_tracking_controller.dart';
+import '../../../activity_tracking/presentation/screens/live_walk_screen.dart';
 import '../../../activity_tracking/presentation/screens/wellness_tracking_view.dart';
 import 'health_assessment_screen.dart';
 import '../widgets/pet_avatar_widget.dart';
@@ -35,7 +39,9 @@ class _HomeScreenState extends State<HomeScreen> {
   _VetFilter _vetFilter = _VetFilter.all;
 
   bool _showActionMenu = false;
+  bool _showNavActionMenu = false;
   bool _showAssessment = false;
+  String _assessmentModalTitle = 'Smart AI Scan';
   bool _showNotesModal = false;
   bool _showConfetti = false;
   int _confettiSeed = 0;
@@ -48,7 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _notesController = TextEditingController();
   final Set<String> _completedMissionIds = {'water'};
   String _selectedSpecies = 'Cat';
-  String _selectedColor = '#F58071';
+  String _selectedColor = '#9F3E43';
   String _selectedEyeType = 'default';
   String _selectedMouthType = 'smile';
   String _selectedPattern = 'none';
@@ -135,7 +141,7 @@ class _HomeScreenState extends State<HomeScreen> {
       type: 'exercise',
       completed: false,
       day: 22,
-      color: Color(0xFFE79E85),
+      color: AppTheme.accentColor,
       icon: Icons.directions_walk_rounded,
     ),
   ];
@@ -225,6 +231,10 @@ class _HomeScreenState extends State<HomeScreen> {
       for (final vet in _vets) vet.id: _seedVetConversation(vet),
     };
     _loadDraftForPet(_activePetIndex);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<ActivityTrackingController>().loadStats();
+    });
   }
 
   @override
@@ -277,7 +287,33 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   Expanded(
                     child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 280),
+                      duration: const Duration(milliseconds: 320),
+                      reverseDuration: const Duration(milliseconds: 220),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeInCubic,
+                      transitionBuilder: (child, animation) {
+                        final curved = CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOutCubic,
+                          reverseCurve: Curves.easeInCubic,
+                        );
+                        return FadeTransition(
+                          opacity: curved,
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0, 0.018),
+                              end: Offset.zero,
+                            ).animate(curved),
+                            child: ScaleTransition(
+                              scale: Tween<double>(
+                                begin: 0.992,
+                                end: 1,
+                              ).animate(curved),
+                              child: child,
+                            ),
+                          ),
+                        );
+                      },
                       child: KeyedSubtree(
                         key: ValueKey(_activeView),
                         child: _buildCurrentView(context),
@@ -288,9 +324,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             Positioned(
-              left: 20,
-              right: 20,
-              bottom: 28,
+              left: 0,
+              right: 0,
+              bottom: 0,
               child: _buildDockedNav(context),
             ),
             if (_showAssessment) _buildAssessmentModal(context),
@@ -346,8 +382,9 @@ class _HomeScreenState extends State<HomeScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: AppTheme.glassCardDecoration(
-            color: Colors.white.withValues(alpha: 0.72),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(20),
+            borderColor: AppTheme.primaryColor.withValues(alpha: 0.12),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -363,11 +400,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 width: 64,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(999),
-                  child: const LinearProgressIndicator(
+                  child: LinearProgressIndicator(
                     value: 0.75,
                     minHeight: 6,
-                    backgroundColor: Color(0x143F6174),
-                    valueColor: AlwaysStoppedAnimation<Color>(
+                    backgroundColor: AppTheme.warmSurfaceColor.withValues(
+                      alpha: 0.34,
+                    ),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
                       AppTheme.primaryColor,
                     ),
                   ),
@@ -381,61 +420,106 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildDockedNav(BuildContext context) {
-    final items = [
-      (_View.dashboard, Icons.favorite_rounded),
-      (_View.calendar, Icons.calendar_month_rounded),
-      (_View.wellness, Icons.map_outlined),
-      (_View.consult, Icons.chat_bubble_outline_rounded),
-      (_View.profile, Icons.person_outline_rounded),
+    final leftItems = [
+      _DockNavItemData(
+        view: _View.dashboard,
+        icon: Icons.cottage_rounded,
+        label: 'Home',
+      ),
+      _DockNavItemData(
+        view: _View.missions,
+        icon: Icons.emoji_events_rounded,
+        label: 'Mission',
+      ),
+    ];
+    final rightItems = [
+      _DockNavItemData(
+        view: _View.consult,
+        icon: Icons.medical_services_rounded,
+        label: 'Assistant',
+      ),
+      _DockNavItemData(
+        view: _View.profile,
+        icon: Icons.account_circle_rounded,
+        label: 'Profile',
+      ),
     ];
 
-    return Container(
-      decoration: AppTheme.glassCardDecoration(
-        color: Colors.white.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(38),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      child: Row(
+    void selectView(_View view) {
+      setState(() {
+        _activeView = view;
+        _showNavActionMenu = false;
+        _showActionMenu = false;
+      });
+    }
+
+    void openAssessment(String title) {
+      setState(() {
+        _showNavActionMenu = false;
+        _showActionMenu = false;
+        _assessmentModalTitle = title;
+        _showAssessment = true;
+      });
+    }
+
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+    final dockHeight = 82.0 + bottomInset;
+    const centerGap = 86.0;
+
+    return SizedBox(
+      height: dockHeight + 112,
+      child: Stack(
+        alignment: Alignment.bottomCenter,
+        clipBehavior: Clip.none,
         children: [
-          for (final item in items)
-            Expanded(
-              child: InkWell(
-                borderRadius: BorderRadius.circular(26),
-                onTap: () {
-                  setState(() {
-                    _activeView = item.$1;
-                  });
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+          Positioned(
+            left: 22,
+            right: 22,
+            bottom: dockHeight + 12,
+            child: IgnorePointer(
+              ignoring: !_showNavActionMenu,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 180),
+                opacity: _showNavActionMenu ? 1 : 0,
+                child: AnimatedSlide(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  offset: _showNavActionMenu
+                      ? Offset.zero
+                      : const Offset(0, 0.12),
+                  child: Row(
                     children: [
-                      Icon(
-                        item.$2,
-                        size: 24,
-                        color: _activeView == item.$1
-                            ? AppTheme.secondaryColor
-                            : AppTheme.mutedText.withValues(alpha: 0.55),
+                      Expanded(
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            return Align(
+                              alignment: Alignment.centerRight,
+                              child: _NavActionBubble(
+                                width: math.min(164, constraints.maxWidth),
+                                icon: Icons.auto_awesome_rounded,
+                                label: 'Smart AI Scan',
+                                color: AppTheme.secondaryColor,
+                                onTap: () => openAssessment('Smart AI Scan'),
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                      const SizedBox(height: 8),
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 220),
-                        width: 4,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: _activeView == item.$1
-                              ? AppTheme.secondaryColor
-                              : Colors.transparent,
-                          shape: BoxShape.circle,
-                          boxShadow: _activeView == item.$1
-                              ? const [
-                                  BoxShadow(
-                                    color: Color(0x883F6174),
-                                    blurRadius: 8,
-                                  ),
-                                ]
-                              : null,
+                      const SizedBox(width: 82),
+                      Expanded(
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            return Align(
+                              alignment: Alignment.centerLeft,
+                              child: _NavActionBubble(
+                                width: math.min(164, constraints.maxWidth),
+                                icon: Icons.photo_camera_back_rounded,
+                                label: 'Photo Analyze',
+                                color: AppTheme.primaryColor,
+                                onTap: () => openAssessment('Photo Analyze'),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ],
@@ -443,6 +527,69 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
+          ),
+          Container(
+            height: dockHeight,
+            decoration: BoxDecoration(
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.secondaryText.withValues(alpha: 0.18),
+                  blurRadius: 20,
+                  offset: const Offset(0, -6),
+                ),
+              ],
+            ),
+          ),
+          ClipPath(
+            clipper: const _DockNotchClipper(),
+            child: Container(
+              height: dockHeight,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.10),
+                  width: 1.1,
+                ),
+              ),
+            ),
+          ),
+          Container(
+            height: dockHeight,
+            padding: EdgeInsets.fromLTRB(16, 8, 16, 10 + bottomInset),
+            child: Row(
+              children: [
+                for (final item in leftItems)
+                  Expanded(
+                    child: _DockNavItem(
+                      item: item,
+                      selected: _activeView == item.view,
+                      onTap: () => selectView(item.view),
+                    ),
+                  ),
+                const SizedBox(width: centerGap),
+                for (final item in rightItems)
+                  Expanded(
+                    child: _DockNavItem(
+                      item: item,
+                      selected: _activeView == item.view,
+                      onTap: () => selectView(item.view),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Positioned(
+            bottom: 48 + bottomInset,
+            child: _DockCenterButton(
+              expanded: _showNavActionMenu,
+              onTap: () {
+                setState(() {
+                  _showNavActionMenu = !_showNavActionMenu;
+                  _showActionMenu = false;
+                });
+              },
+            ),
+          ),
         ],
       ),
     );
@@ -452,6 +599,8 @@ class _HomeScreenState extends State<HomeScreen> {
     switch (_activeView) {
       case _View.dashboard:
         return _buildDashboardView(context);
+      case _View.missions:
+        return _buildMissionsView(context);
       case _View.calendar:
         return _buildCalendarView(context);
       case _View.wellness:
@@ -477,7 +626,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return species.toLowerCase() == 'dog'
         ? const _PetAppearanceData(
             species: 'Dog',
-            colorHex: '#F2C766',
+            colorHex: '#C47A45',
             eyeType: 'default',
             mouthType: 'smile',
             pattern: 'none',
@@ -485,7 +634,7 @@ class _HomeScreenState extends State<HomeScreen> {
           )
         : const _PetAppearanceData(
             species: 'Cat',
-            colorHex: '#A3D2CA',
+            colorHex: '#9F3E43',
             eyeType: 'default',
             mouthType: 'smile',
             pattern: 'none',

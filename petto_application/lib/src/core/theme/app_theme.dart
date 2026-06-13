@@ -3,42 +3,46 @@ import 'package:flutter/material.dart';
 class AppTheme {
   static const String sansFontFamily = 'PlusJakartaSans';
   static const String displayFontFamily = 'Outfit';
-  static const Color primaryColor = Color(0xFFF58071);
-  static const Color secondaryColor = Color(0xFF3F6174);
-  static const Color accentColor = Color(0xFFFFD25A);
-  static const Color backgroundColor = Color(0xFFFFFDF9);
+  static const Color primaryColor = Color(0xFF7B3034);
+  static const Color secondaryColor = Color(0xFFB8757A);
+  static const Color accentColor = Color(0xFFC29A45);
+  static const Color backgroundColor = Color(0xFFFFFCF6);
   static const Color surfaceColor = Colors.white;
-  static const Color secondaryText = Color(0xFF324D5C);
-  static const Color mutedText = Color(0xFF8EA3A6);
-  static const Color successColor = Color(0xFF57C785);
-  static const Color dangerColor = Color(0xFFE57373);
+  static const Color creamSurfaceColor = Color(0xFFFFF6EA);
+  static const Color blushSurfaceColor = Color(0xFFFFECE8);
+  static const Color roseSurfaceColor = Color(0xFFEED0D3);
+  static const Color warmSurfaceColor = Color(0xFFF1E1CB);
+  static const Color secondaryText = Color(0xFF4E1F22);
+  static const Color mutedText = Color(0xFF9B756F);
+  static const Color successColor = Color(0xFF718656);
+  static const Color dangerColor = Color(0xFFC03945);
 
   static const LinearGradient appBackgroundGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [Color(0xFFFFFEFD), Color(0xFFFFFBF7)],
+    colors: [Color(0xFFFFFFFC), Color(0xFFFFFCF6)],
   );
 
   static const List<BoxShadow> subtleShadow = [
-    BoxShadow(color: Color(0x143F6174), blurRadius: 24, offset: Offset(0, 10)),
+    BoxShadow(color: Color(0x1A7B3034), blurRadius: 24, offset: Offset(0, 10)),
   ];
 
   static const List<BoxShadow> cardShadow = [
-    BoxShadow(color: Color(0x1A3F6174), blurRadius: 30, offset: Offset(0, 12)),
+    BoxShadow(color: Color(0x237B3034), blurRadius: 30, offset: Offset(0, 12)),
   ];
 
   static BoxDecoration glassCardDecoration({
-    Color color = const Color(0xD9FFFFFF),
+    Color color = const Color(0xFBFFFFFF),
     BorderRadius? borderRadius,
-    bool hasShadow = true, // Add a flag to control shadow
-    double borderWidth = 2, // Allow custom border width
-    Color? borderColor, // Allow custom border color
+    bool hasShadow = true,
+    double borderWidth = 2,
+    Color? borderColor,
   }) {
     return BoxDecoration(
       color: color,
       borderRadius: borderRadius ?? BorderRadius.circular(32),
       border: Border.all(
-        color: borderColor ?? Colors.white.withValues(alpha: 0.95),
+        color: borderColor ?? primaryColor.withValues(alpha: 0.10),
         width: borderWidth,
       ),
       boxShadow: hasShadow ? subtleShadow : null,
@@ -50,7 +54,9 @@ class AppTheme {
       seedColor: primaryColor,
       primary: primaryColor,
       secondary: secondaryColor,
+      tertiary: accentColor,
       surface: surfaceColor,
+      error: dangerColor,
       brightness: Brightness.light,
     );
     const textTheme = TextTheme(
@@ -60,7 +66,7 @@ class AppTheme {
         fontWeight: FontWeight.w800,
         height: 1.0,
         color: secondaryText,
-        letterSpacing: -0.9,
+        letterSpacing: 0,
       ),
       headlineMedium: TextStyle(
         fontFamily: displayFontFamily,
@@ -68,7 +74,7 @@ class AppTheme {
         fontWeight: FontWeight.w800,
         height: 1.02,
         color: secondaryText,
-        letterSpacing: -0.7,
+        letterSpacing: 0,
       ),
       headlineSmall: TextStyle(
         fontFamily: displayFontFamily,
@@ -76,21 +82,21 @@ class AppTheme {
         fontWeight: FontWeight.w800,
         height: 1.08,
         color: secondaryText,
-        letterSpacing: -0.45,
+        letterSpacing: 0,
       ),
       titleLarge: TextStyle(
         fontFamily: displayFontFamily,
         fontSize: 19,
         fontWeight: FontWeight.w700,
         color: secondaryText,
-        letterSpacing: -0.25,
+        letterSpacing: 0,
       ),
       titleMedium: TextStyle(
         fontFamily: sansFontFamily,
         fontSize: 16,
         fontWeight: FontWeight.w700,
         color: secondaryText,
-        letterSpacing: -0.05,
+        letterSpacing: 0,
       ),
       bodyLarge: TextStyle(
         fontFamily: sansFontFamily,
@@ -98,7 +104,7 @@ class AppTheme {
         fontWeight: FontWeight.w600,
         color: secondaryText,
         height: 1.45,
-        letterSpacing: -0.05,
+        letterSpacing: 0,
       ),
       bodyMedium: TextStyle(
         fontFamily: sansFontFamily,
@@ -140,6 +146,15 @@ class AppTheme {
       fontFamily: sansFontFamily,
       textTheme: textTheme,
       primaryTextTheme: textTheme,
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: _PettoPageTransitionsBuilder(),
+          TargetPlatform.iOS: _PettoPageTransitionsBuilder(),
+          TargetPlatform.macOS: _PettoPageTransitionsBuilder(),
+          TargetPlatform.windows: _PettoPageTransitionsBuilder(),
+          TargetPlatform.linux: _PettoPageTransitionsBuilder(),
+        },
+      ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: primaryColor,
@@ -177,10 +192,10 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: secondaryText,
           side: BorderSide(
-            color: secondaryColor.withValues(alpha: 0.08),
+            color: warmSurfaceColor.withValues(alpha: 0.72),
             width: 1.4,
           ),
-          backgroundColor: Colors.white.withValues(alpha: 0.65),
+          backgroundColor: Colors.white.withValues(alpha: 0.9),
           minimumSize: const Size(0, 46),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
@@ -206,7 +221,7 @@ class AppTheme {
       ),
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
-          backgroundColor: Colors.white.withValues(alpha: 0.78),
+          backgroundColor: Colors.white.withValues(alpha: 0.92),
           foregroundColor: secondaryText,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
@@ -215,7 +230,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.82),
+        fillColor: Colors.white.withValues(alpha: 0.96),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 22,
           vertical: 20,
@@ -241,14 +256,14 @@ class AppTheme {
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(28),
           borderSide: BorderSide(
-            color: Colors.white.withValues(alpha: 0.9),
+            color: warmSurfaceColor.withValues(alpha: 0.58),
             width: 2,
           ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(28),
           borderSide: BorderSide(
-            color: Colors.white.withValues(alpha: 0.92),
+            color: warmSurfaceColor.withValues(alpha: 0.66),
             width: 2,
           ),
         ),
@@ -278,4 +293,80 @@ class AppTheme {
   }
 
   static ThemeData get darkTheme => lightTheme;
+}
+
+class _PettoPageTransitionsBuilder extends PageTransitionsBuilder {
+  const _PettoPageTransitionsBuilder();
+
+  static final Animatable<double> _fadeIn = CurveTween(
+    curve: const Interval(0.0, 0.78, curve: Curves.easeOutCubic),
+  );
+
+  static final Animatable<double> _fadeOut = CurveTween(
+    curve: const Interval(0.0, 0.34, curve: Curves.easeOutCubic),
+  ).chain(Tween<double>(begin: 1, end: 0.94));
+
+  static final Animatable<Offset> _slideIn = Tween<Offset>(
+    begin: const Offset(0.055, 0.018),
+    end: Offset.zero,
+  ).chain(CurveTween(curve: Curves.easeOutCubic));
+
+  static final Animatable<Offset> _slideOut = Tween<Offset>(
+    begin: Offset.zero,
+    end: const Offset(-0.018, -0.006),
+  ).chain(CurveTween(curve: Curves.easeOutCubic));
+
+  static final Animatable<double> _scaleIn = Tween<double>(
+    begin: 0.985,
+    end: 1,
+  ).chain(CurveTween(curve: Curves.easeOutCubic));
+
+  static final Animatable<double> _scaleOut = Tween<double>(
+    begin: 1,
+    end: 0.992,
+  ).chain(CurveTween(curve: Curves.easeOutCubic));
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    if (route.fullscreenDialog) {
+      return FadeTransition(
+        opacity: animation.drive(_fadeIn),
+        child: SlideTransition(
+          position: animation.drive(
+            Tween<Offset>(
+              begin: const Offset(0, 0.04),
+              end: Offset.zero,
+            ).chain(CurveTween(curve: Curves.easeOutCubic)),
+          ),
+          child: child,
+        ),
+      );
+    }
+
+    return FadeTransition(
+      opacity: secondaryAnimation.drive(_fadeOut),
+      child: SlideTransition(
+        position: secondaryAnimation.drive(_slideOut),
+        child: ScaleTransition(
+          scale: secondaryAnimation.drive(_scaleOut),
+          child: FadeTransition(
+            opacity: animation.drive(_fadeIn),
+            child: SlideTransition(
+              position: animation.drive(_slideIn),
+              child: ScaleTransition(
+                scale: animation.drive(_scaleIn),
+                child: child,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

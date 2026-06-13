@@ -111,7 +111,8 @@ class _RoutePainter extends CustomPainter {
       return Offset(x, y);
     }
 
-    final path = Path()..moveTo(project(points.first).dx, project(points.first).dy);
+    final path = Path()
+      ..moveTo(project(points.first).dx, project(points.first).dy);
     for (var i = 1; i < points.length; i++) {
       final o = project(points[i]);
       path.lineTo(o.dx, o.dy);

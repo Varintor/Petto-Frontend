@@ -33,19 +33,103 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
     if (!c.isActive) return true;
     final result = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('ออกจากการบันทึก?'),
-        content: const Text('การเดินครั้งนี้จะไม่ถูกบันทึก'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('เดินต่อ'),
+      barrierColor: AppTheme.secondaryText.withValues(alpha: 0.38),
+      builder: (ctx) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 26),
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(22, 22, 22, 20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(34),
+            border: Border.all(
+              color: AppTheme.primaryColor.withValues(alpha: 0.10),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primaryColor.withValues(alpha: 0.14),
+                blurRadius: 30,
+                offset: const Offset(0, 16),
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('ออก'),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: AppTheme.blushSurfaceColor.withValues(alpha: 0.72),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.directions_walk_rounded,
+                  color: AppTheme.primaryColor,
+                  size: 26,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'Discard walk?',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: AppTheme.secondaryText,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'This walk will not be saved.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.mutedText,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52),
+                        foregroundColor: AppTheme.secondaryText,
+                        backgroundColor: AppTheme.creamSurfaceColor.withValues(
+                          alpha: 0.72,
+                        ),
+                        side: BorderSide(
+                          color: AppTheme.primaryColor.withValues(alpha: 0.12),
+                          width: 1.2,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(22),
+                        ),
+                      ),
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Keep walking'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52),
+                        backgroundColor: AppTheme.primaryColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(22),
+                        ),
+                      ),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Discard'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
     if (result == true) c.reset();
@@ -115,8 +199,8 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
     final statusColor = c.state == WalkState.paused
         ? AppTheme.accentColor
         : c.state == WalkState.error
-            ? AppTheme.dangerColor
-            : AppTheme.successColor;
+        ? AppTheme.dangerColor
+        : AppTheme.successColor;
 
     return Row(
       children: [
@@ -147,8 +231,10 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
                   ),
                 ),
                 const SizedBox(width: 6),
-                Text(statusLabel,
-                    style: Theme.of(context).textTheme.labelSmall),
+                Text(
+                  statusLabel,
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
               ],
             ),
           ],
@@ -175,7 +261,11 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
   }
 
   Widget _statTile(
-      BuildContext context, String value, String label, IconData icon) {
+    BuildContext context,
+    String value,
+    String label,
+    IconData icon,
+  ) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
@@ -190,10 +280,9 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
             FittedBox(
               child: Text(
                 value,
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineSmall
-                    ?.copyWith(fontSize: 22),
+                style: Theme.of(
+                  context,
+                ).textTheme.headlineSmall?.copyWith(fontSize: 22),
               ),
             ),
             const SizedBox(height: 2),
@@ -209,34 +298,53 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
       return FilledButton.icon(
         onPressed: () => c.start(),
         icon: const Icon(Icons.refresh_rounded),
-        label: const Text('ลองอีกครั้ง'),
+        label: const Text('Try again'),
       );
     }
 
     final isPaused = c.state == WalkState.paused;
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: isPaused ? c.resume : c.pause,
-            icon: Icon(isPaused
-                ? Icons.play_arrow_rounded
-                : Icons.pause_rounded),
-            label: Text(isPaused ? 'Resume' : 'Pause'),
-          ),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: FilledButton.icon(
-            style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.secondaryColor,
+    return SizedBox(
+      height: 58,
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(58),
+                fixedSize: const Size.fromHeight(58),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                side: BorderSide(
+                  color: AppTheme.warmSurfaceColor.withValues(alpha: 0.78),
+                  width: 1.4,
+                ),
+              ),
+              onPressed: isPaused ? c.resume : c.pause,
+              icon: Icon(
+                isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+              ),
+              label: Text(isPaused ? 'Resume' : 'Pause'),
             ),
-            onPressed: () => _goToSummary(c),
-            icon: const Icon(Icons.stop_rounded),
-            label: const Text('Finish'),
           ),
-        ),
-      ],
+          const SizedBox(width: 14),
+          Expanded(
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppTheme.secondaryColor,
+                minimumSize: const Size.fromHeight(58),
+                fixedSize: const Size.fromHeight(58),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+              onPressed: () => _goToSummary(c),
+              icon: const Icon(Icons.stop_rounded),
+              label: const Text('Finish'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -247,11 +355,14 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.location_off_rounded,
-                size: 48, color: AppTheme.dangerColor),
+            const Icon(
+              Icons.location_off_rounded,
+              size: 48,
+              color: AppTheme.dangerColor,
+            ),
             const SizedBox(height: 16),
             Text(
-              c.error ?? 'เกิดข้อผิดพลาด',
+              c.error ?? 'Something went wrong',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyLarge,
             ),

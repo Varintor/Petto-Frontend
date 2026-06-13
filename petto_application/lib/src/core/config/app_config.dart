@@ -9,10 +9,12 @@ class AppConfig {
   // ============================================================
 
   /// Ngrok URL - Local FastAPI Development (Tunneling)
-  static const String _ngrokUrl = 'https://egging-sculptor-operator.ngrok-free.dev';
+  static const String _ngrokUrl =
+      'https://egging-sculptor-operator.ngrok-free.dev';
 
   /// Railway Production URL (HTTPS)
-  static const String _railwayUrl = 'https://petto-backend-production.up.railway.app';
+  static const String _railwayUrl =
+      'https://petto-backend-production.up.railway.app';
 
   /// LAN URL - Local Development
   static const String _lanUrl = 'http://192.168.1.22:8000';
@@ -64,9 +66,9 @@ class AppConfig {
   // Defaults
   // ============================================================
 
-  /// Until real auth + pet management exists, both the assessment and the
-  /// activity features submit against this pet id (the mock pet created by
-  /// the backend's /api/v1/setup-mock-data endpoint).
+  /// Until real pet management exists, both the assessment and the activity
+  /// features submit against this pet id (the mock pet created by the backend's
+  /// /api/v1/setup-mock-data endpoint).
   static const int defaultPetId = 1;
 
   // ============================================================

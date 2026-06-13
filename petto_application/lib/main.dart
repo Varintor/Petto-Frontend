@@ -7,7 +7,7 @@ import 'src/features/activity_tracking/presentation/controllers/activity_trackin
 import 'src/features/activity_tracking/data/repositories/activity_repository.dart';
 import 'src/features/vaccinations/presentation/controllers/vaccination_controller.dart';
 import 'src/features/vaccinations/data/repositories/vaccination_repository.dart';
-import 'src/features/pet_management/presentation/screens/login_screen.dart';
+import 'src/features/pet_management/presentation/screens/auth_onboarding_screen.dart';
 
 void main() {
   runApp(const PettoApp());
@@ -26,14 +26,12 @@ class PettoApp extends StatelessWidget {
           ),
         ),
         ChangeNotifierProvider(
-          create: (_) => ActivityTrackingController(
-            repository: ActivityRepositoryImpl(),
-          ),
+          create: (_) =>
+              ActivityTrackingController(repository: ActivityRepositoryImpl()),
         ),
         ChangeNotifierProvider(
-          create: (_) => VaccinationController(
-            repository: VaccinationRepositoryImpl(),
-          ),
+          create: (_) =>
+              VaccinationController(repository: VaccinationRepositoryImpl()),
         ),
       ],
       child: MaterialApp(
@@ -41,7 +39,7 @@ class PettoApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.light,
-        home: const LoginScreen(),
+        home: const AuthOnboardingScreen(),
         debugShowCheckedModeBanner: false,
       ),
     );

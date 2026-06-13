@@ -2,6 +2,7 @@ part of 'home_screen.dart';
 
 enum _View {
   dashboard,
+  missions,
   calendar,
   wellness,
   consult,

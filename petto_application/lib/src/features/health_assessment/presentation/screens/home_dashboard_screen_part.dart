@@ -85,6 +85,7 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
                     onTapAssessment: () {
                       _update(() {
                         _showActionMenu = false;
+                        _assessmentModalTitle = 'Smart AI Scan';
                         _showAssessment = true;
                       });
                     },
@@ -114,7 +115,7 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
                       width: 8,
                       height: 8,
                       decoration: const BoxDecoration(
-                        color: Color(0xFF4CAF50),
+                        color: AppTheme.successColor,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -156,17 +157,40 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
           const SizedBox(height: 28),
           Row(
             children: [
+              Container(
+                width: 5,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   "Today's Missions",
-                  style: Theme.of(context).textTheme.titleLarge,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: AppTheme.secondaryText,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
-              Text(
-                '${_completedMissionIds.length} of ${_HomeScreenState._missions.length} done',
-                style: Theme.of(
-                  context,
-                ).textTheme.labelSmall?.copyWith(color: AppTheme.primaryColor),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '${_completedMissionIds.length}/${_HomeScreenState._missions.length} done',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ),
             ],
           ),
@@ -181,6 +205,639 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
             const SizedBox(height: 12),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildMissionsView(BuildContext context) {
+    final completedCount = _completedMissionIds.length;
+    final totalCount = _HomeScreenState._missions.length;
+    final progress = totalCount == 0 ? 0.0 : completedCount / totalCount;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 150),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor,
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(color: AppTheme.blushSurfaceColor, width: 2),
+              boxShadow: AppTheme.cardShadow,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 54,
+                      height: 54,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const _SoftPulse(
+                        child: Icon(
+                          Icons.flag_rounded,
+                          color: AppTheme.primaryColor,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Daily Mission',
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Small care goals for ${_activePet.name}',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: Colors.white.withValues(alpha: 0.78),
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(999),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 14,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        '$completedCount/$totalCount',
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: AppTheme.primaryColor,
+                              fontWeight: FontWeight.w900,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween<double>(begin: 0, end: progress),
+                    duration: const Duration(milliseconds: 720),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, value, child) {
+                      return LinearProgressIndicator(
+                        value: value,
+                        minHeight: 8,
+                        backgroundColor: Colors.white.withValues(alpha: 0.20),
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          AppTheme.blushSurfaceColor,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 22),
+          _buildMissionActivityPanel(context),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Container(
+                width: 5,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  "Today's Missions",
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: AppTheme.secondaryText,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '$completedCount/$totalCount done',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          for (final mission in _HomeScreenState._missions) ...[
+            _MissionCard(
+              mission: mission,
+              completed: _completedMissionIds.contains(mission.id),
+              bursting: _burstMissionId == mission.id,
+              onTap: (origin) => _triggerMission(mission.id, origin),
+            ),
+            const SizedBox(height: 12),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMissionActivityPanel(BuildContext context) {
+    void startWalk() {
+      final controller = context.read<ActivityTrackingController>();
+      Navigator.of(context)
+          .push(
+            MaterialPageRoute(
+              builder: (_) => LiveWalkScreen(petName: _activePet.name),
+            ),
+          )
+          .then((_) => controller.loadStats());
+    }
+
+    return Consumer<ActivityTrackingController>(
+      builder: (context, controller, _) {
+        final stats = controller.stats;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 5,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Activity',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: AppTheme.secondaryText,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                InkWell(
+                  onTap: controller.statsLoading
+                      ? null
+                      : () => controller.loadStats(),
+                  borderRadius: BorderRadius.circular(999),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: controller.statsLoading
+                          ? AppTheme.mutedText.withValues(alpha: 0.16)
+                          : AppTheme.primaryColor,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      controller.statsLoading ? 'Loading' : 'Refresh',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+              decoration: AppTheme.glassCardDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(30),
+                borderColor: AppTheme.primaryColor.withValues(alpha: 0.22),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(13),
+                        ),
+                        child: const Icon(
+                          Icons.directions_walk_rounded,
+                          color: AppTheme.primaryColor,
+                          size: 18,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Walk Summary',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: AppTheme.primaryColor,
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.blushSurfaceColor.withValues(
+                            alpha: 0.74,
+                          ),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          'Today',
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: AppTheme.primaryColor,
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      _ActivityStatTile(
+                        value: stats.distanceText,
+                        label: 'Total distance',
+                      ),
+                      _ActivityDivider(),
+                      _ActivityStatTile(
+                        value: stats.durationText,
+                        label: 'Total time',
+                      ),
+                      _ActivityDivider(),
+                      _ActivityStatTile(
+                        value: '${stats.totalActivities}',
+                        label: 'Sessions',
+                      ),
+                    ],
+                  ),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 180),
+                    child: controller.statsLoading
+                        ? Padding(
+                            key: const ValueKey('activity_loading'),
+                            padding: const EdgeInsets.only(top: 14),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(999),
+                              child: const LinearProgressIndicator(
+                                minHeight: 3,
+                              ),
+                            ),
+                          )
+                        : const SizedBox.shrink(
+                            key: ValueKey('activity_loaded'),
+                          ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            _MissionActivityCard(
+              icon: Icons.directions_walk_rounded,
+              iconColor: AppTheme.primaryColor,
+              title: 'Start a Walk',
+              subtitle:
+                  'Live GPS tracking - distance, time and pace for ${_activePet.name}.',
+              actionLabel: 'Start',
+              onTap: startWalk,
+            ),
+            const SizedBox(height: 12),
+            _MissionActivityCard(
+              icon: Icons.sensors_rounded,
+              iconColor: AppTheme.secondaryColor,
+              title: 'Live Pet Tracking',
+              subtitle:
+                  'Pair a device for activity, rest detection and alerts.',
+              actionLabel: 'Soon',
+              enabled: false,
+              onTap: () {},
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _SoftPulse extends StatefulWidget {
+  const _SoftPulse({required this.child, this.enabled = true});
+
+  final Widget child;
+  final bool enabled;
+
+  @override
+  State<_SoftPulse> createState() => _SoftPulseState();
+}
+
+class _SoftPulseState extends State<_SoftPulse>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+    _scale = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOutCubic,
+    ).drive(Tween(begin: 0.96, end: 1.04));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.enabled) return widget.child;
+    return AnimatedBuilder(
+      animation: _scale,
+      child: widget.child,
+      builder: (context, child) {
+        return Transform.scale(scale: _scale.value, child: child);
+      },
+    );
+  }
+}
+
+class _SoftNudge extends StatefulWidget {
+  const _SoftNudge({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_SoftNudge> createState() => _SoftNudgeState();
+}
+
+class _SoftNudgeState extends State<_SoftNudge>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _offset;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1100),
+    )..repeat(reverse: true);
+    _offset = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOutCubic,
+    ).drive(Tween(begin: 0, end: 3));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _offset,
+      child: widget.child,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(_offset.value, 0),
+          child: child,
+        );
+      },
+    );
+  }
+}
+
+class _ActivityStatTile extends StatelessWidget {
+  const _ActivityStatTile({required this.value, required this.label});
+
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        children: [
+          FittedBox(
+            child: Text(
+              value,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontSize: 28,
+                color: AppTheme.secondaryText,
+              ),
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: AppTheme.mutedText.withValues(alpha: 0.84),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActivityDivider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 44,
+      margin: const EdgeInsets.symmetric(horizontal: 10),
+      color: AppTheme.secondaryText.withValues(alpha: 0.08),
+    );
+  }
+}
+
+class _MissionActivityCard extends StatelessWidget {
+  const _MissionActivityCard({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.actionLabel,
+    required this.onTap,
+    this.enabled = true,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final String actionLabel;
+  final VoidCallback onTap;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveColor = enabled ? iconColor : AppTheme.mutedText;
+    return Opacity(
+      opacity: enabled ? 1 : 0.56,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(30),
+        child: Material(
+          color: Colors.transparent,
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: enabled ? onTap : null,
+            borderRadius: BorderRadius.circular(30),
+            child: Ink(
+              padding: const EdgeInsets.all(16),
+              decoration: AppTheme.glassCardDecoration(
+                color: enabled
+                    ? Colors.white
+                    : AppTheme.creamSurfaceColor.withValues(alpha: 0.68),
+                borderRadius: BorderRadius.circular(30),
+                borderColor: effectiveColor.withValues(
+                  alpha: enabled ? 0.18 : 0.08,
+                ),
+                hasShadow: false,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 54,
+                    height: 54,
+                    decoration: BoxDecoration(
+                      color: enabled
+                          ? effectiveColor
+                          : effectiveColor.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: _SoftPulse(
+                      enabled: enabled,
+                      child: Icon(
+                        icon,
+                        color: enabled ? Colors.white : effectiveColor,
+                        size: 26,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          subtitle,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium?.copyWith(height: 1.35),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 9,
+                    ),
+                    decoration: BoxDecoration(
+                      color: enabled
+                          ? AppTheme.creamSurfaceColor.withValues(alpha: 0.72)
+                          : AppTheme.secondaryText.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          actionLabel,
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(
+                                color: enabled
+                                    ? AppTheme.primaryColor
+                                    : AppTheme.mutedText,
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
+                        if (enabled) ...[
+                          const SizedBox(width: 5),
+                          const _SoftNudge(
+                            child: Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 16,
+                              color: AppTheme.primaryColor,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

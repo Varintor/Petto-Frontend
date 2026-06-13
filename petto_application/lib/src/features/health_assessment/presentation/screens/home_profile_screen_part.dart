@@ -156,27 +156,11 @@ extension _HomeProfileScreenPart on _HomeScreenState {
             },
           ),
           const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: _ProfileActionButton(
-                  label: 'Edit Bio',
-                  icon: Icons.edit_rounded,
-                  tint: AppTheme.secondaryColor,
-                  onTap: () => _showPreviewSnackBar('Edit Bio'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _ProfileActionButton(
-                  label: 'Sign Out',
-                  icon: Icons.logout_rounded,
-                  tint: const Color(0xFFE15B64),
-                  onTap: () => _showPreviewSnackBar('Sign Out'),
-                  emphasized: true,
-                ),
-              ),
-            ],
+          _ProfileActionButton(
+            label: 'Edit Bio',
+            icon: Icons.edit_rounded,
+            tint: AppTheme.secondaryColor,
+            onTap: () => _showPreviewSnackBar('Edit Bio'),
           ),
         ],
       ),

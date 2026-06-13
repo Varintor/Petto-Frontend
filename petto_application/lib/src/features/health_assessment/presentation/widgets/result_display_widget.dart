@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/assessment_entity.dart';
 
 class ResultDisplayWidget extends StatelessWidget {
@@ -24,29 +25,35 @@ class ResultDisplayWidget extends StatelessWidget {
     switch (assessment.riskBucket) {
       case 'high':
         return (
-          color: const Color(0xFFE57373),
+          color: AppTheme.dangerColor,
           icon: Icons.error_rounded,
-          label: assessment.riskLevel.isEmpty ? 'High Risk' : assessment.riskLevel,
+          label: assessment.riskLevel.isEmpty
+              ? 'High Risk'
+              : assessment.riskLevel,
         );
       case 'low':
         return (
-          color: const Color(0xFF57C785),
+          color: AppTheme.successColor,
           icon: Icons.check_circle_rounded,
-          label: assessment.riskLevel.isEmpty ? 'Low Risk' : assessment.riskLevel,
+          label: assessment.riskLevel.isEmpty
+              ? 'Low Risk'
+              : assessment.riskLevel,
         );
       default:
         return (
-          color: const Color(0xFFFFB74D),
+          color: AppTheme.accentColor,
           icon: Icons.warning_amber_rounded,
-          label:
-              assessment.riskLevel.isEmpty ? 'Moderate Risk' : assessment.riskLevel,
+          label: assessment.riskLevel.isEmpty
+              ? 'Moderate Risk'
+              : assessment.riskLevel,
         );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final defaultBack = onBackToDashboard ??
+    final defaultBack =
+        onBackToDashboard ??
         () {
           if (Navigator.canPop(context)) {
             Navigator.pop(context);

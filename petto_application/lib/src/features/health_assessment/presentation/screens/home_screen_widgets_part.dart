@@ -29,118 +29,90 @@ class _RoomStage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(40),
-        border: Border.all(color: const Color(0xFFF1ECE7), width: 1.1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 22,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(12),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(30),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(30),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: onTapProfile,
+            child: Align(
+              alignment: const Alignment(0, 0.26),
+              child: SizedBox(
+                width: 212,
+                height: 212,
+                child: PetAvatarWidget(
+                  species: petSpecies,
+                  color: petColor,
+                  pattern: petPattern,
+                  equipped: equipped,
+                  mouthType: mouthType,
+                  eyeType: eyeType,
+                  isRotating: true,
                 ),
               ),
             ),
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: onTapProfile,
-                child: Align(
-                  alignment: const Alignment(0.02, 0.44),
-                  child: SizedBox(
-                    width: 194,
-                    height: 194,
-                    child: PetAvatarWidget(
-                      species: petSpecies,
-                      color: petColor,
-                      pattern: petPattern,
-                      equipped: equipped,
-                      mouthType: mouthType,
-                      eyeType: eyeType,
-                      isRotating: true,
-                    ),
+          ),
+        ),
+        Positioned(
+          top: 12,
+          right: 26,
+          child: SizedBox(
+            width: 176,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _RoomMenuButton(expanded: showActionMenu, onTap: onToggleMenu),
+                const SizedBox(height: 8),
+                IgnorePointer(
+                  ignoring: !showActionMenu,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      AnimatedSlide(
+                        duration: const Duration(milliseconds: 240),
+                        curve: Curves.easeOutCubic,
+                        offset: showActionMenu
+                            ? Offset.zero
+                            : const Offset(0, -0.12),
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 180),
+                          opacity: showActionMenu ? 1 : 0,
+                          child: _RoomQuickActionChip(
+                            label: 'Assessment',
+                            icon: Icons.auto_awesome_rounded,
+                            color: AppTheme.primaryColor,
+                            textWidth: 112,
+                            onTap: onTapAssessment,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      AnimatedSlide(
+                        duration: const Duration(milliseconds: 280),
+                        curve: Curves.easeOutCubic,
+                        offset: showActionMenu
+                            ? Offset.zero
+                            : const Offset(0, -0.08),
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 200),
+                          opacity: showActionMenu ? 1 : 0,
+                          child: _RoomQuickActionChip(
+                            label: 'Wardrobe',
+                            icon: Icons.checkroom_rounded,
+                            color: AppTheme.secondaryColor,
+                            textWidth: 104,
+                            onTap: onTapWardrobe,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
+              ],
             ),
-            Positioned(
-              top: 14,
-              right: 14,
-              child: SizedBox(
-                width: 176,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    _RoomMenuButton(
-                      expanded: showActionMenu,
-                      onTap: onToggleMenu,
-                    ),
-                    const SizedBox(height: 8),
-                    IgnorePointer(
-                      ignoring: !showActionMenu,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          AnimatedSlide(
-                            duration: const Duration(milliseconds: 240),
-                            curve: Curves.easeOutCubic,
-                            offset: showActionMenu
-                                ? Offset.zero
-                                : const Offset(0, -0.12),
-                            child: AnimatedOpacity(
-                              duration: const Duration(milliseconds: 180),
-                              opacity: showActionMenu ? 1 : 0,
-                              child: _RoomQuickActionChip(
-                                label: 'Assessment',
-                                icon: Icons.auto_awesome_rounded,
-                                color: AppTheme.primaryColor,
-                                textWidth: 112,
-                                onTap: onTapAssessment,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          AnimatedSlide(
-                            duration: const Duration(milliseconds: 280),
-                            curve: Curves.easeOutCubic,
-                            offset: showActionMenu
-                                ? Offset.zero
-                                : const Offset(0, -0.08),
-                            child: AnimatedOpacity(
-                              duration: const Duration(milliseconds: 200),
-                              opacity: showActionMenu ? 1 : 0,
-                              child: _RoomQuickActionChip(
-                                label: 'Wardrobe',
-                                icon: Icons.checkroom_rounded,
-                                color: AppTheme.secondaryColor,
-                                textWidth: 104,
-                                onTap: onTapWardrobe,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -152,46 +124,321 @@ class _BottomOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Positioned.fill(
-      child: Container(
-        color: AppTheme.secondaryColor.withValues(alpha: 0.14),
-        alignment: Alignment.bottomCenter,
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutQuint,
+      builder: (context, value, child) {
+        final eased = Curves.easeOutQuint.transform(value);
+        return Positioned.fill(
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 9 * eased, sigmaY: 9 * eased),
             child: Container(
-              width: double.infinity,
-              clipBehavior: Clip.antiAlias,
-              decoration: AppTheme.glassCardDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(42),
-              ),
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: 10,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: Container(
-                        width: 46,
-                        height: 5,
-                        decoration: BoxDecoration(
-                          color: AppTheme.secondaryColor.withValues(
-                            alpha: 0.12,
-                          ),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: child,
-                  ),
-                ],
+              color: AppTheme.secondaryColor.withValues(alpha: 0.13 * eased),
+              alignment: Alignment.bottomCenter,
+              child: Transform(
+                alignment: Alignment.bottomCenter,
+                transform: Matrix4.identity()
+                  ..translateByDouble(0, 24 * (1 - eased), 0, 1)
+                  ..scaleByDouble(0.985 + (0.015 * eased), 1, 1, 1),
+                child: Opacity(opacity: eased, child: child),
               ),
             ),
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        clipBehavior: Clip.antiAlias,
+        decoration: AppTheme.glassCardDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(42)),
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              top: 10,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  width: 46,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: AppTheme.secondaryColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+            ),
+            SafeArea(
+              top: false,
+              left: false,
+              right: false,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: child,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SoftReveal extends StatelessWidget {
+  const _SoftReveal({required this.child, this.delay = 0});
+
+  final Widget child;
+  final double delay;
+
+  @override
+  Widget build(BuildContext context) {
+    final clampedDelay = delay.clamp(0.0, 0.72);
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: 520 + (clampedDelay * 360).round()),
+      curve: Curves.linear,
+      builder: (context, value, child) {
+        final localProgress = ((value - clampedDelay) / (1 - clampedDelay))
+            .clamp(0.0, 1.0);
+        final eased = Curves.easeOutCubic.transform(localProgress);
+        return Opacity(
+          opacity: eased,
+          child: Transform.translate(
+            offset: Offset(0, 16 * (1 - eased)),
+            child: Transform.scale(
+              scale: 0.985 + (0.015 * eased),
+              alignment: Alignment.center,
+              child: child,
+            ),
+          ),
+        );
+      },
+      child: child,
+    );
+  }
+}
+
+class _DockNavItemData {
+  const _DockNavItemData({
+    required this.view,
+    required this.icon,
+    required this.label,
+  });
+
+  final _View view;
+  final IconData icon;
+  final String label;
+}
+
+class _DockNotchClipper extends CustomClipper<Path> {
+  const _DockNotchClipper();
+
+  @override
+  Path getClip(Size size) {
+    const radius = 30.0;
+    final centerX = size.width / 2;
+    const notchRadius = 43.0;
+    const notchDepth = 25.0;
+    final notchStart = centerX - notchRadius;
+    final notchEnd = centerX + notchRadius;
+
+    return Path()
+      ..moveTo(radius, 0)
+      ..lineTo(notchStart, 0)
+      ..cubicTo(centerX - 31, 0, centerX - 33, notchDepth, centerX, notchDepth)
+      ..cubicTo(centerX + 33, notchDepth, centerX + 31, 0, notchEnd, 0)
+      ..lineTo(size.width - radius, 0)
+      ..quadraticBezierTo(size.width, 0, size.width, radius)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..lineTo(0, radius)
+      ..quadraticBezierTo(0, 0, radius, 0)
+      ..close();
+  }
+
+  @override
+  bool shouldReclip(covariant _DockNotchClipper oldClipper) => false;
+}
+
+class _DockNavItem extends StatelessWidget {
+  const _DockNavItem({
+    required this.item,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final _DockNavItemData item;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final activeColor = AppTheme.primaryColor;
+    final inactiveColor = AppTheme.mutedText.withValues(alpha: 0.78);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              width: 42,
+              height: 32,
+              decoration: BoxDecoration(
+                color: selected
+                    ? activeColor.withValues(alpha: 0.12)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Icon(
+                item.icon,
+                size: 24,
+                color: selected ? activeColor : inactiveColor,
+              ),
+            ),
+            const SizedBox(height: 2),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                item.label,
+                maxLines: 1,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: selected ? activeColor : inactiveColor,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DockCenterButton extends StatelessWidget {
+  const _DockCenterButton({required this.expanded, required this.onTap});
+
+  final bool expanded;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        width: 72,
+        height: 72,
+        decoration: BoxDecoration(
+          color: expanded ? Colors.white : AppTheme.primaryColor,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 7),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.secondaryText.withValues(alpha: 0.22),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: AnimatedRotation(
+          turns: expanded ? 0.125 : 0,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          child: Icon(
+            expanded ? Icons.close_rounded : Icons.add_rounded,
+            color: expanded ? AppTheme.secondaryText : Colors.white,
+            size: 34,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavActionBubble extends StatelessWidget {
+  const _NavActionBubble({
+    required this.width,
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  final double width;
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: label,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: width,
+          height: 50,
+          padding: const EdgeInsets.fromLTRB(8, 7, 14, 7),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.96),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: AppTheme.primaryColor.withValues(alpha: 0.10),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primaryColor.withValues(alpha: 0.075),
+                blurRadius: 14,
+                offset: const Offset(0, 7),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: color.withValues(alpha: 0.10),
+                    width: 1,
+                  ),
+                ),
+                child: Icon(icon, color: color, size: 18),
+              ),
+              const SizedBox(width: 9),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: AppTheme.secondaryText,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -232,10 +479,8 @@ class _BackgroundDecorState extends State<_BackgroundDecor>
           final phase = _controller.value * math.pi * 2;
           final slowWave = math.sin(phase);
           final slowDrift = math.cos(phase * 0.82);
-          final shimmer = ((math.sin(phase * 1.2) + 1) / 2);
-          final floatA = math.sin(phase * 1.45);
-          final floatB = math.cos(phase * 1.18);
-          final orbPulse = 1 + (math.sin(phase * 1.6) * 0.035);
+          final floatA = math.sin(phase * 1.18);
+          final floatB = math.cos(phase * 1.34);
 
           return Stack(
             children: [
@@ -246,152 +491,103 @@ class _BackgroundDecorState extends State<_BackgroundDecor>
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        const Color(0xFFFFFEFD),
-                        const Color(0xFFFFFBF8),
-                        const Color(0xFFFFF8F2),
+                        Colors.white,
+                        AppTheme.backgroundColor,
+                        AppTheme.creamSurfaceColor,
                       ],
                     ),
                   ),
+                ),
+              ),
+              Positioned.fill(child: CustomPaint(painter: _HomeDotPainter())),
+              Positioned(
+                top: -76 + (slowDrift * 8),
+                right: -68 + (slowWave * 6),
+                child: const _BokehOrb(
+                  size: 236,
+                  color: AppTheme.blushSurfaceColor,
+                  glowColor: AppTheme.primaryColor,
+                  opacity: 0.34,
+                  blur: 18,
+                ),
+              ),
+              Positioned(
+                top: 88 + (floatA * 9),
+                left: -42 + (slowDrift * 6),
+                child: const _BokehOrb(
+                  size: 138,
+                  color: Colors.white,
+                  glowColor: AppTheme.warmSurfaceColor,
+                  opacity: 0.72,
+                  blur: 12,
+                ),
+              ),
+              Positioned(
+                top: 242 + (floatB * 8),
+                right: 24 + (slowWave * 5),
+                child: const _BokehOrb(
+                  size: 132,
+                  color: AppTheme.roseSurfaceColor,
+                  glowColor: AppTheme.primaryColor,
+                  opacity: 0.18,
+                  blur: 20,
+                ),
+              ),
+              Positioned(
+                top: 392 + (slowDrift * 7),
+                left: 56 + (floatB * 4),
+                child: const _BokehOrb(
+                  size: 92,
+                  color: Colors.white,
+                  glowColor: AppTheme.blushSurfaceColor,
+                  opacity: 0.58,
+                  blur: 10,
+                ),
+              ),
+              Positioned(
+                bottom: 246 + (slowWave * 8),
+                left: -54 + (floatA * 5),
+                child: const _BokehOrb(
+                  size: 168,
+                  color: AppTheme.creamSurfaceColor,
+                  glowColor: AppTheme.warmSurfaceColor,
+                  opacity: 0.62,
+                  blur: 16,
+                ),
+              ),
+              Positioned(
+                bottom: 84 + (slowDrift * 7),
+                right: -64 + (floatB * 6),
+                child: const _BokehOrb(
+                  size: 218,
+                  color: Colors.white,
+                  glowColor: AppTheme.blushSurfaceColor,
+                  opacity: 0.62,
+                  blur: 16,
+                ),
+              ),
+              Positioned(
+                bottom: -56 + (floatA * 5),
+                left: 26 + (slowWave * 5),
+                child: const _BokehOrb(
+                  size: 176,
+                  color: AppTheme.blushSurfaceColor,
+                  glowColor: AppTheme.primaryColor,
+                  opacity: 0.20,
+                  blur: 22,
                 ),
               ),
               Positioned.fill(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     gradient: RadialGradient(
-                      center: const Alignment(0, -0.18),
+                      center: const Alignment(-0.2, -0.38),
                       radius: 1.18,
                       colors: [
-                        Colors.white.withValues(alpha: 0.94),
-                        const Color(0x00FFFFFF),
+                        Colors.white.withValues(alpha: 0.28),
+                        Colors.white.withValues(alpha: 0.08),
+                        Colors.white.withValues(alpha: 0),
                       ],
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: -42 + (slowDrift * 5),
-                left: -28 + (slowWave * 4),
-                child: _AmbientShape(
-                  width: 192,
-                  height: 160,
-                  colors: [
-                    const Color(0xFFFFDCCB).withValues(alpha: 0.22),
-                    const Color(0xFFFFF4EC).withValues(alpha: 0.1),
-                    const Color(0x00FFF4EC),
-                  ],
-                  radius: 96,
-                  rotation: -0.12,
-                ),
-              ),
-              Positioned(
-                top: 152 + (floatA * 8),
-                right: -16 + (slowDrift * 4),
-                child: Transform.scale(
-                  scale: orbPulse,
-                  child: const _FloatingOrb(
-                    size: 188,
-                    tint: Color(0xFFD7F2EE),
-                    glow: Color(0xFFBDEBE3),
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 238 + (floatB * 7),
-                left: -12 + (slowWave * 3),
-                child: Transform.scale(
-                  scale: 0.98 + (floatB * 0.035),
-                  child: const _FloatingOrb(
-                    size: 148,
-                    tint: Color(0xFFFFF0B4),
-                    glow: Color(0xFFFFE59B),
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 120 + (floatA * 6),
-                right: 38 + (slowDrift * 3),
-                child: Transform.scale(
-                  scale: 1 + (slowWave * 0.03),
-                  child: const _FloatingOrb(
-                    size: 118,
-                    tint: Color(0xFFFFE1D9),
-                    glow: Color(0xFFFFCEC4),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 334 + (floatB * 6),
-                left: 164 + (slowWave * 2),
-                child: Transform.scale(
-                  scale: 0.98 + (slowDrift * 0.025),
-                  child: const _FloatingOrb(
-                    size: 116,
-                    tint: Color(0xFFFFE5F4),
-                    glow: Color(0xFFF8CFE5),
-                  ),
-                ),
-              ),
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: _DotPainter(progress: _controller.value),
-                ),
-              ),
-              Positioned(
-                top: 86 + (slowWave * 6),
-                right: 34 + (slowDrift * 3),
-                child: Opacity(
-                  opacity: 0.014 + (shimmer * 0.008),
-                  child: Transform.translate(
-                    offset: Offset(0, slowWave * 4),
-                    child: const Icon(
-                      Icons.favorite_rounded,
-                      size: 54,
-                      color: AppTheme.primaryColor,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 222 + (slowDrift * 4),
-                left: 24 + (slowWave * 3),
-                child: Opacity(
-                  opacity: 0.01 + (shimmer * 0.006),
-                  child: Transform.translate(
-                    offset: Offset(slowDrift * 3, slowWave * 4),
-                    child: const Icon(
-                      Icons.auto_awesome_rounded,
-                      size: 22,
-                      color: AppTheme.primaryColor,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 300 + (slowWave * 3),
-                left: 40 + (slowDrift * 3),
-                child: Opacity(
-                  opacity: 0.01 + (shimmer * 0.006),
-                  child: Transform.translate(
-                    offset: Offset(slowWave * 3, slowDrift * 4),
-                    child: const Icon(
-                      Icons.auto_awesome_rounded,
-                      size: 46,
-                      color: AppTheme.accentColor,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 420 + (slowDrift * 3),
-                right: 66 + (slowWave * 2),
-                child: Opacity(
-                  opacity: 0.008 + (shimmer * 0.005),
-                  child: Transform.translate(
-                    offset: Offset(slowDrift * 2, slowWave * 3),
-                    child: const Icon(
-                      Icons.circle_rounded,
-                      size: 14,
-                      color: AppTheme.primaryColor,
                     ),
                   ),
                 ),
@@ -404,133 +600,80 @@ class _BackgroundDecorState extends State<_BackgroundDecor>
   }
 }
 
-class _AmbientShape extends StatelessWidget {
-  const _AmbientShape({
-    required this.width,
-    required this.height,
-    required this.colors,
-    required this.radius,
-    required this.rotation,
-  });
-
-  final double width;
-  final double height;
-  final List<Color> colors;
-  final double radius;
-  final double rotation;
-
-  @override
-  Widget build(BuildContext context) {
-    return Transform.rotate(
-      angle: rotation,
-      child: Container(
-        width: width,
-        height: height,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(radius),
-          gradient: RadialGradient(
-            center: const Alignment(-0.2, -0.25),
-            radius: 0.92,
-            colors: colors,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FloatingOrb extends StatelessWidget {
-  const _FloatingOrb({
-    required this.size,
-    required this.tint,
-    required this.glow,
-  });
-
-  final double size;
-  final Color tint;
-  final Color glow;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: RadialGradient(
-          center: const Alignment(-0.24, -0.3),
-          radius: 0.96,
-          colors: [
-            Colors.white.withValues(alpha: 0.46),
-            tint.withValues(alpha: 0.24),
-            tint.withValues(alpha: 0.12),
-            tint.withValues(alpha: 0),
-          ],
-        ),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.2),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: glow.withValues(alpha: 0.12),
-            blurRadius: 26,
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: Align(
-        alignment: const Alignment(-0.32, -0.28),
-        child: Container(
-          width: size * 0.26,
-          height: size * 0.26,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white.withValues(alpha: 0.18),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DotPainter extends CustomPainter {
-  const _DotPainter({required this.progress});
-
-  final double progress;
-
+class _HomeDotPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final pulse = ((math.sin(progress * math.pi * 2) + 1) / 2);
-    final softPaint = Paint()
-      ..color = const Color(
-        0xFFF0E7DC,
-      ).withValues(alpha: 0.12 + (pulse * 0.02));
-    final warmPaint = Paint()
-      ..color = const Color(
-        0xFFF7DCC9,
-      ).withValues(alpha: 0.09 + (pulse * 0.02));
-    final accentPaint = Paint()
-      ..color = const Color(0xFFF9EBC5).withValues(alpha: 0.08);
-
-    for (double y = 0; y < size.height; y += 20) {
-      for (double x = 0; x < size.width; x += 20) {
-        final column = (x / 20).round();
-        final row = (y / 20).round();
-        final isAccent = (column + row) % 9 == 0;
-        final isWarm = (column * row) % 11 == 0;
-        canvas.drawCircle(
-          Offset(x, y),
-          isAccent ? 0.82 : 0.72,
-          isAccent ? accentPaint : (isWarm ? warmPaint : softPaint),
-        );
+    final dot = Paint()..color = AppTheme.primaryColor.withValues(alpha: 0.04);
+    for (double y = 18; y < size.height; y += 32) {
+      for (double x = 18; x < size.width; x += 32) {
+        canvas.drawCircle(Offset(x, y), 2.2, dot);
       }
     }
   }
 
   @override
-  bool shouldRepaint(covariant _DotPainter oldDelegate) {
-    return oldDelegate.progress != progress;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _BokehOrb extends StatelessWidget {
+  const _BokehOrb({
+    required this.size,
+    required this.color,
+    required this.glowColor,
+    required this.opacity,
+    required this.blur,
+  });
+
+  final double size;
+  final Color color;
+  final Color glowColor;
+  final double opacity;
+  final double blur;
+
+  @override
+  Widget build(BuildContext context) {
+    return ImageFiltered(
+      imageFilter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            center: const Alignment(-0.32, -0.34),
+            radius: 0.98,
+            colors: [
+              Colors.white.withValues(alpha: opacity),
+              color.withValues(alpha: opacity * 0.84),
+              glowColor.withValues(alpha: opacity * 0.16),
+              color.withValues(alpha: 0),
+            ],
+          ),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: opacity * 0.52),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: glowColor.withValues(alpha: opacity * 0.18),
+              blurRadius: 54,
+              spreadRadius: 10,
+            ),
+          ],
+        ),
+        child: Align(
+          alignment: const Alignment(-0.36, -0.34),
+          child: Container(
+            width: size * 0.24,
+            height: size * 0.24,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withValues(alpha: opacity * 0.34),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -546,7 +689,7 @@ class _ConfettiOverlay extends StatelessWidget {
       AppTheme.primaryColor,
       AppTheme.secondaryColor,
       AppTheme.accentColor,
-      const Color(0xFF57C785),
+      AppTheme.warmSurfaceColor,
     ];
     final random = math.Random(seed);
     final viewport = MediaQuery.of(context).size;
@@ -687,6 +830,7 @@ class _SquareIconButton extends StatelessWidget {
         decoration: AppTheme.glassCardDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
+          borderColor: AppTheme.primaryColor.withValues(alpha: 0.12),
         ),
         child: Icon(icon, color: AppTheme.secondaryText, size: 20),
       ),
@@ -704,26 +848,15 @@ class _RoomMenuButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(20),
       child: Ink(
-        width: 42,
-        height: 42,
+        width: 46,
+        height: 46,
         decoration: BoxDecoration(
           color: expanded
-              ? const Color(0xFFFFF4EC)
-              : Colors.white.withValues(alpha: 0.96),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: expanded ? const Color(0xFFF6D8C7) : const Color(0xFFF1EAE4),
-            width: 1.1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFFE6D9CE).withValues(alpha: 0.18),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
+              ? AppTheme.primaryColor.withValues(alpha: 0.08)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Center(
           child: AnimatedRotation(
@@ -736,22 +869,18 @@ class _RoomMenuButton extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   _MenuLine(
-                    width: expanded ? 16 : 14,
-                    color: expanded
-                        ? AppTheme.primaryColor
-                        : AppTheme.secondaryText,
-                  ),
-                  const SizedBox(height: 3.5),
-                  _MenuLine(
-                    width: expanded ? 10 : 18,
+                    width: expanded ? 18 : 16,
                     color: AppTheme.secondaryText,
                   ),
-                  const SizedBox(height: 3.5),
+                  const SizedBox(height: 4),
                   _MenuLine(
-                    width: expanded ? 16 : 12,
-                    color: expanded
-                        ? AppTheme.primaryColor
-                        : AppTheme.secondaryText,
+                    width: expanded ? 12 : 22,
+                    color: AppTheme.secondaryText,
+                  ),
+                  const SizedBox(height: 4),
+                  _MenuLine(
+                    width: expanded ? 18 : 14,
+                    color: AppTheme.secondaryText,
                   ),
                 ],
               ),
@@ -815,10 +944,13 @@ class _RoomQuickActionChip extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.96),
                 borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: const Color(0xFFF3ECE6), width: 1),
+                border: Border.all(
+                  color: AppTheme.warmSurfaceColor.withValues(alpha: 0.42),
+                  width: 1,
+                ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFE6D9CE).withValues(alpha: 0.14),
+                    color: AppTheme.primaryColor.withValues(alpha: 0.06),
                     blurRadius: 12,
                     offset: const Offset(0, 6),
                   ),
@@ -845,7 +977,10 @@ class _RoomQuickActionChip extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.94),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFF3ECE6), width: 1),
+                border: Border.all(
+                  color: AppTheme.warmSurfaceColor.withValues(alpha: 0.42),
+                  width: 1,
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: color.withValues(alpha: 0.12),
@@ -880,37 +1015,62 @@ class _PetChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final petAccent = Color(
-      int.parse(appearance.colorHex.replaceFirst('#', '0xFF')),
-    );
-
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(999),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(5, 5, 18, 5),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        constraints: const BoxConstraints(minWidth: 126),
+        padding: const EdgeInsets.fromLTRB(6, 5, 16, 5),
         decoration: BoxDecoration(
-          color: selected ? Colors.white : Colors.white.withValues(alpha: 0.6),
+          gradient: selected
+              ? const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [AppTheme.primaryColor, Color(0xFF934247)],
+                )
+              : null,
+          color: selected ? null : Colors.white.withValues(alpha: 0.96),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: selected ? petAccent.withValues(alpha: 0.34) : Colors.white,
-            width: 2,
+            color: selected
+                ? AppTheme.primaryColor.withValues(alpha: 0.72)
+                : AppTheme.primaryColor.withValues(alpha: 0.10),
+            width: 1.2,
           ),
-          boxShadow: AppTheme.subtleShadow,
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.14),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.045),
+                    blurRadius: 12,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 52,
-              height: 52,
+              width: 46,
+              height: 46,
               decoration: BoxDecoration(
                 color: selected
-                    ? petAccent.withValues(alpha: 0.12)
-                    : const Color(0xFFF8F7F4),
+                    ? Colors.white.withValues(alpha: 0.95)
+                    : AppTheme.blushSurfaceColor.withValues(alpha: 0.42),
                 borderRadius: BorderRadius.circular(999),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  width: 1,
+                  color: selected
+                      ? Colors.white
+                      : AppTheme.primaryColor.withValues(alpha: 0.08),
+                  width: 1.2,
                 ),
               ),
               child: ClipRRect(
@@ -922,11 +1082,12 @@ class _PetChip extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 11),
             Text(
               pet.name,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: selected ? AppTheme.secondaryText : AppTheme.mutedText,
+                color: selected ? Colors.white : AppTheme.secondaryText,
+                fontWeight: FontWeight.w900,
               ),
             ),
           ],
@@ -966,7 +1127,7 @@ class _PetChipAvatar extends StatelessWidget {
       child: _SpeciesAvatarIcon(
         species: appearance.species,
         appearance: appearance,
-        size: 42,
+        size: 38,
         dimmed: dimmed,
       ),
     );
@@ -983,35 +1144,63 @@ class _AddPetChip extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(999),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(6, 6, 16, 6),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.42),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: AppTheme.mutedText.withValues(alpha: 0.24),
-            width: 2,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.88),
-                borderRadius: BorderRadius.circular(999),
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 520),
+        curve: Curves.easeOutBack,
+        builder: (context, value, child) {
+          return Transform.scale(scale: 0.96 + (0.04 * value), child: child);
+        },
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 132),
+          padding: const EdgeInsets.fromLTRB(6, 5, 16, 5),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.96),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: AppTheme.primaryColor.withValues(alpha: 0.10),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primaryColor.withValues(alpha: 0.06),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
               ),
-              child: const Icon(Icons.add_rounded, size: 18),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              'Add Pet',
-              style: Theme.of(
-                context,
-              ).textTheme.labelMedium?.copyWith(color: AppTheme.mutedText),
-            ),
-          ],
+            ],
+          ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: AppTheme.blushSurfaceColor.withValues(alpha: 0.72),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: Colors.white, width: 1.4),
+                    ),
+                    child: const Icon(
+                      Icons.add_rounded,
+                      color: AppTheme.primaryColor,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Add Pet',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: AppTheme.secondaryText,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1038,7 +1227,10 @@ class _MetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: AppTheme.glassCardDecoration(),
+      decoration: AppTheme.glassCardDecoration(
+        color: Colors.white,
+        borderColor: color.withValues(alpha: 0.22),
+      ),
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1051,7 +1243,15 @@ class _MetricCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.labelSmall,
                 ),
               ),
-              Icon(icon, size: 18, color: color),
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(icon, size: 18, color: Colors.white),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -1083,7 +1283,7 @@ class _MetricCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 6,
-              backgroundColor: AppTheme.secondaryColor.withValues(alpha: 0.06),
+              backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.10),
               valueColor: AlwaysStoppedAnimation<Color>(color),
             ),
           ),
@@ -1110,94 +1310,118 @@ class _MissionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 220),
-      opacity: completed ? 0.68 : 1,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        decoration: AppTheme.glassCardDecoration(
-          color: completed
-              ? Colors.white.withValues(alpha: 0.52)
-              : Colors.white.withValues(alpha: 0.84),
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: completed ? Colors.white : const Color(0xFFF8F6F2),
-                borderRadius: BorderRadius.circular(18),
+      opacity: 1,
+      child: AnimatedScale(
+        duration: const Duration(milliseconds: 240),
+        curve: Curves.easeOutBack,
+        scale: bursting ? 1.025 : 1,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          decoration: AppTheme.glassCardDecoration(
+            color: Colors.white,
+            borderColor: completed
+                ? AppTheme.primaryColor.withValues(alpha: 0.22)
+                : AppTheme.primaryColor.withValues(alpha: 0.24),
+            borderWidth: 1.6,
+          ),
+          padding: const EdgeInsets.fromLTRB(15, 14, 14, 14),
+          child: Row(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: completed
+                      ? AppTheme.primaryColor.withValues(alpha: 0.86)
+                      : AppTheme.primaryColor,
+                  borderRadius: BorderRadius.circular(17),
+                ),
+                child: Icon(mission.icon, color: Colors.white, size: 22),
               ),
-              child: Icon(mission.icon, color: AppTheme.secondaryColor),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    mission.title,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '+${mission.reward} XP',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppTheme.primaryColor,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      mission.title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            AnimatedScale(
-              duration: const Duration(milliseconds: 260),
-              scale: bursting ? 1.08 : 1,
-              child: completed
-                  ? Container(
-                      width: 34,
-                      height: 34,
+                    const SizedBox(height: 7),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.16),
-                        shape: BoxShape.circle,
+                        color: completed
+                            ? AppTheme.creamSurfaceColor.withValues(alpha: 0.9)
+                            : AppTheme.blushSurfaceColor.withValues(
+                                alpha: 0.86,
+                              ),
+                        borderRadius: BorderRadius.circular(999),
                       ),
-                      child: Icon(
-                        Icons.check_rounded,
-                        color: AppTheme.primaryColor,
-                        size: 18,
-                      ),
-                    )
-                  : GestureDetector(
-                      onTapDown: (details) => onTap(details.globalPosition),
-                      child: Container(
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppTheme.primaryColor.withValues(
-                              alpha: 0.24,
-                            ),
-                            width: 1.6,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.04),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
+                      child: Text(
+                        '+${mission.reward} treats XP',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: completed
+                              ? AppTheme.primaryColor
+                              : AppTheme.primaryColor,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.2,
                         ),
-                        child: Icon(
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              AnimatedScale(
+                duration: const Duration(milliseconds: 260),
+                scale: bursting ? 1.08 : 1,
+                child: completed
+                    ? Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
                           Icons.check_rounded,
-                          color: AppTheme.primaryColor.withValues(alpha: 0.9),
+                          color: Colors.white,
                           size: 17,
                         ),
+                      )
+                    : GestureDetector(
+                        onTapDown: (details) => onTap(details.globalPosition),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: AppTheme.blushSurfaceColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: AppTheme.primaryColor.withValues(
+                                alpha: 0.28,
+                              ),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.check_rounded,
+                            color: AppTheme.primaryColor.withValues(
+                              alpha: 0.76,
+                            ),
+                            size: 16,
+                          ),
+                        ),
                       ),
-                    ),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1283,23 +1507,24 @@ class _FilterToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget chip(String text, _VetFilter filter, Color? activeColor) {
+    Widget chip(String text, _VetFilter filter) {
       final selected = current == filter;
       return InkWell(
         onTap: () => onChanged(filter),
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        borderRadius: BorderRadius.circular(999),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(
-            color: selected ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
+            color: selected ? AppTheme.primaryColor : Colors.transparent,
+            borderRadius: BorderRadius.circular(999),
           ),
           child: Text(
             text,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: selected
-                  ? (activeColor ?? AppTheme.secondaryText)
-                  : AppTheme.mutedText,
+              color: selected ? Colors.white : AppTheme.mutedText,
+              fontWeight: FontWeight.w900,
             ),
           ),
         ),
@@ -1307,16 +1532,27 @@ class _FilterToggle extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: AppTheme.secondaryColor.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: AppTheme.primaryColor.withValues(alpha: 0.10),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryColor.withValues(alpha: 0.045),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          chip('All', _VetFilter.all, AppTheme.secondaryText),
-          chip('Online', _VetFilter.online, AppTheme.successColor),
+          chip('All', _VetFilter.all),
+          chip('Online', _VetFilter.online),
         ],
       ),
     );
@@ -1346,8 +1582,11 @@ class _ConsultActionCard extends StatelessWidget {
       child: Container(
         height: 172,
         decoration: AppTheme.glassCardDecoration(
-          color: dark ? AppTheme.secondaryColor : Colors.white,
+          color: dark ? AppTheme.primaryColor : Colors.white,
           borderRadius: BorderRadius.circular(32),
+          borderColor: dark
+              ? AppTheme.primaryColor
+              : AppTheme.primaryColor.withValues(alpha: 0.12),
         ),
         padding: const EdgeInsets.all(22),
         child: Column(
@@ -1357,14 +1596,12 @@ class _ConsultActionCard extends StatelessWidget {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: dark
-                    ? Colors.white.withValues(alpha: 0.18)
-                    : AppTheme.secondaryColor.withValues(alpha: 0.06),
+                color: dark ? Colors.white : AppTheme.blushSurfaceColor,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(
                 icon,
-                color: dark ? Colors.white : AppTheme.secondaryColor,
+                color: dark ? AppTheme.primaryColor : AppTheme.primaryColor,
               ),
             ),
             const Spacer(),
@@ -1408,8 +1645,10 @@ class _VetCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(32),
       child: Container(
         decoration: AppTheme.glassCardDecoration(
-          color: Colors.white,
+          color: Colors.white.withValues(alpha: 0.95),
           borderRadius: BorderRadius.circular(32),
+          borderColor: (vet.online ? AppTheme.successColor : AppTheme.mutedText)
+              .withValues(alpha: 0.16),
         ),
         padding: const EdgeInsets.all(18),
         child: Column(
@@ -1424,7 +1663,11 @@ class _VetCard extends StatelessWidget {
                       width: 54,
                       height: 54,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF3EEE8),
+                        color: vet.online
+                            ? AppTheme.successColor.withValues(alpha: 0.13)
+                            : AppTheme.blushSurfaceColor.withValues(
+                                alpha: 0.72,
+                              ),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Center(
@@ -1475,7 +1718,7 @@ class _VetCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: vet.online
                         ? AppTheme.successColor.withValues(alpha: 0.12)
-                        : const Color(0xFFF6F1EA),
+                        : AppTheme.creamSurfaceColor.withValues(alpha: 0.82),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Text(
@@ -1517,7 +1760,7 @@ class _VetCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: onCall != null
                           ? AppTheme.secondaryColor.withValues(alpha: 0.08)
-                          : const Color(0xFFF5F1EB),
+                          : AppTheme.creamSurfaceColor.withValues(alpha: 0.82),
                       borderRadius: BorderRadius.circular(18),
                     ),
                     child: Icon(
@@ -1557,22 +1800,40 @@ class _VetChatQuickAction extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(999),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(10, 8, 14, 8),
+        height: 44,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Colors.white.withValues(alpha: 0.96),
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: const Color(0xFFF0E8E1), width: 1.1),
+          border: Border.all(
+            color: AppTheme.primaryColor.withValues(alpha: 0.10),
+            width: 1.1,
+          ),
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 16, color: color),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: AppTheme.secondaryText,
-                fontWeight: FontWeight.w700,
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 15, color: color),
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: AppTheme.secondaryText,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
             ),
           ],
@@ -1685,8 +1946,14 @@ class _HistoryPreviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _urgencyCardColor(item.urgency);
+    final textColor = AppTheme.secondaryText;
+    final mutedColor = AppTheme.mutedText;
     return Container(
-      decoration: AppTheme.glassCardDecoration(),
+      decoration: AppTheme.glassCardDecoration(
+        color: Colors.white.withValues(alpha: 0.96),
+        borderColor: AppTheme.warmSurfaceColor.withValues(alpha: 0.38),
+        borderWidth: 1.2,
+      ),
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1709,12 +1976,18 @@ class _HistoryPreviewCard extends StatelessWidget {
                   children: [
                     Text(
                       item.date,
-                      style: Theme.of(context).textTheme.labelSmall,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: mutedColor,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       item.title,
-                      style: Theme.of(context).textTheme.titleMedium,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: textColor,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ],
                 ),
@@ -1726,13 +1999,14 @@ class _HistoryPreviewCard extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
                   item.urgency,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelSmall?.copyWith(color: color),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
             ],
@@ -1742,12 +2016,16 @@ class _HistoryPreviewCard extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.65),
+              color: Colors.white.withValues(alpha: 0.74),
               borderRadius: BorderRadius.circular(18),
             ),
             child: Text(
               '"${item.result}"',
-              style: Theme.of(context).textTheme.bodyMedium,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: mutedColor,
+                height: 1.55,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -1775,9 +2053,15 @@ class _HistoryDetailCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _urgencyColor(item.urgency);
+    final textColor = AppTheme.secondaryText;
+    final mutedColor = AppTheme.mutedText;
     return Container(
-      decoration: AppTheme.glassCardDecoration(),
-      padding: const EdgeInsets.all(16),
+      decoration: AppTheme.glassCardDecoration(
+        color: Colors.white.withValues(alpha: 0.96),
+        borderColor: AppTheme.warmSurfaceColor.withValues(alpha: 0.38),
+        borderWidth: 1.2,
+      ),
+      padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1790,7 +2074,7 @@ class _HistoryDetailCard extends StatelessWidget {
                   color: color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(18),
                 ),
-                child: Icon(Icons.search_rounded, color: color),
+                child: Icon(Icons.history_rounded, color: color),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -1799,12 +2083,18 @@ class _HistoryDetailCard extends StatelessWidget {
                   children: [
                     Text(
                       item.date,
-                      style: Theme.of(context).textTheme.labelSmall,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: mutedColor,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       item.title,
-                      style: Theme.of(context).textTheme.titleMedium,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: textColor,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ],
                 ),
@@ -1816,13 +2106,14 @@ class _HistoryDetailCard extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
                   item.urgency,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelSmall?.copyWith(color: color),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
             ],
@@ -1832,12 +2123,16 @@ class _HistoryDetailCard extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.65),
+              color: Colors.white.withValues(alpha: 0.74),
               borderRadius: BorderRadius.circular(18),
             ),
             child: Text(
               '"${item.result}"',
-              style: Theme.of(context).textTheme.bodyMedium,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: mutedColor,
+                height: 1.55,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -1891,11 +2186,22 @@ class _StatTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: AppTheme.glassCardDecoration(),
+      decoration: AppTheme.glassCardDecoration(
+        color: Colors.white,
+        borderColor: iconColor.withValues(alpha: 0.16),
+      ),
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          Icon(icon, color: iconColor, size: 22),
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: iconColor,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(icon, color: Colors.white, size: 22),
+          ),
           const SizedBox(height: 12),
           Text(value, style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 4),
@@ -1925,7 +2231,10 @@ class _ProfileLinkCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(30),
       child: Container(
-        decoration: AppTheme.glassCardDecoration(),
+        decoration: AppTheme.glassCardDecoration(
+          color: Colors.white.withValues(alpha: 0.95),
+          borderColor: AppTheme.secondaryColor.withValues(alpha: 0.13),
+        ),
         padding: const EdgeInsets.all(18),
         child: Row(
           children: [
@@ -1933,7 +2242,7 @@ class _ProfileLinkCard extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: const Color(0xFFF8F6F2),
+                color: const Color(0xFFFFF1EC),
                 borderRadius: BorderRadius.circular(18),
               ),
               child: Icon(icon, color: AppTheme.secondaryColor),
@@ -1968,14 +2277,12 @@ class _ProfileActionButton extends StatelessWidget {
     required this.icon,
     required this.tint,
     required this.onTap,
-    this.emphasized = false,
   });
 
   final String label;
   final IconData icon;
   final Color tint;
   final VoidCallback onTap;
-  final bool emphasized;
 
   @override
   Widget build(BuildContext context) {
@@ -1985,14 +2292,10 @@ class _ProfileActionButton extends StatelessWidget {
       child: Ink(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: emphasized
-              ? tint.withValues(alpha: 0.1)
-              : Colors.white.withValues(alpha: 0.9),
+          color: Colors.white.withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: emphasized
-                ? tint.withValues(alpha: 0.12)
-                : AppTheme.secondaryText.withValues(alpha: 0.08),
+            color: AppTheme.secondaryText.withValues(alpha: 0.08),
             width: 1.1,
           ),
           boxShadow: AppTheme.subtleShadow,
@@ -2004,9 +2307,7 @@ class _ProfileActionButton extends StatelessWidget {
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                color: emphasized
-                    ? Colors.white.withValues(alpha: 0.72)
-                    : tint.withValues(alpha: 0.1),
+                color: tint.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Icon(icon, size: 18, color: tint),
@@ -2015,7 +2316,7 @@ class _ProfileActionButton extends StatelessWidget {
             Text(
               label,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: emphasized ? tint : AppTheme.secondaryText,
+                color: AppTheme.secondaryText,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -2078,14 +2379,16 @@ class _SelectionChip extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: selected ? const Color(0xFFF6D7CC) : const Color(0xFFEAE6E1),
+            color: selected
+                ? AppTheme.secondaryColor.withValues(alpha: 0.34)
+                : AppTheme.warmSurfaceColor.withValues(alpha: 0.46),
             width: selected ? 1.8 : 1.4,
           ),
           boxShadow: [
             BoxShadow(
               color: selected
                   ? AppTheme.primaryColor.withValues(alpha: 0.08)
-                  : const Color(0x0F3F6174),
+                  : AppTheme.secondaryColor.withValues(alpha: 0.06),
               blurRadius: selected ? 16 : 10,
               offset: const Offset(0, 6),
             ),
@@ -2100,8 +2403,8 @@ class _SelectionChip extends StatelessWidget {
               height: 42,
               decoration: BoxDecoration(
                 color: selected
-                    ? const Color(0xFFFFF3EE)
-                    : const Color(0xFFF8F6F3),
+                    ? AppTheme.blushSurfaceColor.withValues(alpha: 0.74)
+                    : AppTheme.creamSurfaceColor.withValues(alpha: 0.66),
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Center(child: leading),
@@ -2226,8 +2529,8 @@ class _SpeciesAvatarIcon extends StatelessWidget {
     final color = currentAppearance != null
         ? Color(int.parse(currentAppearance.colorHex.replaceFirst('#', '0xFF')))
         : normalized == 'dog'
-        ? const Color(0xFFF5C44F)
-        : const Color(0xFFF6A253);
+        ? AppTheme.accentColor
+        : AppTheme.primaryColor;
 
     return Opacity(
       opacity: dimmed ? 0.82 : 1,
