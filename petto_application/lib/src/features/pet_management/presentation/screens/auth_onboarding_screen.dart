@@ -34,6 +34,8 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
   String _gender = 'Male';
 
   final _ownerName = TextEditingController();
+  final _email = TextEditingController();
+  final _password = TextEditingController();
   final _petName = TextEditingController();
   final _breed = TextEditingController();
   final _bloodType = TextEditingController();
@@ -46,6 +48,8 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
   @override
   void dispose() {
     _ownerName.dispose();
+    _email.dispose();
+    _password.dispose();
     _petName.dispose();
     _breed.dispose();
     _bloodType.dispose();
@@ -199,6 +203,7 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
           child: _GatewayPage(
             onBack: _back,
             onGoogle: _openHome,
+            onEmailAuth: _openHome,
             onGuest: () {
               setState(() {
                 _transitionDirection = 1;
@@ -206,6 +211,8 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
                 _step = _RegisterStep.owner;
               });
             },
+            emailController: _email,
+            passwordController: _password,
           ),
         );
       case _AuthScreen.register:
@@ -503,82 +510,114 @@ class _GatewayPage extends StatelessWidget {
   const _GatewayPage({
     required this.onBack,
     required this.onGoogle,
+    required this.onEmailAuth,
     required this.onGuest,
+    required this.emailController,
+    required this.passwordController,
   });
 
   final VoidCallback onBack;
   final VoidCallback onGoogle;
+  final VoidCallback onEmailAuth;
   final VoidCallback onGuest;
+  final TextEditingController emailController;
+  final TextEditingController passwordController;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(32),
       child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 384),
-          child: _MotionIn(
-            initialScale: 0.95,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Login / Register',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: AppTheme.displayFontFamily,
-                    color: _AuthOnboardingScreenState._deepRed,
-                    fontSize: 30,
-                    fontWeight: FontWeight.w800,
-                    height: 1.05,
-                    letterSpacing: -0.4,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Select your preferred method to start caring for your pet.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: AppTheme.sansFontFamily,
-                    color: Color(0x664E1F22),
-                    fontSize: 14,
-                    height: 1.5,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 40),
-                _GoogleButton(onTap: onGoogle),
-                const SizedBox(height: 16),
-                const _OrDivider(),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _GhostButton(label: 'BACK', onTap: onBack),
+        child: SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 384),
+            child: _MotionIn(
+              initialScale: 0.95,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Login / Register',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: AppTheme.displayFontFamily,
+                      color: _AuthOnboardingScreenState._deepRed,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w800,
+                      height: 1.05,
+                      letterSpacing: -0.4,
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _ReferenceButton(label: 'GUEST', onTap: onGuest),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 40),
-                TextButton.icon(
-                  onPressed: onBack,
-                  label: const Text('VIEW SECURITY DETAILS'),
-                  icon: const Icon(Icons.arrow_forward_rounded),
-                  iconAlignment: IconAlignment.end,
-                  style: TextButton.styleFrom(
-                    foregroundColor: _AuthOnboardingScreenState._red,
-                    textStyle: const TextStyle(
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Sign in with your account or continue another way.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
                       fontFamily: AppTheme.sansFontFamily,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.8,
+                      color: Color(0x664E1F22),
+                      fontSize: 14,
+                      height: 1.5,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 32),
+                  _GatewayAuthField(
+                    controller: emailController,
+                    hint: 'Email address',
+                    icon: Icons.mail_rounded,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                  ),
+                  const SizedBox(height: 12),
+                  _GatewayAuthField(
+                    controller: passwordController,
+                    hint: 'Password',
+                    icon: Icons.lock_rounded,
+                    obscureText: true,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => onEmailAuth(),
+                  ),
+                  const SizedBox(height: 16),
+                  _ReferenceButton(
+                    label: 'LOGIN / REGISTER',
+                    onTap: onEmailAuth,
+                    icon: Icons.arrow_forward_rounded,
+                    fullWidth: true,
+                    animatedIcon: true,
+                  ),
+                  const SizedBox(height: 18),
+                  const _OrDivider(),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _GoogleButton(onTap: onGoogle, compact: true),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _ReferenceButton(label: 'GUEST', onTap: onGuest),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  TextButton.icon(
+                    onPressed: onBack,
+                    label: const Text('VIEW SECURITY DETAILS'),
+                    icon: const Icon(Icons.arrow_forward_rounded),
+                    iconAlignment: IconAlignment.end,
+                    style: TextButton.styleFrom(
+                      foregroundColor: _AuthOnboardingScreenState._red,
+                      textStyle: const TextStyle(
+                        fontFamily: AppTheme.sansFontFamily,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.8,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -3357,8 +3396,152 @@ class _SegmentButton extends StatelessWidget {
   }
 }
 
+class _GatewayAuthField extends StatefulWidget {
+  const _GatewayAuthField({
+    required this.controller,
+    required this.hint,
+    required this.icon,
+    this.keyboardType,
+    this.textInputAction,
+    this.obscureText = false,
+    this.onSubmitted,
+  });
+
+  final TextEditingController controller;
+  final String hint;
+  final IconData icon;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+  final bool obscureText;
+  final ValueChanged<String>? onSubmitted;
+
+  @override
+  State<_GatewayAuthField> createState() => _GatewayAuthFieldState();
+}
+
+class _GatewayAuthFieldState extends State<_GatewayAuthField> {
+  late bool _obscured;
+
+  @override
+  void initState() {
+    super.initState();
+    _obscured = widget.obscureText;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 62,
+      child: TextField(
+        controller: widget.controller,
+        keyboardType: widget.keyboardType,
+        textInputAction: widget.textInputAction,
+        obscureText: _obscured,
+        onSubmitted: widget.onSubmitted,
+        cursorColor: _AuthOnboardingScreenState._red,
+        style: const TextStyle(
+          fontFamily: AppTheme.sansFontFamily,
+          color: _AuthOnboardingScreenState._deepRed,
+          fontSize: 16,
+          fontWeight: FontWeight.w800,
+        ),
+        decoration: InputDecoration(
+          hintText: widget.hint,
+          hintStyle: TextStyle(
+            fontFamily: AppTheme.sansFontFamily,
+            color: _AuthOnboardingScreenState._rose.withValues(alpha: 0.78),
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+          ),
+          prefixIcon: Container(
+            width: 36,
+            height: 36,
+            margin: const EdgeInsets.fromLTRB(13, 13, 8, 13),
+            decoration: BoxDecoration(
+              color: _AuthOnboardingScreenState._red.withValues(alpha: 0.10),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              widget.icon,
+              color: _AuthOnboardingScreenState._red,
+              size: 18,
+            ),
+          ),
+          prefixIconConstraints: const BoxConstraints(
+            minWidth: 62,
+            minHeight: 62,
+          ),
+          suffixIcon: widget.obscureText
+              ? Center(
+                  widthFactor: 1,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => setState(() => _obscured = !_obscured),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 160),
+                        transitionBuilder: (child, animation) {
+                          return ScaleTransition(
+                            scale: CurvedAnimation(
+                              parent: animation,
+                              curve: Curves.easeOutBack,
+                            ),
+                            child: FadeTransition(
+                              opacity: animation,
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: Icon(
+                          _obscured
+                              ? Icons.visibility_rounded
+                              : Icons.visibility_off_rounded,
+                          key: ValueKey(_obscured),
+                          color: _AuthOnboardingScreenState._red.withValues(
+                            alpha: 0.72,
+                          ),
+                          size: 19,
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              : null,
+          suffixIconConstraints: const BoxConstraints(
+            minWidth: 50,
+            minHeight: 62,
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 18,
+            vertical: 18,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(24),
+            borderSide: BorderSide(
+              color: _AuthOnboardingScreenState._paleRose.withValues(
+                alpha: 0.62,
+              ),
+              width: 1.4,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(24),
+            borderSide: BorderSide(
+              color: _AuthOnboardingScreenState._red.withValues(alpha: 0.34),
+              width: 1.7,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _GoogleButton extends StatelessWidget {
-  const _GoogleButton({required this.onTap});
+  const _GoogleButton({required this.onTap, this.compact = false});
 
   static const _googleLogoSvg = '''
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
@@ -3370,21 +3553,24 @@ class _GoogleButton extends StatelessWidget {
 ''';
 
   final VoidCallback onTap;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
+    final height = compact ? 56.0 : 64.0;
+    final radius = compact ? 24.0 : 16.0;
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(radius),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(radius),
         child: Container(
-          height: 64,
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          height: height,
+          padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 24),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(radius),
             border: Border.all(
               color: _AuthOnboardingScreenState._paleRose.withValues(
                 alpha: 0.34,
@@ -3405,11 +3591,11 @@ class _GoogleButton extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 38,
-                height: 38,
+                width: compact ? 34 : 38,
+                height: compact ? 34 : 38,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(compact ? 999 : 12),
                   border: Border.all(color: const Color(0xFFF2ECEA), width: 1),
                   boxShadow: [
                     BoxShadow(
@@ -3424,21 +3610,21 @@ class _GoogleButton extends StatelessWidget {
                 child: Center(
                   child: SvgPicture.string(
                     _googleLogoSvg,
-                    width: 23,
-                    height: 23,
+                    width: compact ? 20 : 23,
+                    height: compact ? 20 : 23,
                   ),
                 ),
               ),
-              const SizedBox(width: 18),
-              const Flexible(
+              SizedBox(width: compact ? 10 : 18),
+              Flexible(
                 child: Text(
-                  'Continue with Google',
+                  compact ? 'GOOGLE' : 'Continue with Google',
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontFamily: AppTheme.sansFontFamily,
                     color: _AuthOnboardingScreenState._deepRed,
-                    fontSize: 15,
-                    letterSpacing: 0.2,
+                    fontSize: compact ? 12 : 15,
+                    letterSpacing: compact ? 1.2 : 0.2,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
