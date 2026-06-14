@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/top_alert.dart';
 import '../controllers/health_assessment_controller.dart';
 import '../widgets/image_uploader_widget.dart';
 import '../widgets/pet_avatar_widget.dart';
@@ -86,10 +87,10 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
 
     // The backend requires a photo for the AI scan, so guard early.
     if (_selectedImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('กรุณาเพิ่มรูปภาพสัตว์เลี้ยงก่อนเริ่มวิเคราะห์'),
-        ),
+      showTopAlert(
+        context,
+        'Please add a pet photo before starting the analysis.',
+        icon: Icons.info_outline_rounded,
       );
       return;
     }

@@ -32,9 +32,7 @@ extension _HomeWardrobeScreenPart on _HomeScreenState {
     _update(() {
       _savedAppearances[_activePetIndex] = appearance;
     });
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Wardrobe saved.')));
+    showTopAlert(context, 'Wardrobe saved.');
   }
 
   bool _hasWardrobeChanges() {

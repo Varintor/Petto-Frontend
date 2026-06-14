@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/widgets/top_alert.dart';
 import '../controllers/vaccination_controller.dart';
 
 class AddVaccinationScreen extends StatefulWidget {
@@ -31,7 +32,9 @@ class _AddVaccinationScreenState extends State<AddVaccinationScreen> {
   Future<void> _selectDate(BuildContext context, bool isAdministered) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: isAdministered ? _dateAdministered : (_nextDueDate ?? DateTime.now()),
+      initialDate: isAdministered
+          ? _dateAdministered
+          : (_nextDueDate ?? DateTime.now()),
       firstDate: DateTime(2000),
       lastDate: DateTime(2030),
     );
@@ -65,16 +68,13 @@ class _AddVaccinationScreenState extends State<AddVaccinationScreen> {
     );
 
     if (success && mounted) {
+      showTopAlert(context, 'Vaccination saved successfully.');
       Navigator.pop(context, true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('บันทึกวัคซีนสำเร็จ')),
-      );
     } else if (controller.hasError && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(controller.errorMessage ?? 'เกิดข้อผิดพลาด'),
-          backgroundColor: Colors.red,
-        ),
+      showTopAlert(
+        context,
+        controller.errorMessage ?? 'Something went wrong.',
+        icon: Icons.info_outline_rounded,
       );
     }
   }
@@ -85,10 +85,7 @@ class _AddVaccinationScreenState extends State<AddVaccinationScreen> {
       appBar: AppBar(
         title: const Text('เพิ่มบันทึกวัคซีน'),
         actions: [
-          IconButton(
-            onPressed: _submit,
-            icon: const Icon(Icons.check),
-          ),
+          IconButton(onPressed: _submit, icon: const Icon(Icons.check)),
         ],
       ),
       body: Consumer<VaccinationController>(
@@ -151,7 +148,9 @@ class _AddVaccinationScreenState extends State<AddVaccinationScreen> {
                             : '${_nextDueDate!.day}/${_nextDueDate!.month}/${_nextDueDate!.year}',
                         style: TextStyle(
                           fontSize: 16,
-                          color: _nextDueDate == null ? Colors.grey : Colors.black,
+                          color: _nextDueDate == null
+                              ? Colors.grey
+                              : Colors.black,
                         ),
                       ),
                     ),

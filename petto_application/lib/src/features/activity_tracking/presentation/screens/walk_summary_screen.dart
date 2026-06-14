@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/top_alert.dart';
 import '../controllers/activity_tracking_controller.dart';
 import '../widgets/route_trace_view.dart';
 
@@ -14,14 +15,14 @@ class WalkSummaryScreen extends StatelessWidget {
     final ok = await c.save();
     if (!context.mounted) return;
     if (ok) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Walk saved successfully.')));
+      showTopAlert(context, 'Walk saved successfully.');
       c.reset();
       Navigator.of(context).popUntil((route) => route.isFirst);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(c.error ?? 'Could not save walk.')),
+      showTopAlert(
+        context,
+        c.error ?? 'Could not save walk.',
+        icon: Icons.info_outline_rounded,
       );
     }
   }
