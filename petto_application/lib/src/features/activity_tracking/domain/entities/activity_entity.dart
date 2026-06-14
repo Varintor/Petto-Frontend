@@ -48,11 +48,11 @@ class ActivityEntity {
   String get activityTypeThai {
     switch (activityType.toLowerCase()) {
       case 'walking':
-        return 'เดินเล่น';
+        return 'Walking';
       case 'running':
-        return 'วิ่งเล่น';
+        return 'Running';
       case 'playing':
-        return 'เล่นสนุก';
+        return 'Playing';
       default:
         return activityType;
     }

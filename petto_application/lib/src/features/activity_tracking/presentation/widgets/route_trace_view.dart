@@ -25,10 +25,19 @@ class RouteTraceView extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFEFF6F4), Color(0xFFF7FBFA)],
+          colors: [Color(0xFFFFFCF6), Color(0xFFFFF6EA)],
         ),
-        border: Border.all(color: Colors.white, width: 2),
-        boxShadow: AppTheme.subtleShadow,
+        border: Border.all(
+          color: AppTheme.primaryColor.withValues(alpha: 0.10),
+          width: 1.4,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryColor.withValues(alpha: 0.055),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       clipBehavior: Clip.antiAlias,
       child: points.length < 2

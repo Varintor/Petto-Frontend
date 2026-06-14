@@ -14,14 +14,14 @@ class WalkSummaryScreen extends StatelessWidget {
     final ok = await c.save();
     if (!context.mounted) return;
     if (ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('บันทึกการเดินเรียบร้อยแล้ว 🐾')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Walk saved successfully.')));
       c.reset();
       Navigator.of(context).popUntil((route) => route.isFirst);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(c.error ?? 'บันทึกไม่สำเร็จ')),
+        SnackBar(content: Text(c.error ?? 'Could not save walk.')),
       );
     }
   }
@@ -38,16 +38,41 @@ class WalkSummaryScreen extends StatelessWidget {
         final saving = c.state == WalkState.saving;
         return Scaffold(
           body: Container(
-            decoration:
-                const BoxDecoration(gradient: AppTheme.appBackgroundGradient),
+            decoration: const BoxDecoration(
+              gradient: AppTheme.appBackgroundGradient,
+            ),
             child: SafeArea(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text('Walk complete 🎉',
-                        style: Theme.of(context).textTheme.headlineSmall),
+                    Row(
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor.withValues(
+                              alpha: 0.10,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Icon(
+                            Icons.check_rounded,
+                            color: AppTheme.primaryColor,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Walk complete',
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       c.inferredActivityType == 'running'
@@ -57,7 +82,10 @@ class WalkSummaryScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     Expanded(
-                      child: RouteTraceView(points: c.points, showCurrent: false),
+                      child: RouteTraceView(
+                        points: c.points,
+                        showCurrent: false,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     _summaryGrid(context, c),
@@ -65,26 +93,60 @@ class WalkSummaryScreen extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: OutlinedButton(
-                            onPressed:
-                                saving ? null : () => _discard(context, c),
-                            child: const Text('Discard'),
+                          child: SizedBox(
+                            height: 58,
+                            child: OutlinedButton(
+                              onPressed: saving
+                                  ? null
+                                  : () => _discard(context, c),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppTheme.secondaryText,
+                                side: BorderSide(
+                                  color: AppTheme.primaryColor.withValues(
+                                    alpha: 0.18,
+                                  ),
+                                  width: 1.5,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(24),
+                                ),
+                                textStyle: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              child: const Text('Discard'),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 14),
                         Expanded(
-                          child: FilledButton(
-                            onPressed: saving ? null : () => _save(context, c),
-                            child: saving
-                                ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Text('Save Walk'),
+                          child: SizedBox(
+                            height: 58,
+                            child: FilledButton(
+                              onPressed: saving
+                                  ? null
+                                  : () => _save(context, c),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: AppTheme.primaryColor,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(24),
+                                ),
+                                textStyle: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              child: saving
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Text('Save Walk'),
+                            ),
                           ),
                         ),
                       ],
@@ -103,8 +165,11 @@ class WalkSummaryScreen extends StatelessWidget {
     final tiles = [
       ('Distance', '${c.distanceKmText} km', Icons.straighten_rounded),
       ('Duration', c.elapsedText, Icons.timer_outlined),
-      ('Avg speed', '${c.averageSpeedKmh.toStringAsFixed(1)} km/h',
-          Icons.speed_rounded),
+      (
+        'Avg speed',
+        '${c.averageSpeedKmh.toStringAsFixed(1)} km/h',
+        Icons.speed_rounded,
+      ),
       (
         'Type',
         c.inferredActivityType == 'running' ? 'Running' : 'Walking',
@@ -116,39 +181,44 @@ class WalkSummaryScreen extends StatelessWidget {
 
     return Column(
       children: [
-        Row(children: [
-          _tile(context, tiles[0]),
-          const SizedBox(width: 12),
-          _tile(context, tiles[1]),
-        ]),
+        Row(
+          children: [
+            _tile(context, tiles[0]),
+            const SizedBox(width: 12),
+            _tile(context, tiles[1]),
+          ],
+        ),
         const SizedBox(height: 12),
-        Row(children: [
-          _tile(context, tiles[2]),
-          const SizedBox(width: 12),
-          _tile(context, tiles[3]),
-        ]),
+        Row(
+          children: [
+            _tile(context, tiles[2]),
+            const SizedBox(width: 12),
+            _tile(context, tiles[3]),
+          ],
+        ),
         if (c.missionCompleted) ...[
           const SizedBox(height: 12),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             decoration: BoxDecoration(
-              color: AppTheme.successColor.withValues(alpha: 0.12),
+              color: AppTheme.primaryColor.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
-                  color: AppTheme.successColor.withValues(alpha: 0.4)),
+                color: AppTheme.primaryColor.withValues(alpha: 0.16),
+              ),
             ),
             child: Row(
               children: [
-                const Icon(Icons.emoji_events_rounded,
-                    color: AppTheme.successColor),
+                const Icon(Icons.flag_rounded, color: AppTheme.primaryColor),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'Mission complete: walked 15+ minutes!',
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: AppTheme.successColor,
-                        ),
+                      color: AppTheme.primaryColor,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ],
@@ -164,8 +234,10 @@ class WalkSummaryScreen extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: AppTheme.glassCardDecoration(
-          color: Colors.white.withValues(alpha: 0.85),
+          color: Colors.white.withValues(alpha: 0.94),
           borderRadius: BorderRadius.circular(22),
+          borderColor: AppTheme.primaryColor.withValues(alpha: 0.10),
+          borderWidth: 1.3,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
