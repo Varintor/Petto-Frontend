@@ -1936,15 +1936,22 @@ class _VetChatQuickAction extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(999),
       child: Container(
-        height: 44,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 9),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.96),
+          color: Colors.white.withValues(alpha: 0.98),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: AppTheme.primaryColor.withValues(alpha: 0.10),
-            width: 1.1,
+            color: AppTheme.primaryColor.withValues(alpha: 0.16),
+            width: 1.3,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primaryColor.withValues(alpha: 0.045),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1952,13 +1959,10 @@ class _VetChatQuickAction extends StatelessWidget {
             Container(
               width: 28,
               height: 28,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, size: 15, color: color),
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              child: Icon(icon, size: 15, color: Colors.white),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 7),
             Flexible(
               child: FittedBox(
                 fit: BoxFit.scaleDown,

@@ -302,96 +302,84 @@ extension _HomeConsultScreenPart on _HomeScreenState {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
-              child: Row(
-                children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Center(
-                      child: Text(
-                        vet.name.substring(4, 5),
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(color: AppTheme.secondaryText),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          vet.name,
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          vet.specialty,
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                color: AppTheme.primaryColor,
-                                letterSpacing: 1,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  _SquareIconButton(
-                    icon: Icons.call_rounded,
-                    onTap: () => _startVetCall(vet),
-                  ),
-                  const SizedBox(width: 8),
-                  _SquareIconButton(
-                    icon: Icons.close_rounded,
-                    onTap: _closeVetChat,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Container(
-                width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF7F1),
-                  borderRadius: BorderRadius.circular(22),
+                  color: Colors.white.withValues(alpha: 0.98),
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.16),
+                    width: 1.3,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.045),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: [
                     Container(
-                      width: 34,
-                      height: 34,
+                      width: 54,
+                      height: 54,
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.favorite_rounded,
                         color: AppTheme.primaryColor,
-                        size: 18,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.primaryColor.withValues(
+                              alpha: 0.16,
+                            ),
+                            blurRadius: 14,
+                            offset: const Offset(0, 7),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Secure vet chat. Share pet profile, recent health updates, and AI health checks instantly.',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.secondaryText.withValues(alpha: 0.74),
-                          height: 1.35,
+                      child: Center(
+                        child: Text(
+                          vet.name.substring(4, 5),
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(color: Colors.white),
                         ),
                       ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            vet.name,
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            vet.specialty,
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(
+                                  color: AppTheme.primaryColor,
+                                  letterSpacing: 1,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    _SquareIconButton(
+                      icon: Icons.call_rounded,
+                      onTap: () => _startVetCall(vet),
+                    ),
+                    const SizedBox(width: 8),
+                    _SquareIconButton(
+                      icon: Icons.close_rounded,
+                      onTap: _closeVetChat,
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Row(
@@ -425,16 +413,26 @@ extension _HomeConsultScreenPart on _HomeScreenState {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-                itemCount: conversation.length,
-                separatorBuilder: (context, index) =>
-                    const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  return _VetChatBubble(message: conversation[index]);
-                },
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 18),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFBF7),
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.10),
+                  ),
+                ),
+                child: ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                  itemCount: conversation.length,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    return _VetChatBubble(message: conversation[index]);
+                  },
+                ),
               ),
             ),
             SafeArea(
@@ -442,14 +440,21 @@ extension _HomeConsultScreenPart on _HomeScreenState {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(18, 8, 18, 14),
                 child: Container(
-                  padding: const EdgeInsets.fromLTRB(8, 7, 7, 7),
+                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
                   decoration: BoxDecoration(
-                    color: AppTheme.blushSurfaceColor.withValues(alpha: 0.44),
-                    borderRadius: BorderRadius.circular(30),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(32),
                     border: Border.all(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.16),
-                      width: 1.4,
+                      color: AppTheme.primaryColor.withValues(alpha: 0.22),
+                      width: 1.6,
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.06),
+                        blurRadius: 18,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
                   child: Row(
                     children: [
@@ -457,7 +462,7 @@ extension _HomeConsultScreenPart on _HomeScreenState {
                         width: 38,
                         height: 38,
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.88),
+                          color: AppTheme.primaryColor.withValues(alpha: 0.10),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -504,26 +509,29 @@ extension _HomeConsultScreenPart on _HomeScreenState {
                       InkWell(
                         onTap: _sendChatText,
                         borderRadius: BorderRadius.circular(22),
-                        child: Ink(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryColor,
-                            borderRadius: BorderRadius.circular(22),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.primaryColor.withValues(
-                                  alpha: 0.18,
+                        child: Material(
+                          color: Colors.transparent,
+                          child: Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryColor,
+                              borderRadius: BorderRadius.circular(22),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.primaryColor.withValues(
+                                    alpha: 0.20,
+                                  ),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 6),
                                 ),
-                                blurRadius: 12,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.send_rounded,
-                            color: Colors.white,
-                            size: 21,
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.send_rounded,
+                              color: Colors.white,
+                              size: 21,
+                            ),
                           ),
                         ),
                       ),
