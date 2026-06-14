@@ -103,6 +103,32 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   ];
 
+  static const List<_NotificationData> _notifications = [
+    _NotificationData(
+      title: 'Daily mission',
+      message: 'Water Log is ready for Milo.',
+      time: 'Now',
+      icon: Icons.flag_rounded,
+      tint: AppTheme.primaryColor,
+      unread: true,
+    ),
+    _NotificationData(
+      title: 'Health reminder',
+      message: 'Skin check follow-up in 2 days.',
+      time: '10m',
+      icon: Icons.favorite_rounded,
+      tint: AppTheme.secondaryColor,
+      unread: true,
+    ),
+    _NotificationData(
+      title: 'Walk summary',
+      message: 'Buddy completed a short walk.',
+      time: '1h',
+      icon: Icons.directions_walk_rounded,
+      tint: AppTheme.accentColor,
+    ),
+  ];
+
   static const List<_CalendarEventData> _calendarEvents = [
     _CalendarEventData(
       id: 'e1',
@@ -379,43 +405,94 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         const Spacer(),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: AppTheme.glassCardDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            borderColor: AppTheme.primaryColor.withValues(alpha: 0.12),
+        _buildNotificationButton(context),
+      ],
+    );
+  }
+
+  Widget _buildNotificationButton(BuildContext context) {
+    final unreadCount = _notifications.where((item) => item.unread).length;
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _activeView = _View.notifications;
+          _showActionMenu = false;
+          _showNavActionMenu = false;
+        });
+      },
+      borderRadius: BorderRadius.circular(999),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.96),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: AppTheme.primaryColor.withValues(
+              alpha: _activeView == _View.notifications ? 0.22 : 0.10,
+            ),
+            width: 1.2,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                'Level 12',
-                style: Theme.of(
-                  context,
-                ).textTheme.labelSmall?.copyWith(color: AppTheme.primaryColor),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primaryColor.withValues(alpha: 0.07),
+              blurRadius: 14,
+              offset: const Offset(0, 7),
+            ),
+          ],
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Center(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: _activeView == _View.notifications
+                      ? AppTheme.blushSurfaceColor.withValues(alpha: 0.78)
+                      : AppTheme.creamSurfaceColor.withValues(alpha: 0.7),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  _activeView == _View.notifications
+                      ? Icons.notifications_active_rounded
+                      : Icons.notifications_none_rounded,
+                  color: AppTheme.primaryColor,
+                  size: 20,
+                ),
               ),
-              const SizedBox(height: 6),
-              SizedBox(
-                width: 64,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
-                  child: LinearProgressIndicator(
-                    value: 0.75,
-                    minHeight: 6,
-                    backgroundColor: AppTheme.warmSurfaceColor.withValues(
-                      alpha: 0.34,
-                    ),
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      AppTheme.primaryColor,
+            ),
+            if (unreadCount > 0)
+              Positioned(
+                top: 5,
+                right: 5,
+                child: Container(
+                  width: 16,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '$unreadCount',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.w900,
+                        height: 1,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ],
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -607,6 +684,8 @@ class _HomeScreenState extends State<HomeScreen> {
         return _buildWellnessView(context);
       case _View.consult:
         return _buildConsultView(context);
+      case _View.notifications:
+        return _buildNotificationsView(context);
       case _View.profile:
         return _buildProfileView(context);
       case _View.wardrobe:
@@ -614,6 +693,113 @@ class _HomeScreenState extends State<HomeScreen> {
       case _View.history:
         return _buildHistoryView(context);
     }
+  }
+
+  Widget _buildNotificationsView(BuildContext context) {
+    final unreadCount = _notifications.where((item) => item.unread).length;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 150),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SoftReveal(
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: AppTheme.glassCardDecoration(
+                color: Colors.white.withValues(alpha: 0.97),
+                borderRadius: BorderRadius.circular(32),
+                borderColor: AppTheme.primaryColor.withValues(alpha: 0.12),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 58,
+                    height: 58,
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor,
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                    child: const Icon(
+                      Icons.notifications_rounded,
+                      color: Colors.white,
+                      size: 27,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Notice',
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.w900),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '$unreadCount new updates for ${_activePet.name}',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppTheme.mutedText),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 11,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.blushSurfaceColor.withValues(alpha: 0.8),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '$unreadCount new',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: AppTheme.primaryColor,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Container(
+                width: 5,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Recent Notices',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: AppTheme.secondaryText,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          for (final entry in _notifications.indexed) ...[
+            _SoftReveal(
+              delay: 0.08 + (entry.$1 * 0.05),
+              child: _NotificationTile(item: entry.$2, large: true),
+            ),
+            const SizedBox(height: 12),
+          ],
+        ],
+      ),
+    );
   }
 
   void _showPreviewSnackBar(String label) {

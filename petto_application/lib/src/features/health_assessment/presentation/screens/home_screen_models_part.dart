@@ -6,6 +6,7 @@ enum _View {
   calendar,
   wellness,
   consult,
+  notifications,
   profile,
   wardrobe,
   history,
@@ -61,6 +62,24 @@ class _MissionData {
   final String title;
   final String reward;
   final IconData icon;
+}
+
+class _NotificationData {
+  const _NotificationData({
+    required this.title,
+    required this.message,
+    required this.time,
+    required this.icon,
+    required this.tint,
+    this.unread = false,
+  });
+
+  final String title;
+  final String message;
+  final String time;
+  final IconData icon;
+  final Color tint;
+  final bool unread;
 }
 
 class _JourneyNodeData {

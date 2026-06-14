@@ -233,6 +233,142 @@ class _DockNavItemData {
   final String label;
 }
 
+class _NotificationTile extends StatelessWidget {
+  const _NotificationTile({required this.item, this.large = false});
+
+  final _NotificationData item;
+  final bool large;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(large ? 14 : 10),
+      decoration: BoxDecoration(
+        color: large ? Colors.white.withValues(alpha: 0.98) : Colors.white,
+        borderRadius: BorderRadius.circular(large ? 24 : 20),
+        border: Border.all(
+          color: item.unread
+              ? AppTheme.primaryColor.withValues(alpha: large ? 0.18 : 0.12)
+              : AppTheme.warmSurfaceColor.withValues(alpha: 0.46),
+          width: large ? 1.4 : 1,
+        ),
+        boxShadow: large
+            ? [
+                BoxShadow(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.055),
+                  blurRadius: 14,
+                  offset: const Offset(0, 7),
+                ),
+              ]
+            : null,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: large ? 48 : 38,
+            height: large ? 48 : 38,
+            decoration: BoxDecoration(
+              color: item.tint.withValues(alpha: large ? 0.13 : 0.10),
+              borderRadius: BorderRadius.circular(large ? 18 : 15),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.9),
+                width: 1,
+              ),
+            ),
+            child: Icon(item.icon, color: item.tint, size: large ? 22 : 19),
+          ),
+          SizedBox(width: large ? 12 : 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        item.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: AppTheme.secondaryText,
+                              fontWeight: FontWeight.w900,
+                              fontSize: large ? 14 : null,
+                            ),
+                      ),
+                    ),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: large ? 9 : 7,
+                        vertical: large ? 5 : 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: item.unread
+                            ? AppTheme.primaryColor.withValues(alpha: 0.10)
+                            : AppTheme.creamSurfaceColor.withValues(
+                                alpha: 0.72,
+                              ),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: item.unread
+                              ? AppTheme.primaryColor.withValues(alpha: 0.10)
+                              : AppTheme.warmSurfaceColor.withValues(
+                                  alpha: 0.55,
+                                ),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (item.unread) ...[
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                color: AppTheme.primaryColor,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 5),
+                          ],
+                          Text(
+                            item.time,
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(
+                                  color: item.unread
+                                      ? AppTheme.primaryColor
+                                      : AppTheme.mutedText,
+                                  fontSize: large ? 10 : 9,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.2,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  item.message,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.mutedText,
+                    height: large ? 1.35 : 1.25,
+                    fontWeight: FontWeight.w600,
+                    fontSize: large ? 12 : null,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _DockNotchClipper extends CustomClipper<Path> {
   const _DockNotchClipper();
 
