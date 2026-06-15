@@ -238,7 +238,7 @@ extension _HomeProfileScreenPart on _HomeScreenState {
           margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
           padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.surfaceColor,
             borderRadius: BorderRadius.circular(30),
             boxShadow: AppTheme.cardShadow,
           ),
@@ -336,7 +336,7 @@ class _ProfileImageSourceTile extends StatelessWidget {
       child: Ink(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFCFA),
+          color: AppTheme.surfaceColor,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(
             color: AppTheme.secondaryText.withValues(alpha: 0.08),

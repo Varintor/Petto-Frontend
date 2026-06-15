@@ -33,7 +33,7 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
   static const _dogColor = Color(0xFF7A3F24);
   static const _rose = Color(0xFFB88A96);
   static const _paleRose = Color(0xFFE7D4D9);
-  static const _cream = Color(0xFFFFFCF6);
+  static const _cream = Color(0xFFF6F4F1);
 
   _AuthScreen _screen = _AuthScreen.intro;
   _RegisterStep _step = _RegisterStep.owner;
@@ -427,7 +427,7 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
         return _StepPage(
           step: 3,
           showHeader: false,
-          topPet: _PetAvatar(species: _species, color: _petColor, size: 160),
+          topPet: _PetNameStage(species: _species, color: _petColor),
           title: 'Name Your Pet',
           subtitle: 'What is their name?',
           body: Center(
@@ -955,7 +955,7 @@ class _RegisterActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: AppTheme.surfaceColor,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -965,7 +965,7 @@ class _RegisterActionButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            color: const Color(0xFFFFFCFA),
+            color: AppTheme.surfaceColor,
             border: Border.all(
               color: _AuthOnboardingScreenState._red.withValues(alpha: 0.34),
               width: 1.8,
@@ -1756,7 +1756,7 @@ class _BirthdayPicker extends StatelessWidget {
       height: 178,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.95),
+        color: AppTheme.surfaceColor.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(30),
         border: Border.all(
           color: _AuthOnboardingScreenState._paleRose.withValues(alpha: 0.46),
@@ -2303,7 +2303,7 @@ class _ProfileSummaryPage extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.97),
+                    color: AppTheme.surfaceColor.withValues(alpha: 0.97),
                     borderRadius: BorderRadius.circular(30),
                     border: Border.all(
                       color: _AuthOnboardingScreenState._paleRose.withValues(
@@ -2500,7 +2500,7 @@ class _SummaryRow extends StatelessWidget {
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.9),
+              color: AppTheme.surfaceColor.withValues(alpha: 0.92),
               shape: BoxShape.circle,
               border: Border.all(
                 color: _AuthOnboardingScreenState._paleRose.withValues(
@@ -2558,7 +2558,7 @@ class _SummaryMiniTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 9),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.92),
+        color: AppTheme.surfaceColor.withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: _AuthOnboardingScreenState._paleRose.withValues(alpha: 0.18),
@@ -3369,7 +3369,7 @@ class _BigInput extends StatelessWidget {
               minHeight: 78,
             ),
             filled: true,
-            fillColor: const Color(0xFFFFFEFC),
+            fillColor: AppTheme.surfaceColor.withValues(alpha: 0.96),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,
               vertical: 21,
@@ -3449,7 +3449,7 @@ class _IconInputField extends StatelessWidget {
             minHeight: 62,
           ),
           filled: true,
-          fillColor: Colors.white.withValues(alpha: 0.96),
+          fillColor: AppTheme.surfaceColor.withValues(alpha: 0.96),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 17,
@@ -3896,7 +3896,7 @@ class _GatewayAuthFieldState extends State<_GatewayAuthField> {
             minHeight: 62,
           ),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: AppTheme.surfaceColor.withValues(alpha: 0.98),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 18,
             vertical: 18,
@@ -4236,6 +4236,119 @@ class _PetAvatar extends StatelessWidget {
   }
 }
 
+class _PetNameStage extends StatefulWidget {
+  const _PetNameStage({required this.species, required this.color});
+
+  final String species;
+  final Color color;
+
+  @override
+  State<_PetNameStage> createState() => _PetNameStageState();
+}
+
+class _PetNameStageState extends State<_PetNameStage>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2600),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 218,
+      height: 176,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          final wave = math.sin(_controller.value * math.pi * 2);
+          return Stack(
+            alignment: Alignment.center,
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                top: 22,
+                child: Container(
+                  width: 130,
+                  height: 130,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        widget.color.withValues(alpha: 0.12),
+                        _AuthOnboardingScreenState._cream.withValues(
+                          alpha: 0.0,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 22 + wave * 2,
+                left: 22,
+                child: _NameStageDot(size: 9, color: widget.color),
+              ),
+              Positioned(
+                top: 58 - wave * 1.6,
+                right: 18,
+                child: _NameStageDot(
+                  size: 7,
+                  color: _AuthOnboardingScreenState._rose,
+                ),
+              ),
+              Positioned(
+                top: 112 + wave,
+                left: 30,
+                child: _NameStageDot(size: 5, color: AppTheme.accentColor),
+              ),
+              Transform.translate(
+                offset: Offset(0, wave * 3),
+                child: _PetAvatar(
+                  species: widget.species,
+                  color: widget.color,
+                  size: 156,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _NameStageDot extends StatelessWidget {
+  const _NameStageDot({required this.size, required this.color});
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.22),
+        shape: BoxShape.circle,
+      ),
+    );
+  }
+}
+
 class _ReferenceBackground extends StatelessWidget {
   const _ReferenceBackground();
 
@@ -4247,7 +4360,7 @@ class _ReferenceBackground extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFFFFFBF8), Color(0xFFFFFEF8), Color(0xFFFEFCF4)],
+          colors: [Color(0xFFFFFFFC), Color(0xFFF6F4F1), Color(0xFFFAF7F1)],
         ),
       ),
       child: CustomPaint(painter: _ReferenceBackgroundPainter()),
@@ -4259,15 +4372,15 @@ class _ReferenceBackgroundPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final dot = Paint()
-      ..color = _AuthOnboardingScreenState._red.withValues(alpha: 0.04);
+      ..color = _AuthOnboardingScreenState._red.withValues(alpha: 0.045);
     for (double y = 18; y < size.height; y += 32) {
       for (double x = 18; x < size.width; x += 32) {
-        canvas.drawCircle(Offset(x, y), 2.2, dot);
+        canvas.drawCircle(Offset(x, y), 2.1, dot);
       }
     }
 
     final primaryGlow = Paint()
-      ..color = _AuthOnboardingScreenState._red.withValues(alpha: 0.10)
+      ..color = _AuthOnboardingScreenState._red.withValues(alpha: 0.07)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 120);
     canvas.drawCircle(
       Offset(size.width * 0.2, size.height * 0.2),
@@ -4276,7 +4389,7 @@ class _ReferenceBackgroundPainter extends CustomPainter {
     );
 
     final secondaryGlow = Paint()
-      ..color = _AuthOnboardingScreenState._deepRed.withValues(alpha: 0.05)
+      ..color = _AuthOnboardingScreenState._deepRed.withValues(alpha: 0.04)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 140);
     canvas.drawCircle(
       Offset(size.width * 0.82, size.height * 0.82),

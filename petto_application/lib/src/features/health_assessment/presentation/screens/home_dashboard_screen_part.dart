@@ -155,6 +155,8 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
             ],
           ),
           const SizedBox(height: 28),
+          _buildHomeCalendarSection(context),
+          const SizedBox(height: 28),
           Row(
             children: [
               Container(

@@ -427,7 +427,7 @@ class _HomeScreenState extends State<HomeScreen> {
         width: 50,
         height: 50,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.96),
+          color: AppTheme.surfaceColor.withValues(alpha: 0.96),
           shape: BoxShape.circle,
           border: Border.all(
             color: AppTheme.primaryColor.withValues(
@@ -611,9 +611,9 @@ class _HomeScreenState extends State<HomeScreen> {
             decoration: BoxDecoration(
               boxShadow: [
                 BoxShadow(
-                  color: AppTheme.secondaryText.withValues(alpha: 0.18),
-                  blurRadius: 20,
-                  offset: const Offset(0, -6),
+                  color: AppTheme.primaryColor.withValues(alpha: 0.26),
+                  blurRadius: 22,
+                  offset: const Offset(0, -8),
                 ),
               ],
             ),
@@ -623,9 +623,9 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Container(
               height: dockHeight,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppTheme.primaryColor,
                 border: Border.all(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.10),
+                  color: Colors.white.withValues(alpha: 0.18),
                   width: 1.1,
                 ),
               ),
@@ -708,7 +708,7 @@ class _HomeScreenState extends State<HomeScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(18),
               decoration: AppTheme.glassCardDecoration(
-                color: Colors.white.withValues(alpha: 0.97),
+                color: AppTheme.surfaceColor.withValues(alpha: 0.97),
                 borderRadius: BorderRadius.circular(32),
                 borderColor: AppTheme.primaryColor.withValues(alpha: 0.12),
               ),

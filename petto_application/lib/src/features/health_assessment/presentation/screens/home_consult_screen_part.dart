@@ -305,7 +305,7 @@ extension _HomeConsultScreenPart on _HomeScreenState {
               child: Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.98),
+                  color: AppTheme.surfaceColor.withValues(alpha: 0.98),
                   borderRadius: BorderRadius.circular(28),
                   border: Border.all(
                     color: AppTheme.primaryColor.withValues(alpha: 0.16),
@@ -418,7 +418,7 @@ extension _HomeConsultScreenPart on _HomeScreenState {
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 18),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFFBF7),
+                  color: AppTheme.surfaceColor.withValues(alpha: 0.72),
                   borderRadius: BorderRadius.circular(28),
                   border: Border.all(
                     color: AppTheme.primaryColor.withValues(alpha: 0.10),

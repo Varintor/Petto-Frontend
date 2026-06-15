@@ -1,6 +1,242 @@
 part of 'home_screen.dart';
 
 extension _HomeCalendarScreenPart on _HomeScreenState {
+  Widget _buildHomeCalendarSection(BuildContext context) {
+    final monthDays = DateUtils.getDaysInMonth(
+      _focusedMonth.year,
+      _focusedMonth.month,
+    );
+    final selectedDay = _selectedDate.month == _focusedMonth.month
+        ? _selectedDate.day
+        : math.min(DateTime.now().day, monthDays);
+    final weekStart = math.max(1, selectedDay - 3);
+    final startDay = math.min(weekStart, math.max(1, monthDays - 6));
+    final days = List<int>.generate(
+      math.min(7, monthDays - startDay + 1),
+      (index) => startDay + index,
+    );
+    final selectedEvents = _HomeScreenState._calendarEvents
+        .where((event) => event.day == _selectedDate.day)
+        .toList();
+    final upcomingEvents =
+        (_HomeScreenState._calendarEvents
+                .where((event) => event.day >= selectedDay)
+                .toList()
+              ..sort((a, b) => a.day.compareTo(b.day)))
+            .take(2)
+            .toList();
+    final visibleEvents = selectedEvents.isNotEmpty
+        ? selectedEvents
+        : upcomingEvents;
+
+    return _SoftReveal(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 5,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Calendar',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: AppTheme.secondaryText,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              InkWell(
+                borderRadius: BorderRadius.circular(999),
+                onTap: () {
+                  _update(() {
+                    _activeView = _View.calendar;
+                    _showActionMenu = false;
+                    _showNavActionMenu = false;
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 13,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    _monthName(_focusedMonth.month),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+            decoration: AppTheme.glassCardDecoration(
+              color: AppTheme.surfaceColor.withValues(alpha: 0.98),
+              borderRadius: BorderRadius.circular(28),
+              borderColor: AppTheme.primaryColor.withValues(alpha: 0.12),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    _SquareIconButton(
+                      icon: Icons.chevron_left_rounded,
+                      onTap: () {
+                        _update(() {
+                          _focusedMonth = DateTime(
+                            _focusedMonth.year,
+                            _focusedMonth.month - 1,
+                          );
+                          _selectedDate = DateTime(
+                            _focusedMonth.year,
+                            _focusedMonth.month,
+                            1,
+                          );
+                        });
+                      },
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text(
+                            '${_monthName(_focusedMonth.month)} ${_focusedMonth.year}',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
+                                  color: AppTheme.secondaryText,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            visibleEvents.isEmpty
+                                ? 'No upcoming care plans'
+                                : '${visibleEvents.length} care plan${visibleEvents.length == 1 ? '' : 's'} nearby',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(color: AppTheme.mutedText),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    _SquareIconButton(
+                      icon: Icons.chevron_right_rounded,
+                      onTap: () {
+                        _update(() {
+                          _focusedMonth = DateTime(
+                            _focusedMonth.year,
+                            _focusedMonth.month + 1,
+                          );
+                          _selectedDate = DateTime(
+                            _focusedMonth.year,
+                            _focusedMonth.month,
+                            1,
+                          );
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    for (final day in days)
+                      Expanded(
+                        child: _HomeCalendarDayChip(
+                          date: DateTime(
+                            _focusedMonth.year,
+                            _focusedMonth.month,
+                            day,
+                          ),
+                          selected:
+                              _selectedDate.year == _focusedMonth.year &&
+                              _selectedDate.month == _focusedMonth.month &&
+                              _selectedDate.day == day,
+                          hasEvent: _HomeScreenState._calendarEvents.any(
+                            (event) => event.day == day,
+                          ),
+                          onTap: () {
+                            _update(() {
+                              _selectedDate = DateTime(
+                                _focusedMonth.year,
+                                _focusedMonth.month,
+                                day,
+                              );
+                            });
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                if (visibleEvents.isEmpty)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 13,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.creamSurfaceColor.withValues(alpha: 0.58),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: AppTheme.surfaceColor,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.event_available_rounded,
+                            color: AppTheme.primaryColor,
+                            size: 19,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'A calm day for ${_activePet.name}.',
+                            style: Theme.of(context).textTheme.labelMedium
+                                ?.copyWith(color: AppTheme.secondaryText),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  for (final event in visibleEvents) ...[
+                    _HomeCalendarEventTile(event: event),
+                    if (event != visibleEvents.last) const SizedBox(height: 10),
+                  ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCalendarView(BuildContext context) {
     final monthDays = DateUtils.getDaysInMonth(
       _focusedMonth.year,
@@ -24,64 +260,41 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
         .toList();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 150),
+      padding: const EdgeInsets.fromLTRB(24, 10, 24, 154),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _monthName(_focusedMonth.month),
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${_focusedMonth.year} Events',
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
-                  ],
-                ),
-              ),
-              _SquareIconButton(
-                icon: Icons.chevron_left_rounded,
-                onTap: () {
-                  _update(() {
-                    _focusedMonth = DateTime(
-                      _focusedMonth.year,
-                      _focusedMonth.month - 1,
-                    );
-                    _selectedDate = DateTime(
-                      _focusedMonth.year,
-                      _focusedMonth.month,
-                      1,
-                    );
-                  });
-                },
-              ),
-              const SizedBox(width: 8),
-              _SquareIconButton(
-                icon: Icons.chevron_right_rounded,
-                onTap: () {
-                  _update(() {
-                    _focusedMonth = DateTime(
-                      _focusedMonth.year,
-                      _focusedMonth.month + 1,
-                    );
-                    _selectedDate = DateTime(
-                      _focusedMonth.year,
-                      _focusedMonth.month,
-                      1,
-                    );
-                  });
-                },
-              ),
-            ],
+          _CalendarMonthHeader(
+            month: _monthName(_focusedMonth.month),
+            year: _focusedMonth.year,
+            onPrevious: () {
+              _update(() {
+                _focusedMonth = DateTime(
+                  _focusedMonth.year,
+                  _focusedMonth.month - 1,
+                );
+                _selectedDate = DateTime(
+                  _focusedMonth.year,
+                  _focusedMonth.month,
+                  1,
+                );
+              });
+            },
+            onNext: () {
+              _update(() {
+                _focusedMonth = DateTime(
+                  _focusedMonth.year,
+                  _focusedMonth.month + 1,
+                );
+                _selectedDate = DateTime(
+                  _focusedMonth.year,
+                  _focusedMonth.month,
+                  1,
+                );
+              });
+            },
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 22),
           const Row(
             children: [
               _WeekdayLabel('S'),
@@ -95,8 +308,15 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
           ),
           const SizedBox(height: 10),
           Container(
-            decoration: AppTheme.glassCardDecoration(),
-            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceColor.withValues(alpha: 0.92),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                color: AppTheme.warmSurfaceColor.withValues(alpha: 0.72),
+                width: 1.4,
+              ),
+            ),
+            padding: const EdgeInsets.fromLTRB(14, 16, 14, 16),
             child: GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -138,23 +358,22 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 220),
                     curve: Curves.easeOutCubic,
-                    decoration: BoxDecoration(
-                      color: Colors.transparent,
-                      borderRadius: BorderRadius.circular(18),
-                    ),
+                    decoration: const BoxDecoration(color: Colors.transparent),
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
                         AnimatedContainer(
                           duration: const Duration(milliseconds: 220),
                           curve: Curves.easeOutCubic,
-                          width: selected ? 42 : (isToday ? 38 : 34),
-                          height: selected ? 42 : (isToday ? 38 : 34),
+                          width: selected ? 42 : (isToday ? 38 : 0),
+                          height: selected ? 42 : (isToday ? 38 : 0),
                           decoration: BoxDecoration(
                             color: selected
-                                ? const Color(0xFFFF9E8B)
+                                ? AppTheme.primaryColor
                                 : isToday
-                                ? const Color(0xFFFFF3EE)
+                                ? AppTheme.blushSurfaceColor.withValues(
+                                    alpha: 0.64,
+                                  )
                                 : Colors.transparent,
                             shape: BoxShape.circle,
                             border: Border.all(
@@ -165,7 +384,7 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
                                       alpha: 0.24,
                                     )
                                   : Colors.transparent,
-                              width: isToday ? 1.4 : 0,
+                              width: isToday ? 1.6 : 0,
                             ),
                           ),
                         ),
@@ -243,44 +462,19 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
               },
             ),
           ),
-          const SizedBox(height: 24),
-          _SectionTitle(
+          const SizedBox(height: 26),
+          _CalendarScheduleHeader(
             title: _isTodaySelection()
                 ? "Today's Schedule"
                 : _formattedSelectedDate(),
-            actionLabel: 'Add Event',
-            onAction: () => _showPreviewSnackBar('Add Event'),
+            selectedEvents: selectedEvents.length,
+            onAdd: () => _showPreviewSnackBar('Add Event'),
           ),
           const SizedBox(height: 12),
           if (selectedEvents.isEmpty)
-            Container(
-              decoration: AppTheme.glassCardDecoration(
-                color: Colors.white.withValues(alpha: 0.5),
-              ),
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: AppTheme.secondaryColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: const Icon(
-                      Icons.schedule_rounded,
-                      color: AppTheme.secondaryColor,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'No plans for this day',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppTheme.secondaryText,
-                    ),
-                  ),
-                ],
-              ),
+            _NoPlansCard(
+              petName: _activePet.name,
+              onAdd: () => _showPreviewSnackBar('Add Event'),
             ),
           for (final event in selectedEvents) ...[
             _CalendarEventCard(event: event),
