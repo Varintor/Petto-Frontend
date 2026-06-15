@@ -38,16 +38,27 @@ class _RoomStage extends StatelessWidget {
             child: Align(
               alignment: const Alignment(0, 0.26),
               child: SizedBox(
-                width: 212,
-                height: 212,
-                child: PetAvatarWidget(
-                  species: petSpecies,
-                  color: petColor,
-                  pattern: petPattern,
-                  equipped: equipped,
-                  mouthType: mouthType,
-                  eyeType: eyeType,
-                  isRotating: true,
+                width: 248,
+                height: 232,
+                child: Stack(
+                  alignment: Alignment.center,
+                  clipBehavior: Clip.none,
+                  children: [
+                    const _RoomSparkles(),
+                    SizedBox(
+                      width: 212,
+                      height: 212,
+                      child: PetAvatarWidget(
+                        species: petSpecies,
+                        color: petColor,
+                        pattern: petPattern,
+                        equipped: equipped,
+                        mouthType: mouthType,
+                        eyeType: eyeType,
+                        isRotating: true,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -151,7 +162,7 @@ class _BottomOverlay extends StatelessWidget {
         width: double.infinity,
         clipBehavior: Clip.antiAlias,
         decoration: AppTheme.glassCardDecoration(
-          color: Colors.white,
+          color: AppTheme.surfaceColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(42)),
         ),
         child: Stack(
@@ -221,6 +232,158 @@ class _SoftReveal extends StatelessWidget {
   }
 }
 
+class _RoomSparkles extends StatefulWidget {
+  const _RoomSparkles();
+
+  @override
+  State<_RoomSparkles> createState() => _RoomSparklesState();
+}
+
+class _RoomSparklesState extends State<_RoomSparkles>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) => CustomPaint(
+        size: const Size(248, 232),
+        painter: _RoomSparklePainter(_controller.value),
+      ),
+    );
+  }
+}
+
+class _RoomSparklePainter extends CustomPainter {
+  const _RoomSparklePainter(this.progress);
+
+  final double progress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final points = <_SparklePoint>[
+      _SparklePoint(
+        offset: Offset(size.width * 0.18, size.height * 0.28),
+        size: 9,
+        phase: 0.0,
+        color: AppTheme.accentColor,
+      ),
+      _SparklePoint(
+        offset: Offset(size.width * 0.82, size.height * 0.23),
+        size: 7,
+        phase: 0.22,
+        color: AppTheme.secondaryColor,
+      ),
+      _SparklePoint(
+        offset: Offset(size.width * 0.24, size.height * 0.70),
+        size: 6,
+        phase: 0.48,
+        color: AppTheme.secondaryColor,
+      ),
+      _SparklePoint(
+        offset: Offset(size.width * 0.78, size.height * 0.72),
+        size: 8,
+        phase: 0.64,
+        color: AppTheme.accentColor,
+      ),
+      _SparklePoint(
+        offset: Offset(size.width * 0.50, size.height * 0.09),
+        size: 5,
+        phase: 0.84,
+        color: AppTheme.primaryColor,
+      ),
+    ];
+
+    for (final point in points) {
+      final cycle = ((progress + point.phase) % 1.0);
+      final pulse = math.sin(cycle * math.pi);
+      final alpha = 0.18 + (pulse * 0.38);
+      final drift = Offset(0, -2.5 * pulse);
+      _drawSparkle(
+        canvas,
+        point.offset + drift,
+        point.size * (0.82 + pulse * 0.28),
+        point.color.withValues(alpha: alpha),
+      );
+    }
+  }
+
+  void _drawSparkle(Canvas canvas, Offset center, double size, Color color) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+    final softPaint = Paint()
+      ..color = color.withValues(alpha: 0.08)
+      ..style = PaintingStyle.fill;
+
+    canvas.drawCircle(center, size * 0.9, softPaint);
+
+    final path = Path()
+      ..moveTo(center.dx, center.dy - size)
+      ..quadraticBezierTo(
+        center.dx + size * 0.22,
+        center.dy - size * 0.22,
+        center.dx + size,
+        center.dy,
+      )
+      ..quadraticBezierTo(
+        center.dx + size * 0.22,
+        center.dy + size * 0.22,
+        center.dx,
+        center.dy + size,
+      )
+      ..quadraticBezierTo(
+        center.dx - size * 0.22,
+        center.dy + size * 0.22,
+        center.dx - size,
+        center.dy,
+      )
+      ..quadraticBezierTo(
+        center.dx - size * 0.22,
+        center.dy - size * 0.22,
+        center.dx,
+        center.dy - size,
+      )
+      ..close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _RoomSparklePainter oldDelegate) {
+    return oldDelegate.progress != progress;
+  }
+}
+
+class _SparklePoint {
+  const _SparklePoint({
+    required this.offset,
+    required this.size,
+    required this.phase,
+    required this.color,
+  });
+
+  final Offset offset;
+  final double size;
+  final double phase;
+  final Color color;
+}
+
 class _DockNavItemData {
   const _DockNavItemData({
     required this.view,
@@ -244,7 +407,9 @@ class _NotificationTile extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(large ? 14 : 10),
       decoration: BoxDecoration(
-        color: large ? Colors.white.withValues(alpha: 0.98) : Colors.white,
+        color: large
+            ? AppTheme.surfaceColor.withValues(alpha: 0.98)
+            : AppTheme.surfaceColor,
         borderRadius: BorderRadius.circular(large ? 24 : 20),
         border: Border.all(
           color: item.unread
@@ -412,8 +577,8 @@ class _DockNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeColor = AppTheme.primaryColor;
-    final inactiveColor = AppTheme.mutedText.withValues(alpha: 0.78);
+    const activeColor = Colors.white;
+    final inactiveColor = AppTheme.creamSurfaceColor.withValues(alpha: 0.68);
 
     return InkWell(
       onTap: onTap,
@@ -432,9 +597,15 @@ class _DockNavItem extends StatelessWidget {
               height: 32,
               decoration: BoxDecoration(
                 color: selected
-                    ? activeColor.withValues(alpha: 0.12)
+                    ? Colors.white.withValues(alpha: 0.16)
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(15),
+                border: Border.all(
+                  color: selected
+                      ? Colors.white.withValues(alpha: 0.22)
+                      : Colors.transparent,
+                  width: 1,
+                ),
               ),
               child: Icon(
                 item.icon,
@@ -450,7 +621,8 @@ class _DockNavItem extends StatelessWidget {
                 maxLines: 1,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: selected ? activeColor : inactiveColor,
-                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                  fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
+                  letterSpacing: 0.25,
                 ),
               ),
             ),
@@ -477,12 +649,17 @@ class _DockCenterButton extends StatelessWidget {
         width: 72,
         height: 72,
         decoration: BoxDecoration(
-          color: expanded ? Colors.white : AppTheme.primaryColor,
+          color: expanded ? AppTheme.surfaceColor : AppTheme.primaryColor,
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 7),
+          border: Border.all(
+            color: expanded
+                ? AppTheme.primaryColor.withValues(alpha: 0.18)
+                : AppTheme.surfaceColor,
+            width: 7,
+          ),
           boxShadow: [
             BoxShadow(
-              color: AppTheme.secondaryText.withValues(alpha: 0.22),
+              color: AppTheme.secondaryText.withValues(alpha: 0.24),
               blurRadius: 18,
               offset: const Offset(0, 10),
             ),
@@ -494,7 +671,7 @@ class _DockCenterButton extends StatelessWidget {
           curve: Curves.easeOutCubic,
           child: Icon(
             expanded ? Icons.close_rounded : Icons.add_rounded,
-            color: expanded ? AppTheme.secondaryText : Colors.white,
+            color: expanded ? AppTheme.primaryColor : Colors.white,
             size: 34,
           ),
         ),
@@ -530,17 +707,17 @@ class _NavActionBubble extends StatelessWidget {
           height: 50,
           padding: const EdgeInsets.fromLTRB(8, 7, 14, 7),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.96),
+            color: AppTheme.primaryColor,
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
-              color: AppTheme.primaryColor.withValues(alpha: 0.10),
+              color: Colors.white.withValues(alpha: 0.18),
               width: 1.2,
             ),
             boxShadow: [
               BoxShadow(
-                color: AppTheme.primaryColor.withValues(alpha: 0.075),
-                blurRadius: 14,
-                offset: const Offset(0, 7),
+                color: AppTheme.primaryColor.withValues(alpha: 0.18),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
@@ -551,14 +728,14 @@ class _NavActionBubble extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
+                  color: Colors.white.withValues(alpha: 0.16),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: color.withValues(alpha: 0.10),
+                    color: Colors.white.withValues(alpha: 0.16),
                     width: 1,
                   ),
                 ),
-                child: Icon(icon, color: color, size: 18),
+                child: Icon(icon, color: Colors.white, size: 18),
               ),
               const SizedBox(width: 9),
               Flexible(
@@ -568,7 +745,7 @@ class _NavActionBubble extends StatelessWidget {
                     label,
                     maxLines: 1,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppTheme.secondaryText,
+                      color: Colors.white,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -582,155 +759,44 @@ class _NavActionBubble extends StatelessWidget {
   }
 }
 
-class _BackgroundDecor extends StatefulWidget {
-  @override
-  State<_BackgroundDecor> createState() => _BackgroundDecorState();
-}
-
-class _BackgroundDecorState extends State<_BackgroundDecor>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 14000),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
+class _BackgroundDecor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          final phase = _controller.value * math.pi * 2;
-          final slowWave = math.sin(phase);
-          final slowDrift = math.cos(phase * 0.82);
-          final floatA = math.sin(phase * 1.18);
-          final floatB = math.cos(phase * 1.34);
-
-          return Stack(
-            children: [
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.white,
-                        AppTheme.backgroundColor,
-                        AppTheme.creamSurfaceColor,
-                      ],
-                    ),
-                  ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    const Color(0xFFFFFFFC),
+                    AppTheme.backgroundColor,
+                    const Color(0xFFFAF7F1),
+                  ],
                 ),
               ),
-              Positioned.fill(child: CustomPaint(painter: _HomeDotPainter())),
-              Positioned(
-                top: -76 + (slowDrift * 8),
-                right: -68 + (slowWave * 6),
-                child: const _BokehOrb(
-                  size: 236,
-                  color: AppTheme.blushSurfaceColor,
-                  glowColor: AppTheme.primaryColor,
-                  opacity: 0.34,
-                  blur: 18,
+            ),
+          ),
+          Positioned.fill(child: CustomPaint(painter: _HomeDotPainter())),
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: const Alignment(-0.2, -0.38),
+                  radius: 1.18,
+                  colors: [
+                    Colors.white.withValues(alpha: 0.20),
+                    Colors.white.withValues(alpha: 0.05),
+                    Colors.white.withValues(alpha: 0),
+                  ],
                 ),
               ),
-              Positioned(
-                top: 88 + (floatA * 9),
-                left: -42 + (slowDrift * 6),
-                child: const _BokehOrb(
-                  size: 138,
-                  color: Colors.white,
-                  glowColor: AppTheme.warmSurfaceColor,
-                  opacity: 0.72,
-                  blur: 12,
-                ),
-              ),
-              Positioned(
-                top: 242 + (floatB * 8),
-                right: 24 + (slowWave * 5),
-                child: const _BokehOrb(
-                  size: 132,
-                  color: AppTheme.roseSurfaceColor,
-                  glowColor: AppTheme.primaryColor,
-                  opacity: 0.18,
-                  blur: 20,
-                ),
-              ),
-              Positioned(
-                top: 392 + (slowDrift * 7),
-                left: 56 + (floatB * 4),
-                child: const _BokehOrb(
-                  size: 92,
-                  color: Colors.white,
-                  glowColor: AppTheme.blushSurfaceColor,
-                  opacity: 0.58,
-                  blur: 10,
-                ),
-              ),
-              Positioned(
-                bottom: 246 + (slowWave * 8),
-                left: -54 + (floatA * 5),
-                child: const _BokehOrb(
-                  size: 168,
-                  color: AppTheme.creamSurfaceColor,
-                  glowColor: AppTheme.warmSurfaceColor,
-                  opacity: 0.62,
-                  blur: 16,
-                ),
-              ),
-              Positioned(
-                bottom: 84 + (slowDrift * 7),
-                right: -64 + (floatB * 6),
-                child: const _BokehOrb(
-                  size: 218,
-                  color: Colors.white,
-                  glowColor: AppTheme.blushSurfaceColor,
-                  opacity: 0.62,
-                  blur: 16,
-                ),
-              ),
-              Positioned(
-                bottom: -56 + (floatA * 5),
-                left: 26 + (slowWave * 5),
-                child: const _BokehOrb(
-                  size: 176,
-                  color: AppTheme.blushSurfaceColor,
-                  glowColor: AppTheme.primaryColor,
-                  opacity: 0.20,
-                  blur: 22,
-                ),
-              ),
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: RadialGradient(
-                      center: const Alignment(-0.2, -0.38),
-                      radius: 1.18,
-                      colors: [
-                        Colors.white.withValues(alpha: 0.28),
-                        Colors.white.withValues(alpha: 0.08),
-                        Colors.white.withValues(alpha: 0),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -739,78 +805,16 @@ class _BackgroundDecorState extends State<_BackgroundDecor>
 class _HomeDotPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final dot = Paint()..color = AppTheme.primaryColor.withValues(alpha: 0.04);
+    final dot = Paint()..color = AppTheme.primaryColor.withValues(alpha: 0.045);
     for (double y = 18; y < size.height; y += 32) {
       for (double x = 18; x < size.width; x += 32) {
-        canvas.drawCircle(Offset(x, y), 2.2, dot);
+        canvas.drawCircle(Offset(x, y), 2.1, dot);
       }
     }
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _BokehOrb extends StatelessWidget {
-  const _BokehOrb({
-    required this.size,
-    required this.color,
-    required this.glowColor,
-    required this.opacity,
-    required this.blur,
-  });
-
-  final double size;
-  final Color color;
-  final Color glowColor;
-  final double opacity;
-  final double blur;
-
-  @override
-  Widget build(BuildContext context) {
-    return ImageFiltered(
-      imageFilter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            center: const Alignment(-0.32, -0.34),
-            radius: 0.98,
-            colors: [
-              Colors.white.withValues(alpha: opacity),
-              color.withValues(alpha: opacity * 0.84),
-              glowColor.withValues(alpha: opacity * 0.16),
-              color.withValues(alpha: 0),
-            ],
-          ),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: opacity * 0.52),
-            width: 1.2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: glowColor.withValues(alpha: opacity * 0.18),
-              blurRadius: 54,
-              spreadRadius: 10,
-            ),
-          ],
-        ),
-        child: Align(
-          alignment: const Alignment(-0.36, -0.34),
-          child: Container(
-            width: size * 0.24,
-            height: size * 0.24,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white.withValues(alpha: opacity * 0.34),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _ConfettiOverlay extends StatelessWidget {
@@ -964,12 +968,106 @@ class _SquareIconButton extends StatelessWidget {
         width: 40,
         height: 40,
         decoration: AppTheme.glassCardDecoration(
-          color: Colors.white,
+          color: AppTheme.surfaceColor,
           borderRadius: BorderRadius.circular(16),
           borderColor: AppTheme.primaryColor.withValues(alpha: 0.12),
         ),
         child: Icon(icon, color: AppTheme.secondaryText, size: 20),
       ),
+    );
+  }
+}
+
+class _CalendarArrowButton extends StatelessWidget {
+  const _CalendarArrowButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Ink(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Icon(icon, color: AppTheme.primaryColor, size: 21),
+      ),
+    );
+  }
+}
+
+class _CalendarMonthHeader extends StatelessWidget {
+  const _CalendarMonthHeader({
+    required this.month,
+    required this.year,
+    required this.onPrevious,
+    required this.onNext,
+  });
+
+  final String month;
+  final int year;
+  final VoidCallback onPrevious;
+  final VoidCallback onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                month,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  color: AppTheme.secondaryText,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '$year Events',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: AppTheme.mutedText,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceColor.withValues(alpha: 0.88),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: AppTheme.warmSurfaceColor.withValues(alpha: 0.72),
+              width: 1.2,
+            ),
+          ),
+          child: Row(
+            children: [
+              _CalendarArrowButton(
+                icon: Icons.chevron_left_rounded,
+                onTap: onPrevious,
+              ),
+              const SizedBox(width: 4),
+              _CalendarArrowButton(
+                icon: Icons.chevron_right_rounded,
+                onTap: onNext,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1078,7 +1176,7 @@ class _RoomQuickActionChip extends StatelessWidget {
               width: textWidth,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.96),
+                color: AppTheme.surfaceColor.withValues(alpha: 0.96),
                 borderRadius: BorderRadius.circular(999),
                 border: Border.all(
                   color: AppTheme.warmSurfaceColor.withValues(alpha: 0.42),
@@ -1111,7 +1209,7 @@ class _RoomQuickActionChip extends StatelessWidget {
               width: 38,
               height: 38,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.94),
+                color: AppTheme.surfaceColor.withValues(alpha: 0.94),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: AppTheme.warmSurfaceColor.withValues(alpha: 0.42),
@@ -1291,7 +1389,7 @@ class _AddPetChip extends StatelessWidget {
           constraints: const BoxConstraints(minWidth: 132),
           padding: const EdgeInsets.fromLTRB(6, 5, 16, 5),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.96),
+            color: AppTheme.surfaceColor.withValues(alpha: 0.96),
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
               color: AppTheme.primaryColor.withValues(alpha: 0.10),
@@ -1364,7 +1462,7 @@ class _MetricCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: AppTheme.glassCardDecoration(
-        color: Colors.white,
+        color: AppTheme.surfaceColor,
         borderColor: color.withValues(alpha: 0.22),
       ),
       padding: const EdgeInsets.all(20),
@@ -1454,7 +1552,7 @@ class _MissionCard extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
           decoration: AppTheme.glassCardDecoration(
-            color: Colors.white,
+            color: AppTheme.surfaceColor,
             borderColor: completed
                 ? AppTheme.primaryColor.withValues(alpha: 0.22)
                 : AppTheme.primaryColor.withValues(alpha: 0.24),
@@ -1575,7 +1673,342 @@ class _WeekdayLabel extends StatelessWidget {
       child: Text(
         label,
         textAlign: TextAlign.center,
-        style: Theme.of(context).textTheme.labelSmall,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: AppTheme.mutedText,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+}
+
+class _CalendarScheduleHeader extends StatelessWidget {
+  const _CalendarScheduleHeader({
+    required this.title,
+    required this.selectedEvents,
+    required this.onAdd,
+  });
+
+  final String title;
+  final int selectedEvents;
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 28,
+          decoration: BoxDecoration(
+            color: AppTheme.primaryColor,
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppTheme.secondaryText,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                selectedEvents == 0
+                    ? 'A quiet care day'
+                    : '$selectedEvents plan${selectedEvents == 1 ? '' : 's'} ready',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: AppTheme.mutedText,
+                  letterSpacing: 0.2,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+        InkWell(
+          onTap: onAdd,
+          borderRadius: BorderRadius.circular(999),
+          child: Ink(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceColor.withValues(alpha: 0.88),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: AppTheme.primaryColor.withValues(alpha: 0.20),
+                width: 1.2,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.add_rounded,
+                  color: AppTheme.primaryColor,
+                  size: 18,
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  'Add',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: AppTheme.primaryColor,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _NoPlansCard extends StatelessWidget {
+  const _NoPlansCard({required this.petName, required this.onAdd});
+
+  final String petName;
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(minHeight: 184),
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(
+          color: AppTheme.warmSurfaceColor.withValues(alpha: 0.74),
+          width: 1.4,
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: AppTheme.blushSurfaceColor.withValues(alpha: 0.54),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: AppTheme.primaryColor.withValues(alpha: 0.08),
+              ),
+            ),
+            child: const Icon(
+              Icons.event_available_rounded,
+              color: AppTheme.primaryColor,
+              size: 30,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'No plan yet',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: AppTheme.secondaryText,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 6),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 280),
+            child: Text(
+              '$petName has a calm day. Add a care plan when needed.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppTheme.mutedText,
+                height: 1.35,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          InkWell(
+            onTap: onAdd,
+            borderRadius: BorderRadius.circular(999),
+            child: Ink(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                'Create plan',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeCalendarDayChip extends StatelessWidget {
+  const _HomeCalendarDayChip({
+    required this.date,
+    required this.selected,
+    required this.hasEvent,
+    required this.onTap,
+  });
+
+  final DateTime date;
+  final bool selected;
+  final bool hasEvent;
+  final VoidCallback onTap;
+
+  String get _weekday {
+    const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    return labels[date.weekday - 1];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 3),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          height: 62,
+          decoration: BoxDecoration(
+            color: selected
+                ? AppTheme.primaryColor
+                : AppTheme.blushSurfaceColor,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: selected
+                  ? AppTheme.primaryColor
+                  : AppTheme.primaryColor.withValues(alpha: 0.08),
+              width: 1.2,
+            ),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.18),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                _weekday,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: selected ? Colors.white70 : AppTheme.mutedText,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 10,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                '${date.day}',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: selected ? Colors.white : AppTheme.secondaryText,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 4),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                width: hasEvent ? 6 : 3,
+                height: hasEvent ? 6 : 3,
+                decoration: BoxDecoration(
+                  color: hasEvent
+                      ? (selected ? Colors.white : AppTheme.primaryColor)
+                      : Colors.transparent,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeCalendarEventTile extends StatelessWidget {
+  const _HomeCalendarEventTile({required this.event});
+
+  final _CalendarEventData event;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.creamSurfaceColor.withValues(alpha: 0.58),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppTheme.primaryColor.withValues(alpha: 0.08),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: event.color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Icon(event.icon, color: event.color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  event.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: AppTheme.secondaryText,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  event.timeLabel,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: event.color,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Icon(
+            event.completed
+                ? Icons.check_circle_rounded
+                : Icons.radio_button_unchecked_rounded,
+            color: event.completed
+                ? AppTheme.primaryColor
+                : AppTheme.primaryColor.withValues(alpha: 0.32),
+            size: 22,
+          ),
+        ],
       ),
     );
   }
@@ -1589,18 +2022,24 @@ class _CalendarEventCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: AppTheme.glassCardDecoration(),
-      padding: const EdgeInsets.all(16),
+      decoration: AppTheme.glassCardDecoration(
+        color: AppTheme.surfaceColor.withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(28),
+        borderColor: AppTheme.primaryColor.withValues(alpha: 0.11),
+        borderWidth: 1.4,
+      ),
+      padding: const EdgeInsets.all(15),
       child: Row(
         children: [
           Container(
-            width: 52,
-            height: 52,
+            width: 54,
+            height: 54,
             decoration: BoxDecoration(
-              color: event.color,
-              borderRadius: BorderRadius.circular(18),
+              color: event.color.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: event.color.withValues(alpha: 0.10)),
             ),
-            child: Icon(event.icon, color: Colors.white),
+            child: Icon(event.icon, color: event.color, size: 24),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -1609,25 +2048,57 @@ class _CalendarEventCard extends StatelessWidget {
               children: [
                 Text(
                   event.title,
-                  style: Theme.of(context).textTheme.titleMedium,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: AppTheme.secondaryText,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  event.timeLabel,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelSmall?.copyWith(color: event.color),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: event.color.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    event.timeLabel,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: event.color,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
-          Icon(
-            event.completed
-                ? Icons.check_circle_rounded
-                : Icons.check_circle_outline_rounded,
-            color: event.completed
-                ? AppTheme.successColor
-                : AppTheme.mutedText.withValues(alpha: 0.4),
+          const SizedBox(width: 12),
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: event.completed
+                  ? AppTheme.primaryColor
+                  : AppTheme.creamSurfaceColor.withValues(alpha: 0.82),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: event.completed
+                    ? AppTheme.primaryColor
+                    : AppTheme.warmSurfaceColor.withValues(alpha: 0.62),
+              ),
+            ),
+            child: Icon(
+              event.completed
+                  ? Icons.check_rounded
+                  : Icons.radio_button_unchecked_rounded,
+              color: event.completed
+                  ? Colors.white
+                  : AppTheme.primaryColor.withValues(alpha: 0.55),
+              size: event.completed ? 19 : 18,
+            ),
           ),
         ],
       ),
@@ -1670,7 +2141,7 @@ class _FilterToggle extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.92),
+        color: AppTheme.surfaceColor.withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
           color: AppTheme.primaryColor.withValues(alpha: 0.10),
@@ -1781,7 +2252,7 @@ class _VetCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(32),
       child: Container(
         decoration: AppTheme.glassCardDecoration(
-          color: Colors.white.withValues(alpha: 0.95),
+          color: AppTheme.surfaceColor.withValues(alpha: 0.95),
           borderRadius: BorderRadius.circular(32),
           borderColor: (vet.online ? AppTheme.successColor : AppTheme.mutedText)
               .withValues(alpha: 0.16),
@@ -1939,7 +2410,7 @@ class _VetChatQuickAction extends StatelessWidget {
         height: 48,
         padding: const EdgeInsets.symmetric(horizontal: 9),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.98),
+          color: AppTheme.surfaceColor.withValues(alpha: 0.98),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: AppTheme.primaryColor.withValues(alpha: 0.16),
@@ -2550,7 +3021,7 @@ class _HistoryPreviewCard extends StatelessWidget {
     final mutedColor = AppTheme.mutedText;
     return Container(
       decoration: AppTheme.glassCardDecoration(
-        color: Colors.white.withValues(alpha: 0.96),
+        color: AppTheme.surfaceColor.withValues(alpha: 0.96),
         borderColor: AppTheme.warmSurfaceColor.withValues(alpha: 0.38),
         borderWidth: 1.2,
       ),
@@ -2657,7 +3128,7 @@ class _HistoryDetailCard extends StatelessWidget {
     final mutedColor = AppTheme.mutedText;
     return Container(
       decoration: AppTheme.glassCardDecoration(
-        color: Colors.white.withValues(alpha: 0.96),
+        color: AppTheme.surfaceColor.withValues(alpha: 0.96),
         borderColor: AppTheme.warmSurfaceColor.withValues(alpha: 0.38),
         borderWidth: 1.2,
       ),
@@ -2832,7 +3303,7 @@ class _ProfileLinkCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(30),
       child: Container(
         decoration: AppTheme.glassCardDecoration(
-          color: Colors.white.withValues(alpha: 0.95),
+          color: AppTheme.surfaceColor.withValues(alpha: 0.95),
           borderColor: AppTheme.secondaryColor.withValues(alpha: 0.13),
         ),
         padding: const EdgeInsets.all(18),
@@ -2892,7 +3363,7 @@ class _ProfileActionButton extends StatelessWidget {
       child: Ink(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.9),
+          color: AppTheme.surfaceColor.withValues(alpha: 0.92),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: AppTheme.secondaryText.withValues(alpha: 0.08),

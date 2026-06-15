@@ -6,8 +6,8 @@ class AppTheme {
   static const Color primaryColor = Color(0xFF7B3034);
   static const Color secondaryColor = Color(0xFFB8757A);
   static const Color accentColor = Color(0xFFC29A45);
-  static const Color backgroundColor = Color(0xFFFFFCF6);
-  static const Color surfaceColor = Colors.white;
+  static const Color backgroundColor = Color(0xFFF6F4F1);
+  static const Color surfaceColor = Color(0xFFFCFAF6);
   static const Color creamSurfaceColor = Color(0xFFFFF6EA);
   static const Color blushSurfaceColor = Color(0xFFFFECE8);
   static const Color roseSurfaceColor = Color(0xFFEED0D3);
@@ -20,7 +20,7 @@ class AppTheme {
   static const LinearGradient appBackgroundGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [Color(0xFFFFFFFC), Color(0xFFFFFCF6)],
+    colors: [Color(0xFFFFFFFC), Color(0xFFF6F4F1)],
   );
 
   static const List<BoxShadow> subtleShadow = [
@@ -32,7 +32,7 @@ class AppTheme {
   ];
 
   static BoxDecoration glassCardDecoration({
-    Color color = const Color(0xFBFFFFFF),
+    Color color = const Color(0xFCFCFAF6),
     BorderRadius? borderRadius,
     bool hasShadow = true,
     double borderWidth = 2,
@@ -195,7 +195,7 @@ class AppTheme {
             color: warmSurfaceColor.withValues(alpha: 0.72),
             width: 1.4,
           ),
-          backgroundColor: Colors.white.withValues(alpha: 0.9),
+          backgroundColor: surfaceColor.withValues(alpha: 0.94),
           minimumSize: const Size(0, 46),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
@@ -221,7 +221,7 @@ class AppTheme {
       ),
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
-          backgroundColor: Colors.white.withValues(alpha: 0.92),
+          backgroundColor: surfaceColor.withValues(alpha: 0.94),
           foregroundColor: secondaryText,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
@@ -230,7 +230,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.96),
+        fillColor: surfaceColor.withValues(alpha: 0.96),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 22,
           vertical: 20,
