@@ -37,7 +37,7 @@ class VaccinationError {
 }
 
 /// Vaccination Controller
-/// ใช้ Provider + ChangeNotifier จัดการสถานะของหน้าจอ UI
+/// Uses Provider + ChangeNotifier to manage UI screen state
 class VaccinationController extends ChangeNotifier {
   final VaccinationRepository repository;
 
@@ -82,13 +82,13 @@ class VaccinationController extends ChangeNotifier {
 
   // ==================== Methods ====================
 
-  /// แปลง Exception เป็น VaccinationError
+  /// Convert an Exception into a VaccinationError
   VaccinationError _parseError(dynamic error) {
     if (error is DioException) {
       switch (error.type) {
         case DioExceptionType.connectionError:
           return VaccinationError(
-            message: 'ไม่สามารถเชื่อมต่อกับ Server ได้\nกรุณาตรวจสอบ internet connection',
+            message: 'Cannot connect to server.\nPlease check your internet connection.',
             type: ErrorType.networkError,
             technicalDetails: error.error?.toString(),
           );
@@ -97,7 +97,7 @@ class VaccinationController extends ChangeNotifier {
         case DioExceptionType.receiveTimeout:
         case DioExceptionType.sendTimeout:
           return VaccinationError(
-            message: 'หมดเวลาเชื่อมต่อ\nกรุณาลองใหม่',
+            message: 'Connection timed out.\nPlease try again.',
             type: ErrorType.networkError,
             technicalDetails: error.message,
           );
@@ -106,7 +106,7 @@ class VaccinationController extends ChangeNotifier {
           final statusCode = error.response?.statusCode ?? 0;
           if (statusCode == 422) {
             return VaccinationError(
-              message: 'ข้อมูลไม่ถูกต้อง\nกรุณาตรวจสอบข้อมูลที่กรอก',
+              message: 'Invalid data.\nPlease check your input.',
               type: ErrorType.validationError,
               technicalDetails: 'Response: ${error.response?.data}',
             );

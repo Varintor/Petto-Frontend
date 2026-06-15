@@ -15,6 +15,8 @@ abstract class HealthAssessmentRepository {
   });
 
   Future<List<AssessmentEntity>> getAssessmentHistory();
+
+  Future<List<AssessmentEntity>> getPetAssessmentHistory(int petId);
 }
 
 class HealthAssessmentRepositoryImpl implements HealthAssessmentRepository {
@@ -51,7 +53,7 @@ class HealthAssessmentRepositoryImpl implements HealthAssessmentRepository {
     // The backend requires an image (image: UploadFile = File(...)). Fail fast
     // with a friendly message instead of letting it 400 server-side.
     if (imageData == null) {
-      throw Exception('กรุณาเพิ่มรูปภาพสัตว์เลี้ยงก่อนเริ่มวิเคราะห์');
+      throw Exception('Please add a pet photo before starting the analysis');
     }
 
     try {
@@ -59,7 +61,7 @@ class HealthAssessmentRepositoryImpl implements HealthAssessmentRepository {
         // Backend Form fields: pet_id (int), symptom_description (str)
         'pet_id': AppConfig.defaultPetId,
         'symptom_description': (symptoms == null || symptoms.trim().isEmpty)
-            ? 'เจ้าของไม่ได้ระบุอาการเพิ่มเติม'
+            ? 'No additional symptoms described'
             : symptoms.trim(),
       });
 
@@ -117,6 +119,26 @@ class HealthAssessmentRepositoryImpl implements HealthAssessmentRepository {
       throw Exception(_describeDioError(e));
     } catch (e) {
       throw Exception('Error fetching assessment history: $e');
+    }
+  }
+
+  @override
+  Future<List<AssessmentEntity>> getPetAssessmentHistory(int petId) async {
+    try {
+      final response = await dio.get(AppConfig.petAssessmentsEndpoint(petId));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> jsonData = response.data;
+        return jsonData
+            .map((json) =>
+                AssessmentModel.fromJson(json as Map<String, dynamic>).toEntity())
+            .toList();
+      }
+      throw Exception('Failed to fetch pet history: ${response.statusCode}');
+    } on DioException catch (e) {
+      throw Exception(_describeDioError(e));
+    } catch (e) {
+      throw Exception('Error fetching pet assessment history: $e');
     }
   }
 

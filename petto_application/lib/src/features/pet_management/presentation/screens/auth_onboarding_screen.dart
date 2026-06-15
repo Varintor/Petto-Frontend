@@ -2,14 +2,17 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../health_assessment/presentation/screens/home_screen.dart';
 import '../../../health_assessment/presentation/widgets/pet_avatar_widget.dart';
+import '../../data/repositories/supabase_pet_repository.dart';
 
 enum _AuthScreen { intro, gateway, register, summary }
 
-enum _RegisterStep { owner, petType, petName, petDetails, birthday }
+enum _RegisterStep { owner, credentials, petType, petName, petDetails, birthday }
 
 class AuthOnboardingScreen extends StatefulWidget {
   const AuthOnboardingScreen({super.key});
@@ -34,6 +37,11 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
   String _gender = 'Male';
 
   final _ownerName = TextEditingController();
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+  final _confirmPassword = TextEditingController();
+  final _loginEmail = TextEditingController();
+  final _loginPassword = TextEditingController();
   final _petName = TextEditingController();
   final _breed = TextEditingController();
   final _bloodType = TextEditingController();
@@ -43,9 +51,17 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
   int _birthMonth = 1;
   int _birthYear = DateTime.now().year - 1;
 
+  bool _isLoading = false;
+  String? _errorMessage;
+
   @override
   void dispose() {
     _ownerName.dispose();
+    _email.dispose();
+    _password.dispose();
+    _confirmPassword.dispose();
+    _loginEmail.dispose();
+    _loginPassword.dispose();
     _petName.dispose();
     _breed.dispose();
     _bloodType.dispose();
@@ -108,6 +124,82 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     Navigator.of(
       context,
     ).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
+  }
+
+  Future<void> _handleLogin() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    final email = _loginEmail.text.trim();
+    final password = _loginPassword.text;
+    if (email.isEmpty || password.isEmpty) {
+      setState(() => _errorMessage = 'Please enter email and password');
+      return;
+    }
+    setState(() { _isLoading = true; _errorMessage = null; });
+    final auth = context.read<AuthController>();
+    final success = await auth.login(email, password);
+    if (!mounted) return;
+    if (success) {
+      _openHome();
+    } else {
+      setState(() { _isLoading = false; _errorMessage = auth.error; });
+    }
+  }
+
+  Future<void> _handleGuestMode() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    await context.read<AuthController>().enterGuestMode();
+    if (!mounted) return;
+    _openHome();
+  }
+
+  Future<void> _handleRegisterAndCreatePet() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() { _isLoading = true; _errorMessage = null; });
+
+    final auth = context.read<AuthController>();
+    final success = await auth.register(
+      _email.text.trim(),
+      _password.text,
+      _ownerName.text.trim(),
+    );
+    if (!mounted) return;
+    if (!success) {
+      setState(() { _isLoading = false; _errorMessage = auth.error; });
+      return;
+    }
+
+    try {
+      // Create pet in Supabase
+      final petRepo = SupabasePetRepository();
+      final dob = DateTime(_birthYear, _birthMonth, _birthDay);
+
+      print('🐾 Creating pet in Supabase...');
+      final newPet = await petRepo.createPet(
+        name: _petNameOrDefault,
+        species: _species,
+        breed: _breed.text.trim().isEmpty ? null : _breed.text.trim(),
+        gender: _gender,
+        dateOfBirth: dob,
+        weightKg: double.tryParse(_weight.text.trim()),
+      );
+
+      print('✅ Pet created with ID: ${newPet.id}');
+
+      // Store pet ID (using hash of UUID as integer ID)
+      await auth.setPetId(newPet.id.hashCode);
+    } catch (e) {
+      print('❌ Failed to create pet: $e');
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Account created but failed to create pet. Error: $e\nYou can add a pet later.';
+      });
+      _openHome();
+      return;
+    }
+
+    if (!mounted) return;
+    _openHome();
   }
 
   void _back() {
@@ -197,15 +289,22 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
         return _PanelFrame(
           key: const ValueKey('gateway'),
           child: _GatewayPage(
+            emailController: _loginEmail,
+            passwordController: _loginPassword,
+            isLoading: _isLoading,
+            errorMessage: _errorMessage,
             onBack: _back,
-            onGoogle: _openHome,
-            onGuest: () {
+            onLogin: _handleLogin,
+            onGoogle: () {},
+            onRegister: () {
               setState(() {
                 _transitionDirection = 1;
+                _errorMessage = null;
                 _screen = _AuthScreen.register;
                 _step = _RegisterStep.owner;
               });
             },
+            onGuest: _handleGuestMode,
           ),
         );
       case _AuthScreen.register:
@@ -227,25 +326,61 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
       case _AuthScreen.summary:
         return _PanelFrame(
           key: const ValueKey('summary'),
-          child: _ProfileSummaryPage(
-            ownerName: _ownerName.text.trim(),
-            petName: _petNameOrDefault,
-            species: _species,
-            petColor: _petColor,
-            gender: _gender,
-            age: _age.text.trim(),
-            weight: _weight.text.trim(),
-            breed: _breed.text.trim(),
-            bloodType: _bloodType.text.trim(),
-            birthday: _birthdayLabel,
-            onBack: () {
-              setState(() {
-                _transitionDirection = -1;
-                _screen = _AuthScreen.register;
-                _step = _RegisterStep.birthday;
-              });
-            },
-            onContinue: _openHome,
+          child: Stack(
+            children: [
+              _ProfileSummaryPage(
+                ownerName: _ownerName.text.trim(),
+                petName: _petNameOrDefault,
+                species: _species,
+                petColor: _petColor,
+                gender: _gender,
+                age: _age.text.trim(),
+                weight: _weight.text.trim(),
+                breed: _breed.text.trim(),
+                bloodType: _bloodType.text.trim(),
+                birthday: _birthdayLabel,
+                errorMessage: _errorMessage,
+                onBack: () {
+                  setState(() {
+                    _transitionDirection = -1;
+                    _errorMessage = null;
+                    _screen = _AuthScreen.register;
+                    _step = _RegisterStep.birthday;
+                  });
+                },
+                onContinue: _handleRegisterAndCreatePet,
+              ),
+              if (_isLoading)
+                Positioned.fill(
+                  child: Container(
+                    color: _cream.withValues(alpha: 0.85),
+                    child: const Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 32, height: 32,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: _red,
+                            ),
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'Creating your account...',
+                            style: TextStyle(
+                              fontFamily: AppTheme.sansFontFamily,
+                              color: _deepRed,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         );
     }
@@ -323,6 +458,75 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
           ),
           primaryLabel: 'NEXT',
           onPrimary: _nextStep,
+        );
+      case _RegisterStep.credentials:
+        return _StepPage(
+          step: 2,
+          showHeader: false,
+          topPet: null,
+          title: 'Your Account',
+          subtitle: 'Create login credentials for your Petto account.',
+          body: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 380),
+            child: Column(
+              children: [
+                _IconInputField(
+                  icon: Icons.email_rounded,
+                  hint: 'Email',
+                  controller: _email,
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 14),
+                _IconInputField(
+                  icon: Icons.lock_rounded,
+                  hint: 'Password',
+                  controller: _password,
+                  obscure: true,
+                ),
+                const SizedBox(height: 14),
+                _IconInputField(
+                  icon: Icons.lock_outline_rounded,
+                  hint: 'Confirm Password',
+                  controller: _confirmPassword,
+                  obscure: true,
+                ),
+                if (_errorMessage != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    _errorMessage!,
+                    style: const TextStyle(
+                      fontFamily: AppTheme.sansFontFamily,
+                      color: Color(0xFFB33A3A),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          secondaryLabel: 'BACK',
+          onSecondary: _back,
+          primaryLabel: 'NEXT',
+          onPrimary: () {
+            final email = _email.text.trim();
+            final pass = _password.text;
+            final confirm = _confirmPassword.text;
+            if (email.isEmpty || !email.contains('@')) {
+              setState(() => _errorMessage = 'Please enter a valid email');
+              return;
+            }
+            if (pass.length < 6) {
+              setState(() => _errorMessage = 'Password must be at least 6 characters');
+              return;
+            }
+            if (pass != confirm) {
+              setState(() => _errorMessage = 'Passwords do not match');
+              return;
+            }
+            setState(() => _errorMessage = null);
+            _nextStep();
+          },
         );
       case _RegisterStep.petType:
         return _PetTypeStep(
@@ -501,13 +705,25 @@ class _IntroPage extends StatelessWidget {
 
 class _GatewayPage extends StatelessWidget {
   const _GatewayPage({
+    required this.emailController,
+    required this.passwordController,
+    required this.isLoading,
+    this.errorMessage,
     required this.onBack,
+    required this.onLogin,
     required this.onGoogle,
+    required this.onRegister,
     required this.onGuest,
   });
 
+  final TextEditingController emailController;
+  final TextEditingController passwordController;
+  final bool isLoading;
+  final String? errorMessage;
   final VoidCallback onBack;
+  final VoidCallback onLogin;
   final VoidCallback onGoogle;
+  final VoidCallback onRegister;
   final VoidCallback onGuest;
 
   @override
@@ -523,7 +739,7 @@ class _GatewayPage extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text(
-                  'Login / Register',
+                  'Welcome Back',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: AppTheme.displayFontFamily,
@@ -536,7 +752,7 @@ class _GatewayPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Select your preferred method to start caring for your pet.',
+                  'Sign in to continue caring for your pet.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: AppTheme.sansFontFamily,
@@ -546,37 +762,63 @@ class _GatewayPage extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 40),
-                _GoogleButton(onTap: onGoogle),
+                const SizedBox(height: 28),
+                _IconInputField(
+                  icon: Icons.email_rounded,
+                  hint: 'Email',
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 14),
+                _IconInputField(
+                  icon: Icons.lock_rounded,
+                  hint: 'Password',
+                  controller: passwordController,
+                  obscure: true,
+                ),
+                if (errorMessage != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    errorMessage!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: AppTheme.sansFontFamily,
+                      color: Color(0xFFB33A3A),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 20),
+                isLoading
+                    ? const SizedBox(
+                        width: 28, height: 28,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: _AuthOnboardingScreenState._red,
+                        ),
+                      )
+                    : _ReferenceButton(
+                        label: 'LOGIN',
+                        icon: Icons.arrow_forward_rounded,
+                        onTap: onLogin,
+                        fullWidth: true,
+                      ),
                 const SizedBox(height: 16),
                 const _OrDivider(),
+                const SizedBox(height: 16),
+                _GoogleButton(onTap: onGoogle),
                 const SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(
-                      child: _GhostButton(label: 'BACK', onTap: onBack),
+                      child: _GhostButton(label: 'GUEST', onTap: onGuest),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: _ReferenceButton(label: 'GUEST', onTap: onGuest),
+                      child: _ReferenceButton(label: 'REGISTER', onTap: onRegister),
                     ),
                   ],
-                ),
-                const SizedBox(height: 40),
-                TextButton.icon(
-                  onPressed: onBack,
-                  label: const Text('VIEW SECURITY DETAILS'),
-                  icon: const Icon(Icons.arrow_forward_rounded),
-                  iconAlignment: IconAlignment.end,
-                  style: TextButton.styleFrom(
-                    foregroundColor: _AuthOnboardingScreenState._red,
-                    textStyle: const TextStyle(
-                      fontFamily: AppTheme.sansFontFamily,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.8,
-                    ),
-                  ),
                 ),
               ],
             ),
@@ -622,7 +864,7 @@ class _RegisterStepHeader extends StatelessWidget {
         _StepIndicator(step: step),
         const SizedBox(height: 18),
         Text(
-          'STEP $step OF 5',
+          'STEP $step OF 6',
           textAlign: TextAlign.center,
           style: const TextStyle(
             fontFamily: AppTheme.sansFontFamily,
@@ -1770,6 +2012,7 @@ class _ProfileSummaryPage extends StatelessWidget {
     required this.breed,
     required this.bloodType,
     required this.birthday,
+    this.errorMessage,
     required this.onBack,
     required this.onContinue,
   });
@@ -1784,6 +2027,7 @@ class _ProfileSummaryPage extends StatelessWidget {
   final String breed;
   final String bloodType;
   final String birthday;
+  final String? errorMessage;
   final VoidCallback onBack;
   final VoidCallback onContinue;
 
@@ -2021,6 +2265,19 @@ class _ProfileSummaryPage extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (errorMessage != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    errorMessage!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: AppTheme.sansFontFamily,
+                      color: Color(0xFFB33A3A),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 14),
                 Row(
                   children: [
@@ -2981,12 +3238,14 @@ class _IconInputField extends StatelessWidget {
     required this.hint,
     required this.controller,
     this.keyboardType,
+    this.obscure = false,
   });
 
   final IconData icon;
   final String hint;
   final TextEditingController controller;
   final TextInputType? keyboardType;
+  final bool obscure;
 
   @override
   Widget build(BuildContext context) {
@@ -2995,6 +3254,7 @@ class _IconInputField extends StatelessWidget {
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
+        obscureText: obscure,
         cursorColor: _AuthOnboardingScreenState._red,
         style: const TextStyle(
           fontFamily: AppTheme.sansFontFamily,

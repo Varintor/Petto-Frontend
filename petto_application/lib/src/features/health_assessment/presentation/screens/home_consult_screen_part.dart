@@ -90,17 +90,34 @@ extension _HomeConsultScreenPart on _HomeScreenState {
     _queueVetReply(vet, 'Thanks. The snapshot came through clearly.');
   }
 
-  void _shareAiCheckWithVet({_VetData? vetOverride}) {
+  void _shareAiCheckWithVet({_VetData? vetOverride, AssessmentEntity? assessmentOverride}) {
     final vet = vetOverride ?? _activeChatVet;
     if (vet == null) return;
-    final latestCheck = _HomeScreenState._history.first;
+    final String title;
+    final String result;
+    if (assessmentOverride != null) {
+      title = assessmentOverride.symptoms ?? 'AI Health Check';
+      result = assessmentOverride.riskLevel;
+    } else {
+      final controller = context.read<HealthAssessmentController>();
+      final assessments = controller.history;
+      if (assessments.isNotEmpty) {
+        final latest = assessments.first;
+        title = latest.symptoms ?? 'AI Health Check';
+        result = latest.riskLevel;
+      } else {
+        final latestCheck = _HomeScreenState._history.first;
+        title = latestCheck.title;
+        result = latestCheck.result;
+      }
+    }
     _update(() {
       _conversationForVet(vet.id).add(
         _VetChatMessageData(
           fromVet: false,
           timeLabel: _chatTimeLabel(),
           title: 'AI Health Check',
-          text: '${latestCheck.title}\n${latestCheck.result}',
+          text: '$title\n$result',
           icon: Icons.auto_awesome_rounded,
           tint: AppTheme.secondaryColor,
         ),
@@ -127,10 +144,54 @@ extension _HomeConsultScreenPart on _HomeScreenState {
     });
   }
 
+  void _loadAssessmentHistory() {
+    final controller = context.read<HealthAssessmentController>();
+    final petId = context.read<AuthController>().petId ?? AppConfig.defaultPetId;
+    controller.loadPetHistory(petId);
+  }
+
+  void _showAssessmentDetail(AssessmentEntity assessment) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _AssessmentDetailSheet(
+        assessment: assessment,
+        onShareWithVet: () {
+          var vet = _activeChatVet;
+          if (vet == null) {
+            final onlineVets =
+                _HomeScreenState._vets.where((v) => v.online);
+            if (onlineVets.isEmpty) {
+              _showPreviewSnackBar('No online vet available');
+              return;
+            }
+            vet = onlineVets.first;
+            _openVetChat(vet);
+          }
+          _shareAiCheckWithVet(
+            vetOverride: vet,
+            assessmentOverride: assessment,
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildConsultView(BuildContext context) {
     final visibleVets = _HomeScreenState._vets
         .where((vet) => _vetFilter == _VetFilter.all || vet.online)
         .toList();
+
+    final assessmentController = context.watch<HealthAssessmentController>();
+    final assessments = assessmentController.history;
+
+    // Load assessment history on first build if empty
+    if (assessments.isEmpty && !assessmentController.isLoading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _loadAssessmentHistory();
+      });
+    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 8, 24, 150),
@@ -182,8 +243,153 @@ extension _HomeConsultScreenPart on _HomeScreenState {
             ),
           ),
           const SizedBox(height: 24),
+
+          // ── Assessment History Section ──
           _SoftReveal(
-            delay: 0.16,
+            delay: 0.12,
+            child: Row(
+              children: [
+                Container(
+                  width: 5,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: AppTheme.secondaryColor,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Assessment History',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: AppTheme.secondaryText,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                InkWell(
+                  onTap: _loadAssessmentHistory,
+                  borderRadius: BorderRadius.circular(999),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.secondaryColor.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.refresh_rounded,
+                            size: 14, color: AppTheme.secondaryColor),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Refresh',
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: AppTheme.secondaryColor,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          if (assessmentController.isLoading && assessments.isEmpty)
+            _SoftReveal(
+              delay: 0.16,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: AppTheme.glassCardDecoration(
+                  color: Colors.white.withValues(alpha: 0.96),
+                  borderColor:
+                      AppTheme.warmSurfaceColor.withValues(alpha: 0.38),
+                  borderWidth: 1.2,
+                ),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: AppTheme.secondaryColor,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Loading assessment history...',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppTheme.mutedText,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else if (assessments.isEmpty)
+            _SoftReveal(
+              delay: 0.16,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: AppTheme.glassCardDecoration(
+                  color: Colors.white.withValues(alpha: 0.96),
+                  borderColor:
+                      AppTheme.warmSurfaceColor.withValues(alpha: 0.38),
+                  borderWidth: 1.2,
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.auto_awesome_rounded,
+                        size: 36,
+                        color: AppTheme.secondaryColor.withValues(alpha: 0.4)),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No assessments yet',
+                      style:
+                          Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: AppTheme.secondaryText,
+                                fontWeight: FontWeight.w900,
+                              ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Use Smart AI Scan to analyze your pet\'s health',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppTheme.mutedText,
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            for (final entry in assessments.take(3).indexed) ...[
+              _SoftReveal(
+                delay: 0.16 + (entry.$1 * 0.05),
+                child: _AssessmentHistoryCard(
+                  assessment: entry.$2,
+                  onTap: () => _showAssessmentDetail(entry.$2),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+
+          const SizedBox(height: 12),
+
+          // ── Talk to a Vet Section ──
+          _SoftReveal(
+            delay: 0.24,
             child: Row(
               children: [
                 Container(
@@ -219,7 +425,7 @@ extension _HomeConsultScreenPart on _HomeScreenState {
           const SizedBox(height: 12),
           for (final entry in visibleVets.indexed) ...[
             _SoftReveal(
-              delay: 0.22 + (entry.$1 * 0.05),
+              delay: 0.30 + (entry.$1 * 0.05),
               child: _VetCard(
                 vet: entry.$2,
                 onChat: () => _openVetChat(entry.$2),
@@ -230,7 +436,7 @@ extension _HomeConsultScreenPart on _HomeScreenState {
           ],
           const SizedBox(height: 18),
           _SoftReveal(
-            delay: 0.34,
+            delay: 0.42,
             child: Row(
               children: [
                 Container(
@@ -282,7 +488,7 @@ extension _HomeConsultScreenPart on _HomeScreenState {
           const SizedBox(height: 12),
           for (final entry in _HomeScreenState._history.take(3).indexed) ...[
             _SoftReveal(
-              delay: 0.4 + (entry.$1 * 0.05),
+              delay: 0.48 + (entry.$1 * 0.05),
               child: _HistoryPreviewCard(item: entry.$2),
             ),
             const SizedBox(height: 12),

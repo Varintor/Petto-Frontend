@@ -7,9 +7,14 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../domain/entities/assessment_entity.dart';
+import '../controllers/health_assessment_controller.dart';
 import '../../../activity_tracking/presentation/controllers/activity_tracking_controller.dart';
 import '../../../activity_tracking/presentation/screens/live_walk_screen.dart';
+import '../../../missions/presentation/controllers/missions_controller.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../activity_tracking/presentation/screens/wellness_tracking_view.dart';
 import 'health_assessment_screen.dart';
 import '../widgets/pet_avatar_widget.dart';
@@ -52,7 +57,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final TextEditingController _chatMessageController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
-  final Set<String> _completedMissionIds = {'water'};
   String _selectedSpecies = 'Cat';
   String _selectedColor = '#9F3E43';
   String _selectedEyeType = 'default';
@@ -79,27 +83,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ageLabel: '4 Years Old',
       weightLabel: '18.2kg',
       status: 'Ready to Play',
-    ),
-  ];
-
-  static const List<_MissionData> _missions = [
-    _MissionData(
-      id: 'walk',
-      title: 'Walk for 15 mins',
-      reward: '50 Treats',
-      icon: Icons.pets_rounded,
-    ),
-    _MissionData(
-      id: 'water',
-      title: 'Water Log',
-      reward: '20 Treats',
-      icon: Icons.water_drop_rounded,
-    ),
-    _MissionData(
-      id: 'ai_check',
-      title: 'AI Quick Check',
-      reward: '100 Treats',
-      icon: Icons.search_rounded,
     ),
   ];
 
@@ -260,6 +243,7 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<ActivityTrackingController>().loadStats();
+      context.read<MissionsController>().loadAll();
     });
   }
 

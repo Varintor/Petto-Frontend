@@ -35,9 +35,11 @@ dependencies:
   dio: ^5.4.1                # ใช้ยิง API คุยกับ FastAPI (รองรับ Multipart/Form-data)
   image_picker: ^1.0.7       # ใช้ดึงรูปภาพจากกล้องหรือแกลเลอรีในมือถือ
   provider: ^6.1.1           # ตัวจัดการ State Management (สำหรับ ChangeNotifier Controller)
+  shared_preferences: ^2.3.0
   cupertino_icons: ^1.0.8
   geolocator: ^14.0.2
   flutter_svg: ^2.3.0
+  supabase_flutter: ^2.0.0
 
 dev_dependencies:
   flutter_test:

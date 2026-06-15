@@ -1,15 +1,16 @@
 part of 'home_screen.dart';
 
 extension _HomeDashboardScreenPart on _HomeScreenState {
-  void _triggerMission(String id, Offset origin) {
-    if (_completedMissionIds.contains(id)) return;
+  void _triggerMission(int missionId, Offset origin) {
+    final controller = context.read<MissionsController>();
+    if (controller.isMissionCompleted(missionId)) return;
     _update(() {
-      _completedMissionIds.add(id);
       _showConfetti = true;
       _confettiOrigin = origin;
       _confettiSeed++;
-      _burstMissionId = id;
+      _burstMissionId = missionId.toString();
     });
+    controller.completeMission(missionId);
     Timer(const Duration(milliseconds: 950), () {
       if (!mounted) return;
       _update(() {
@@ -25,356 +26,402 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
   }
 
   Widget _buildDashboardView(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 150),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            height: 58,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: _HomeScreenState._pets.length + 1,
-              separatorBuilder: (context, index) => const SizedBox(width: 12),
-              itemBuilder: (context, index) {
-                if (index == _HomeScreenState._pets.length) {
-                  return _AddPetChip(
-                    onTap: () => _showPreviewSnackBar('Add Pet'),
-                  );
-                }
-                final pet = _HomeScreenState._pets[index];
-                final appearance =
-                    _savedAppearances[index] ??
-                    _defaultAppearanceForSpecies(pet.species);
-                final selected = index == _activePetIndex;
-                return _PetChip(
-                  pet: pet,
-                  appearance: appearance,
-                  selected: selected,
-                  onTap: () {
-                    _update(() {
-                      _selectPet(index);
-                    });
+    return Consumer<MissionsController>(
+      builder: (context, mc, _) {
+        final stats = mc.dashboardStats;
+        final missions = mc.missions;
+        final happiness = stats.happinessPercent;
+        final energy = stats.energyPercent;
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 150),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                height: 58,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _HomeScreenState._pets.length + 1,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(width: 12),
+                  itemBuilder: (context, index) {
+                    if (index == _HomeScreenState._pets.length) {
+                      return _AddPetChip(
+                        onTap: () => _showPreviewSnackBar('Add Pet'),
+                      );
+                    }
+                    final pet = _HomeScreenState._pets[index];
+                    final appearance =
+                        _savedAppearances[index] ??
+                        _defaultAppearanceForSpecies(pet.species);
+                    final selected = index == _activePetIndex;
+                    return _PetChip(
+                      pet: pet,
+                      appearance: appearance,
+                      selected: selected,
+                      onTap: () {
+                        _update(() {
+                          _selectPet(index);
+                        });
+                      },
+                    );
                   },
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 18),
-          Container(
-            height: 280,
-            margin: const EdgeInsets.only(bottom: 34),
-            child: Column(
-              children: [
-                Expanded(
-                  child: _RoomStage(
-                    showActionMenu: _showActionMenu,
-                    petSpecies: _activeAppearance.species,
-                    petColor: _colorFromHex(_activeAppearance.colorHex),
-                    petPattern: _activeAppearance.pattern,
-                    equipped: _activeAppearance.equipped.toList(
-                      growable: false,
-                    ),
-                    eyeType: _activeAppearance.eyeType,
-                    mouthType: _activeAppearance.mouthType,
-                    onToggleMenu: () {
-                      _update(() {
-                        _showActionMenu = !_showActionMenu;
-                      });
-                    },
-                    onTapAssessment: () {
-                      _update(() {
-                        _showActionMenu = false;
-                        _assessmentModalTitle = 'Smart AI Scan';
-                        _showAssessment = true;
-                      });
-                    },
-                    onTapWardrobe: () {
-                      _update(() {
-                        _showActionMenu = false;
-                        _openWardrobe();
-                      });
-                    },
-                    onTapProfile: () {
-                      _update(() {
-                        _activeView = _View.profile;
-                      });
-                    },
-                  ),
                 ),
-                const SizedBox(height: 18),
-                Text(
-                  _activePet.name,
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+              ),
+              const SizedBox(height: 18),
+              Container(
+                height: 280,
+                margin: const EdgeInsets.only(bottom: 34),
+                child: Column(
                   children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: AppTheme.successColor,
-                        shape: BoxShape.circle,
+                    Expanded(
+                      child: _RoomStage(
+                        showActionMenu: _showActionMenu,
+                        petSpecies: _activeAppearance.species,
+                        petColor: _colorFromHex(_activeAppearance.colorHex),
+                        petPattern: _activeAppearance.pattern,
+                        equipped: _activeAppearance.equipped.toList(
+                          growable: false,
+                        ),
+                        eyeType: _activeAppearance.eyeType,
+                        mouthType: _activeAppearance.mouthType,
+                        onToggleMenu: () {
+                          _update(() {
+                            _showActionMenu = !_showActionMenu;
+                          });
+                        },
+                        onTapAssessment: () {
+                          _update(() {
+                            _showActionMenu = false;
+                            _assessmentModalTitle = 'Smart AI Scan';
+                            _showAssessment = true;
+                          });
+                        },
+                        onTapWardrobe: () {
+                          _update(() {
+                            _showActionMenu = false;
+                            _openWardrobe();
+                          });
+                        },
+                        onTapProfile: () {
+                          _update(() {
+                            _activeView = _View.profile;
+                          });
+                        },
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(height: 18),
                     Text(
-                      _activePet.status.toUpperCase(),
-                      style: Theme.of(context).textTheme.labelSmall,
+                      _activePet.name,
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: AppTheme.successColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _activePet.status.toUpperCase(),
+                          style: Theme.of(context).textTheme.labelSmall,
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          Row(
-            children: [
-              Expanded(
-                child: _MetricCard(
-                  title: 'Happiness',
-                  value: '85',
-                  suffix: '%',
-                  icon: Icons.favorite_rounded,
-                  color: AppTheme.primaryColor,
-                  progress: 0.85,
-                ),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _MetricCard(
-                  title: 'Energy',
-                  value: '40',
-                  suffix: '%',
-                  icon: Icons.bolt_rounded,
-                  color: AppTheme.accentColor,
-                  progress: 0.40,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: _MetricCard(
+                      title: 'Happiness',
+                      value: '$happiness',
+                      suffix: '%',
+                      icon: Icons.favorite_rounded,
+                      color: AppTheme.primaryColor,
+                      progress: happiness / 100.0,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _MetricCard(
+                      title: 'Energy',
+                      value: '$energy',
+                      suffix: '%',
+                      icon: Icons.bolt_rounded,
+                      color: AppTheme.accentColor,
+                      progress: energy / 100.0,
+                    ),
+                  ),
+                ],
               ),
+              const SizedBox(height: 28),
+              Row(
+                children: [
+                  Container(
+                    width: 5,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "Today's Missions",
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: AppTheme.secondaryText,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '${mc.completedCount}/${mc.totalCount} done',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              if (mc.missionsLoading && missions.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else
+                for (final mission in missions) ...[
+                  _MissionCard(
+                    mission: _MissionData(
+                      id: mission.id.toString(),
+                      title: mission.title,
+                      reward: mission.rewardDisplay,
+                      icon: mission.icon,
+                    ),
+                    completed: mission.isCompleted,
+                    bursting: _burstMissionId == mission.id.toString(),
+                    onTap: (origin) => _triggerMission(mission.id, origin),
+                  ),
+                  const SizedBox(height: 12),
+                ],
             ],
           ),
-          const SizedBox(height: 28),
-          Row(
-            children: [
-              Container(
-                width: 5,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryColor,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  "Today's Missions",
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: AppTheme.secondaryText,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 7,
-                ),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryColor,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '${_completedMissionIds.length}/${_HomeScreenState._missions.length} done',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          for (final mission in _HomeScreenState._missions) ...[
-            _MissionCard(
-              mission: mission,
-              completed: _completedMissionIds.contains(mission.id),
-              bursting: _burstMissionId == mission.id,
-              onTap: (origin) => _triggerMission(mission.id, origin),
-            ),
-            const SizedBox(height: 12),
-          ],
-        ],
-      ),
+        );
+      },
     );
   }
 
   Widget _buildMissionsView(BuildContext context) {
-    final completedCount = _completedMissionIds.length;
-    final totalCount = _HomeScreenState._missions.length;
-    final progress = totalCount == 0 ? 0.0 : completedCount / totalCount;
+    return Consumer<MissionsController>(
+      builder: (context, mc, _) {
+        final completedCount = mc.completedCount;
+        final totalCount = mc.totalCount;
+        final progress = totalCount == 0 ? 0.0 : completedCount / totalCount;
+        final missions = mc.missions;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 150),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
-            decoration: BoxDecoration(
-              color: AppTheme.primaryColor,
-              borderRadius: BorderRadius.circular(32),
-              border: Border.all(color: AppTheme.blushSurfaceColor, width: 2),
-              boxShadow: AppTheme.cardShadow,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 150),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor,
+                  borderRadius: BorderRadius.circular(32),
+                  border:
+                      Border.all(color: AppTheme.blushSurfaceColor, width: 2),
+                  boxShadow: AppTheme.cardShadow,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 54,
-                      height: 54,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const _SoftPulse(
-                        child: Icon(
-                          Icons.flag_rounded,
-                          color: AppTheme.primaryColor,
+                    Row(
+                      children: [
+                        Container(
+                          width: 54,
+                          height: 54,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const _SoftPulse(
+                            child: Icon(
+                              Icons.flag_rounded,
+                              color: AppTheme.primaryColor,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Daily Mission',
-                            style: Theme.of(context).textTheme.titleLarge
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Daily Mission',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleLarge
+                                    ?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Small care goals for ${_activePet.name}',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      color:
+                                          Colors.white.withValues(alpha: 0.78),
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(999),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.08),
+                                blurRadius: 14,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            '$completedCount/$totalCount',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelMedium
                                 ?.copyWith(
-                                  color: Colors.white,
+                                  color: AppTheme.primaryColor,
                                   fontWeight: FontWeight.w900,
                                 ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Small care goals for ${_activePet.name}',
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  color: Colors.white.withValues(alpha: 0.78),
-                                ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 10),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(999),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.08),
-                            blurRadius: 14,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: Text(
-                        '$completedCount/$totalCount',
-                        style: Theme.of(context).textTheme.labelMedium
-                            ?.copyWith(
-                              color: AppTheme.primaryColor,
-                              fontWeight: FontWeight.w900,
+                    const SizedBox(height: 16),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: TweenAnimationBuilder<double>(
+                        tween: Tween<double>(begin: 0, end: progress),
+                        duration: const Duration(milliseconds: 720),
+                        curve: Curves.easeOutCubic,
+                        builder: (context, value, child) {
+                          return LinearProgressIndicator(
+                            value: value,
+                            minHeight: 8,
+                            backgroundColor:
+                                Colors.white.withValues(alpha: 0.20),
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              AppTheme.blushSurfaceColor,
                             ),
+                          );
+                        },
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
-                  child: TweenAnimationBuilder<double>(
-                    tween: Tween<double>(begin: 0, end: progress),
-                    duration: const Duration(milliseconds: 720),
-                    curve: Curves.easeOutCubic,
-                    builder: (context, value, child) {
-                      return LinearProgressIndicator(
-                        value: value,
-                        minHeight: 8,
-                        backgroundColor: Colors.white.withValues(alpha: 0.20),
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                          AppTheme.blushSurfaceColor,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 22),
-          _buildMissionActivityPanel(context),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Container(
-                width: 5,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryColor,
-                  borderRadius: BorderRadius.circular(999),
-                ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  "Today's Missions",
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: AppTheme.secondaryText,
-                    fontWeight: FontWeight.w900,
+              const SizedBox(height: 22),
+              _buildMissionActivityPanel(context),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Container(
+                    width: 5,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
                   ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 7,
-                ),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryColor,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '$completedCount/$totalCount done',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "Today's Missions",
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: AppTheme.secondaryText,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                   ),
-                ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '$completedCount/$totalCount done',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
               ),
+              const SizedBox(height: 14),
+              if (mc.missionsLoading && missions.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else
+                for (final mission in missions) ...[
+                  _MissionCard(
+                    mission: _MissionData(
+                      id: mission.id.toString(),
+                      title: mission.title,
+                      reward: mission.rewardDisplay,
+                      icon: mission.icon,
+                    ),
+                    completed: mission.isCompleted,
+                    bursting: _burstMissionId == mission.id.toString(),
+                    onTap: (origin) => _triggerMission(mission.id, origin),
+                  ),
+                  const SizedBox(height: 12),
+                ],
             ],
           ),
-          const SizedBox(height: 14),
-          for (final mission in _HomeScreenState._missions) ...[
-            _MissionCard(
-              mission: mission,
-              completed: _completedMissionIds.contains(mission.id),
-              bursting: _burstMissionId == mission.id,
-              onTap: (origin) => _triggerMission(mission.id, origin),
-            ),
-            const SizedBox(height: 12),
-          ],
-        ],
-      ),
+        );
+      },
     );
   }
 
