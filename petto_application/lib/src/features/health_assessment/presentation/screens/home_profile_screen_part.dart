@@ -248,8 +248,10 @@ extension _HomeProfileScreenPart on _HomeScreenState {
       });
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not update pet photo.')),
+      showTopAlert(
+        context,
+        'Could not update pet photo.',
+        icon: Icons.info_outline_rounded,
       );
     }
   }

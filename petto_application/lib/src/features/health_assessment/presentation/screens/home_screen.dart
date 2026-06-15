@@ -11,6 +11,7 @@ import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/assessment_entity.dart';
 import '../controllers/health_assessment_controller.dart';
+import '../../../../core/widgets/top_alert.dart';
 import '../../../activity_tracking/presentation/controllers/activity_tracking_controller.dart';
 import '../../../activity_tracking/presentation/screens/live_walk_screen.dart';
 import '../../../missions/presentation/controllers/missions_controller.dart';
@@ -787,9 +788,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showPreviewSnackBar(String label) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$label is shown as UI-only preview.')),
-    );
+    showTopAlert(context, '$label is shown as UI-only preview.');
   }
 
   _PetAppearanceData _defaultAppearanceForSpecies(String species) {

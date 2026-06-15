@@ -5,12 +5,20 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/top_alert.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../health_assessment/presentation/screens/home_screen.dart';
 import '../../../health_assessment/presentation/widgets/pet_avatar_widget.dart';
 import '../../data/repositories/supabase_pet_repository.dart';
 
-enum _AuthScreen { intro, gateway, register, summary }
+enum _AuthScreen {
+  intro,
+  gateway,
+  forgotPassword,
+  registerAccount,
+  register,
+  summary,
+}
 
 enum _RegisterStep { owner, credentials, petType, petName, petDetails, birthday }
 
@@ -141,7 +149,14 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     if (success) {
       _openHome();
     } else {
-      setState(() { _isLoading = false; _errorMessage = auth.error; });
+      setState(() => _isLoading = false);
+      if (mounted) {
+        showTopAlert(
+          context,
+          auth.error ?? 'Login failed. Please try again.',
+          icon: Icons.info_outline_rounded,
+        );
+      }
     }
   }
 
@@ -202,12 +217,84 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     _openHome();
   }
 
+  void _openRegisterFlow() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      _transitionDirection = 1;
+      _screen = _AuthScreen.registerAccount;
+    });
+  }
+
+  void _openPetOnboarding() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      _transitionDirection = 1;
+      _screen = _AuthScreen.register;
+      _step = _RegisterStep.owner;
+    });
+  }
+
+  void _completeAccountRegister() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    final email = _email.text.trim();
+    final password = _password.text;
+    final confirm = _confirmPassword.text;
+    if (email.isEmpty || password.isEmpty || confirm.isEmpty) {
+      showTopAlert(
+        context,
+        'Please fill in email and password.',
+        icon: Icons.info_outline_rounded,
+      );
+      return;
+    }
+    if (password != confirm) {
+      showTopAlert(
+        context,
+        'Passwords do not match.',
+        icon: Icons.info_outline_rounded,
+      );
+      return;
+    }
+    _openPetOnboarding();
+  }
+
+  void _openForgotPassword() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      _transitionDirection = 1;
+      _screen = _AuthScreen.forgotPassword;
+    });
+  }
+
+  void _sendPasswordReset() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    showTopAlert(context, 'Password reset link sent.');
+    setState(() {
+      _transitionDirection = -1;
+      _screen = _AuthScreen.gateway;
+    });
+  }
+
   void _back() {
     FocusManager.instance.primaryFocus?.unfocus();
     if (_screen == _AuthScreen.gateway) {
       setState(() {
         _transitionDirection = -1;
         _screen = _AuthScreen.intro;
+      });
+      return;
+    }
+    if (_screen == _AuthScreen.forgotPassword) {
+      setState(() {
+        _transitionDirection = -1;
+        _screen = _AuthScreen.gateway;
+      });
+      return;
+    }
+    if (_screen == _AuthScreen.registerAccount) {
+      setState(() {
+        _transitionDirection = -1;
+        _screen = _AuthScreen.gateway;
       });
       return;
     }
@@ -257,10 +344,10 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
           const Positioned.fill(child: _ReferenceBackground()),
           Positioned.fill(
             child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 260),
-              reverseDuration: const Duration(milliseconds: 220),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeInCubic,
+              duration: const Duration(milliseconds: 230),
+              reverseDuration: const Duration(milliseconds: 130),
+              switchInCurve: Curves.easeOutQuart,
+              switchOutCurve: Curves.easeInQuart,
               transitionBuilder: _buildAuthTransition,
               layoutBuilder: _buildLockedTransitionLayout,
               child: _currentView,
@@ -275,7 +362,7 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     switch (_screen) {
       case _AuthScreen.intro:
         return _PanelFrame(
-          key: const ValueKey('intro'),
+          key: ValueKey(_AuthScreen.intro.name),
           child: _IntroPage(
             onStart: () {
               setState(() {
@@ -287,39 +374,54 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
         );
       case _AuthScreen.gateway:
         return _PanelFrame(
-          key: const ValueKey('gateway'),
+          key: ValueKey(_AuthScreen.gateway.name),
           child: _GatewayPage(
             emailController: _loginEmail,
             passwordController: _loginPassword,
-            isLoading: _isLoading,
-            errorMessage: _errorMessage,
             onBack: _back,
             onLogin: _handleLogin,
             onGoogle: () {},
-            onRegister: () {
-              setState(() {
-                _transitionDirection = 1;
-                _errorMessage = null;
-                _screen = _AuthScreen.register;
-                _step = _RegisterStep.owner;
-              });
-            },
+            onRegister: _openRegisterFlow,
+            onForgotPassword: _openForgotPassword,
             onGuest: _handleGuestMode,
+          ),
+        );
+      case _AuthScreen.forgotPassword:
+        return _PanelFrame(
+          key: ValueKey(_AuthScreen.forgotPassword.name),
+          child: _ForgotPasswordPage(
+            emailController: _email,
+            onBack: _back,
+            onSubmit: _sendPasswordReset,
+          ),
+        );
+      case _AuthScreen.registerAccount:
+        return _PanelFrame(
+          key: ValueKey(_AuthScreen.registerAccount.name),
+          child: _RegisterAccountPage(
+            emailController: _email,
+            passwordController: _password,
+            confirmPasswordController: _confirmPassword,
+            onBack: _back,
+            onSubmit: _completeAccountRegister,
           ),
         );
       case _AuthScreen.register:
         return _PanelFrame(
-          key: const ValueKey('register'),
+          key: ValueKey(_AuthScreen.register.name),
           child: _RegisterStepShell(
             step: _RegisterStep.values.indexOf(_step) + 1,
             child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
-              reverseDuration: const Duration(milliseconds: 220),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeInCubic,
+              duration: const Duration(milliseconds: 220),
+              reverseDuration: const Duration(milliseconds: 120),
+              switchInCurve: Curves.easeOutQuart,
+              switchOutCurve: Curves.easeInQuart,
               transitionBuilder: _buildAuthTransition,
               layoutBuilder: _buildLockedTransitionLayout,
-              child: KeyedSubtree(key: ValueKey(_step), child: _registerView),
+              child: KeyedSubtree(
+                key: ValueKey(_step.name),
+                child: _registerView,
+              ),
             ),
           ),
         );
@@ -393,47 +495,27 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        for (final child in previousChildren) Positioned.fill(child: child),
         if (currentChild != null) Positioned.fill(child: currentChild),
       ],
     );
   }
 
   Widget _buildAuthTransition(Widget child, Animation<double> animation) {
-    final isIncoming =
-        child.key == ValueKey(_screen.name) || child.key == ValueKey(_step);
-    final startOffset = isIncoming
-        ? Offset(0.055 * _transitionDirection, 0)
-        : Offset(-0.035 * _transitionDirection, 0);
+    final startOffset = Offset(0.024 * _transitionDirection, 0);
     final slideCurve = CurvedAnimation(
       parent: animation,
-      curve: Curves.easeOutCubic,
-      reverseCurve: Curves.easeInCubic,
-    );
-    final fadeCurve = CurvedAnimation(
-      parent: animation,
-      curve: isIncoming
-          ? const Interval(0.12, 1, curve: Curves.easeOutCubic)
-          : const Interval(0, 0.72, curve: Curves.easeOutCubic),
-      reverseCurve: isIncoming
-          ? const Interval(0, 0.72, curve: Curves.easeInCubic)
-          : const Interval(0.12, 1, curve: Curves.easeInCubic),
+      curve: Curves.easeOutQuart,
+      reverseCurve: Curves.easeInQuart,
     );
 
-    return FadeTransition(
-      opacity: Tween<double>(begin: 0, end: 1).animate(fadeCurve),
-      child: SlideTransition(
-        position: Tween<Offset>(
-          begin: startOffset,
-          end: Offset.zero,
-        ).animate(slideCurve),
-        child: ScaleTransition(
-          scale: Tween<double>(
-            begin: isIncoming ? 0.992 : 1,
-            end: 1,
-          ).animate(slideCurve),
-          child: child,
-        ),
+    return SlideTransition(
+      position: Tween<Offset>(
+        begin: startOffset,
+        end: Offset.zero,
+      ).animate(slideCurve),
+      child: ScaleTransition(
+        scale: Tween<double>(begin: 0.998, end: 1).animate(slideCurve),
+        child: child,
       ),
     );
   }
@@ -707,23 +789,21 @@ class _GatewayPage extends StatelessWidget {
   const _GatewayPage({
     required this.emailController,
     required this.passwordController,
-    required this.isLoading,
-    this.errorMessage,
     required this.onBack,
     required this.onLogin,
     required this.onGoogle,
     required this.onRegister,
+    required this.onForgotPassword,
     required this.onGuest,
   });
 
   final TextEditingController emailController;
   final TextEditingController passwordController;
-  final bool isLoading;
-  final String? errorMessage;
   final VoidCallback onBack;
   final VoidCallback onLogin;
   final VoidCallback onGoogle;
   final VoidCallback onRegister;
+  final VoidCallback onForgotPassword;
   final VoidCallback onGuest;
 
   @override
@@ -731,97 +811,398 @@ class _GatewayPage extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.all(32),
       child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 384),
-          child: _MotionIn(
-            initialScale: 0.95,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Welcome Back',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: AppTheme.displayFontFamily,
-                    color: _AuthOnboardingScreenState._deepRed,
-                    fontSize: 30,
-                    fontWeight: FontWeight.w800,
-                    height: 1.05,
-                    letterSpacing: -0.4,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Sign in to continue caring for your pet.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: AppTheme.sansFontFamily,
-                    color: Color(0x664E1F22),
-                    fontSize: 14,
-                    height: 1.5,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 28),
-                _IconInputField(
-                  icon: Icons.email_rounded,
-                  hint: 'Email',
-                  controller: emailController,
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 14),
-                _IconInputField(
-                  icon: Icons.lock_rounded,
-                  hint: 'Password',
-                  controller: passwordController,
-                  obscure: true,
-                ),
-                if (errorMessage != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    errorMessage!,
+        child: SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 384),
+            child: _MotionIn(
+              initialScale: 0.95,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Login / Register',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
+                      fontFamily: AppTheme.displayFontFamily,
+                      color: _AuthOnboardingScreenState._deepRed,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w800,
+                      height: 1.05,
+                      letterSpacing: -0.4,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Sign in with your account or continue another way.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
                       fontFamily: AppTheme.sansFontFamily,
-                      color: Color(0xFFB33A3A),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                      color: Color(0x664E1F22),
+                      fontSize: 14,
+                      height: 1.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  _GatewayAuthField(
+                    controller: emailController,
+                    hint: 'Email address',
+                    icon: Icons.mail_rounded,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                  ),
+                  const SizedBox(height: 12),
+                  _GatewayAuthField(
+                    controller: passwordController,
+                    hint: 'Password',
+                    icon: Icons.lock_rounded,
+                    obscureText: true,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => onLogin(),
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: onForgotPassword,
+                      style: TextButton.styleFrom(
+                        foregroundColor: _AuthOnboardingScreenState._red,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        textStyle: const TextStyle(
+                          fontFamily: AppTheme.sansFontFamily,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.6,
+                        ),
+                      ),
+                      child: const Text('Forgot password?'),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _ReferenceButton(
+                          label: 'LOGIN',
+                          onTap: onLogin,
+                          icon: Icons.arrow_forward_rounded,
+                          animatedIcon: true,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(child: _RegisterActionButton(onTap: onRegister)),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  const _OrDivider(),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _GoogleButton(onTap: onGoogle, compact: true),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _ReferenceButton(label: 'GUEST', onTap: onGuest),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  TextButton.icon(
+                    onPressed: onBack,
+                    label: const Text('VIEW SECURITY DETAILS'),
+                    icon: const Icon(Icons.arrow_forward_rounded),
+                    iconAlignment: IconAlignment.end,
+                    style: TextButton.styleFrom(
+                      foregroundColor: _AuthOnboardingScreenState._red,
+                      textStyle: const TextStyle(
+                        fontFamily: AppTheme.sansFontFamily,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.8,
+                      ),
                     ),
                   ),
                 ],
-                const SizedBox(height: 20),
-                isLoading
-                    ? const SizedBox(
-                        width: 28, height: 28,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: _AuthOnboardingScreenState._red,
-                        ),
-                      )
-                    : _ReferenceButton(
-                        label: 'LOGIN',
-                        icon: Icons.arrow_forward_rounded,
-                        onTap: onLogin,
-                        fullWidth: true,
-                      ),
-                const SizedBox(height: 16),
-                const _OrDivider(),
-                const SizedBox(height: 16),
-                _GoogleButton(onTap: onGoogle),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _GhostButton(label: 'GUEST', onTap: onGuest),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _ReferenceButton(label: 'REGISTER', onTap: onRegister),
-                    ),
-                  ],
-                ),
-              ],
+              ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ForgotPasswordPage extends StatelessWidget {
+  const _ForgotPasswordPage({
+    required this.emailController,
+    required this.onBack,
+    required this.onSubmit,
+  });
+
+  final TextEditingController emailController;
+  final VoidCallback onBack;
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(32),
+      child: Center(
+        child: SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 384),
+            child: _MotionIn(
+              initialScale: 0.95,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: _AuthOnboardingScreenState._red.withValues(
+                        alpha: 0.10,
+                      ),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: const Icon(
+                      Icons.lock_reset_rounded,
+                      color: _AuthOnboardingScreenState._red,
+                      size: 30,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Forgot password',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: AppTheme.displayFontFamily,
+                      color: _AuthOnboardingScreenState._deepRed,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w800,
+                      height: 1.05,
+                      letterSpacing: -0.4,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Enter your email and we will send a reset link.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: AppTheme.sansFontFamily,
+                      color: Color(0x664E1F22),
+                      fontSize: 14,
+                      height: 1.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  _GatewayAuthField(
+                    controller: emailController,
+                    hint: 'Email address',
+                    icon: Icons.mail_rounded,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => onSubmit(),
+                  ),
+                  const SizedBox(height: 16),
+                  _ReferenceButton(
+                    label: 'SEND RESET LINK',
+                    onTap: onSubmit,
+                    icon: Icons.arrow_forward_rounded,
+                    fullWidth: true,
+                    animatedIcon: true,
+                  ),
+                  const SizedBox(height: 16),
+                  _GhostButton(label: 'BACK TO LOGIN', onTap: onBack),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RegisterAccountPage extends StatelessWidget {
+  const _RegisterAccountPage({
+    required this.emailController,
+    required this.passwordController,
+    required this.confirmPasswordController,
+    required this.onBack,
+    required this.onSubmit,
+  });
+
+  final TextEditingController emailController;
+  final TextEditingController passwordController;
+  final TextEditingController confirmPasswordController;
+  final VoidCallback onBack;
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(32),
+      child: Center(
+        child: SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 384),
+            child: _MotionIn(
+              initialScale: 0.95,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: _AuthOnboardingScreenState._red.withValues(
+                        alpha: 0.10,
+                      ),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: const Icon(
+                      Icons.person_add_alt_1_rounded,
+                      color: _AuthOnboardingScreenState._red,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Create account',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: AppTheme.displayFontFamily,
+                      color: _AuthOnboardingScreenState._deepRed,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w800,
+                      height: 1.05,
+                      letterSpacing: -0.4,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Set up your login before creating your pet profile.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: AppTheme.sansFontFamily,
+                      color: Color(0x664E1F22),
+                      fontSize: 14,
+                      height: 1.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  _GatewayAuthField(
+                    controller: emailController,
+                    hint: 'Email address',
+                    icon: Icons.mail_rounded,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                  ),
+                  const SizedBox(height: 12),
+                  _GatewayAuthField(
+                    controller: passwordController,
+                    hint: 'Password',
+                    icon: Icons.lock_rounded,
+                    obscureText: true,
+                    textInputAction: TextInputAction.next,
+                  ),
+                  const SizedBox(height: 12),
+                  _GatewayAuthField(
+                    controller: confirmPasswordController,
+                    hint: 'Confirm password',
+                    icon: Icons.verified_user_rounded,
+                    obscureText: true,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => onSubmit(),
+                  ),
+                  const SizedBox(height: 18),
+                  _ReferenceButton(
+                    label: 'CONTINUE',
+                    onTap: onSubmit,
+                    icon: Icons.arrow_forward_rounded,
+                    fullWidth: true,
+                    animatedIcon: true,
+                  ),
+                  const SizedBox(height: 16),
+                  _GhostButton(label: 'BACK TO LOGIN', onTap: onBack),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RegisterActionButton extends StatelessWidget {
+  const _RegisterActionButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          height: 56,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: const Color(0xFFFFFCFA),
+            border: Border.all(
+              color: _AuthOnboardingScreenState._red.withValues(alpha: 0.34),
+              width: 1.8,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: _AuthOnboardingScreenState._deepRed.withValues(
+                  alpha: 0.07,
+                ),
+                blurRadius: 16,
+                offset: const Offset(0, 7),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'REGISTER',
+                    style: TextStyle(
+                      fontFamily: AppTheme.sansFontFamily,
+                      color: _AuthOnboardingScreenState._red,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 2.2,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Icon(
+                Icons.person_add_alt_1_rounded,
+                color: _AuthOnboardingScreenState._red,
+                size: 18,
+              ),
+            ],
           ),
         ),
       ),
@@ -3008,12 +3389,9 @@ class _MotionIn extends StatelessWidget {
       builder: (context, value, child) {
         final dy = offsetY * (1 - value);
         final scale = initialScale + ((1 - initialScale) * value);
-        return Opacity(
-          opacity: value,
-          child: Transform.translate(
-            offset: Offset(0, dy),
-            child: Transform.scale(scale: scale, child: child),
-          ),
+        return Transform.translate(
+          offset: Offset(0, dy),
+          child: Transform.scale(scale: scale, child: child),
         );
       },
       child: child,
@@ -3617,8 +3995,152 @@ class _SegmentButton extends StatelessWidget {
   }
 }
 
+class _GatewayAuthField extends StatefulWidget {
+  const _GatewayAuthField({
+    required this.controller,
+    required this.hint,
+    required this.icon,
+    this.keyboardType,
+    this.textInputAction,
+    this.obscureText = false,
+    this.onSubmitted,
+  });
+
+  final TextEditingController controller;
+  final String hint;
+  final IconData icon;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+  final bool obscureText;
+  final ValueChanged<String>? onSubmitted;
+
+  @override
+  State<_GatewayAuthField> createState() => _GatewayAuthFieldState();
+}
+
+class _GatewayAuthFieldState extends State<_GatewayAuthField> {
+  late bool _obscured;
+
+  @override
+  void initState() {
+    super.initState();
+    _obscured = widget.obscureText;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 62,
+      child: TextField(
+        controller: widget.controller,
+        keyboardType: widget.keyboardType,
+        textInputAction: widget.textInputAction,
+        obscureText: _obscured,
+        onSubmitted: widget.onSubmitted,
+        cursorColor: _AuthOnboardingScreenState._red,
+        style: const TextStyle(
+          fontFamily: AppTheme.sansFontFamily,
+          color: _AuthOnboardingScreenState._deepRed,
+          fontSize: 16,
+          fontWeight: FontWeight.w800,
+        ),
+        decoration: InputDecoration(
+          hintText: widget.hint,
+          hintStyle: TextStyle(
+            fontFamily: AppTheme.sansFontFamily,
+            color: _AuthOnboardingScreenState._rose.withValues(alpha: 0.78),
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+          ),
+          prefixIcon: Container(
+            width: 36,
+            height: 36,
+            margin: const EdgeInsets.fromLTRB(13, 13, 8, 13),
+            decoration: BoxDecoration(
+              color: _AuthOnboardingScreenState._red.withValues(alpha: 0.10),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              widget.icon,
+              color: _AuthOnboardingScreenState._red,
+              size: 18,
+            ),
+          ),
+          prefixIconConstraints: const BoxConstraints(
+            minWidth: 62,
+            minHeight: 62,
+          ),
+          suffixIcon: widget.obscureText
+              ? Center(
+                  widthFactor: 1,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => setState(() => _obscured = !_obscured),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 160),
+                        transitionBuilder: (child, animation) {
+                          return ScaleTransition(
+                            scale: CurvedAnimation(
+                              parent: animation,
+                              curve: Curves.easeOutBack,
+                            ),
+                            child: FadeTransition(
+                              opacity: animation,
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: Icon(
+                          _obscured
+                              ? Icons.visibility_rounded
+                              : Icons.visibility_off_rounded,
+                          key: ValueKey(_obscured),
+                          color: _AuthOnboardingScreenState._red.withValues(
+                            alpha: 0.72,
+                          ),
+                          size: 19,
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              : null,
+          suffixIconConstraints: const BoxConstraints(
+            minWidth: 50,
+            minHeight: 62,
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 18,
+            vertical: 18,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(24),
+            borderSide: BorderSide(
+              color: _AuthOnboardingScreenState._paleRose.withValues(
+                alpha: 0.62,
+              ),
+              width: 1.4,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(24),
+            borderSide: BorderSide(
+              color: _AuthOnboardingScreenState._red.withValues(alpha: 0.34),
+              width: 1.7,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _GoogleButton extends StatelessWidget {
-  const _GoogleButton({required this.onTap});
+  const _GoogleButton({required this.onTap, this.compact = false});
 
   static const _googleLogoSvg = '''
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
@@ -3630,21 +4152,24 @@ class _GoogleButton extends StatelessWidget {
 ''';
 
   final VoidCallback onTap;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
+    final height = compact ? 56.0 : 64.0;
+    final radius = compact ? 24.0 : 16.0;
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(radius),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(radius),
         child: Container(
-          height: 64,
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          height: height,
+          padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 24),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(radius),
             border: Border.all(
               color: _AuthOnboardingScreenState._paleRose.withValues(
                 alpha: 0.34,
@@ -3665,11 +4190,11 @@ class _GoogleButton extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 38,
-                height: 38,
+                width: compact ? 34 : 38,
+                height: compact ? 34 : 38,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(compact ? 999 : 12),
                   border: Border.all(color: const Color(0xFFF2ECEA), width: 1),
                   boxShadow: [
                     BoxShadow(
@@ -3684,21 +4209,21 @@ class _GoogleButton extends StatelessWidget {
                 child: Center(
                   child: SvgPicture.string(
                     _googleLogoSvg,
-                    width: 23,
-                    height: 23,
+                    width: compact ? 20 : 23,
+                    height: compact ? 20 : 23,
                   ),
                 ),
               ),
-              const SizedBox(width: 18),
-              const Flexible(
+              SizedBox(width: compact ? 10 : 18),
+              Flexible(
                 child: Text(
-                  'Continue with Google',
+                  compact ? 'GOOGLE' : 'Continue with Google',
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontFamily: AppTheme.sansFontFamily,
                     color: _AuthOnboardingScreenState._deepRed,
-                    fontSize: 15,
-                    letterSpacing: 0.2,
+                    fontSize: compact ? 12 : 15,
+                    letterSpacing: compact ? 1.2 : 0.2,
                     fontWeight: FontWeight.w900,
                   ),
                 ),

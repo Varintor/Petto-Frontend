@@ -88,7 +88,8 @@ class ActivityTrackingController extends ChangeNotifier {
   String get distanceKmText => (_distanceMeters / 1000.0).toStringAsFixed(2);
 
   /// Walk vs run inferred from average speed (>= 6 km/h => running).
-  String get inferredActivityType => averageSpeedKmh >= 6 ? 'running' : 'walking';
+  String get inferredActivityType =>
+      averageSpeedKmh >= 6 ? 'running' : 'walking';
 
   /// Mission rule (mirrors the "Walk for 15 mins" mission in the UI).
   bool get missionCompleted => _elapsed.inMinutes >= 15;
@@ -234,11 +235,11 @@ class ActivityTrackingController extends ChangeNotifier {
   String _readinessMessage(LocationReadiness r) {
     switch (r) {
       case LocationReadiness.serviceDisabled:
-        return 'กรุณาเปิด Location/GPS บนอุปกรณ์ก่อนเริ่มเดิน';
+        return 'Please turn on Location/GPS before starting a walk.';
       case LocationReadiness.denied:
-        return 'ต้องอนุญาตการเข้าถึงตำแหน่ง (GPS) เพื่อเริ่มบันทึกการเดิน';
+        return 'Location permission is required to record your walk.';
       case LocationReadiness.deniedForever:
-        return 'การเข้าถึงตำแหน่งถูกปิดถาวร กรุณาเปิดใน Settings ของแอป';
+        return 'Location access is disabled. Please enable it in app settings.';
       case LocationReadiness.ready:
         return '';
     }
