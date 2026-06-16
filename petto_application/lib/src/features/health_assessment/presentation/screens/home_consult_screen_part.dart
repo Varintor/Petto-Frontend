@@ -90,7 +90,10 @@ extension _HomeConsultScreenPart on _HomeScreenState {
     _queueVetReply(vet, 'Thanks. The snapshot came through clearly.');
   }
 
-  void _shareAiCheckWithVet({_VetData? vetOverride, AssessmentEntity? assessmentOverride}) {
+  void _shareAiCheckWithVet({
+    _VetData? vetOverride,
+    AssessmentEntity? assessmentOverride,
+  }) {
     final vet = vetOverride ?? _activeChatVet;
     if (vet == null) return;
     final String title;
@@ -146,7 +149,8 @@ extension _HomeConsultScreenPart on _HomeScreenState {
 
   void _loadAssessmentHistory() {
     final controller = context.read<HealthAssessmentController>();
-    final petId = context.read<AuthController>().petId ?? AppConfig.defaultPetId;
+    final petId =
+        context.read<AuthController>().petId ?? AppConfig.defaultPetId;
     controller.loadPetHistory(petId);
   }
 
@@ -157,34 +161,193 @@ extension _HomeConsultScreenPart on _HomeScreenState {
       backgroundColor: Colors.transparent,
       builder: (ctx) => _AssessmentDetailSheet(
         assessment: assessment,
-        onShareWithVet: () {
-          var vet = _activeChatVet;
-          if (vet == null) {
-            final onlineVets =
-                _HomeScreenState._vets.where((v) => v.online);
-            if (onlineVets.isEmpty) {
-              _showPreviewSnackBar('No online vet available');
-              return;
-            }
-            vet = onlineVets.first;
-            _openVetChat(vet);
-          }
-          _shareAiCheckWithVet(
-            vetOverride: vet,
-            assessmentOverride: assessment,
+        onShareWithVet: () => _shareAssessmentWithAvailableVet(assessment),
+      ),
+    );
+  }
+
+  void _shareAssessmentWithAvailableVet(AssessmentEntity assessment) {
+    var vet = _activeChatVet;
+    if (vet == null) {
+      final onlineVets = _HomeScreenState._vets.where((v) => v.online);
+      if (onlineVets.isEmpty) {
+        _showPreviewSnackBar('No online vet available');
+        return;
+      }
+      vet = onlineVets.first;
+      _openVetChat(vet);
+    }
+    _shareAiCheckWithVet(vetOverride: vet, assessmentOverride: assessment);
+  }
+
+  void _openAssessmentDetailScreen(AssessmentEntity assessment) {
+    Navigator.of(context).push(
+      PageRouteBuilder<void>(
+        transitionDuration: const Duration(milliseconds: 280),
+        reverseTransitionDuration: const Duration(milliseconds: 210),
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return _AssessmentDetailScreen(
+            assessment: assessment,
+            onShareWithVet: () => _shareAssessmentWithAvailableVet(assessment),
+          );
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
+          return FadeTransition(
+            opacity: curved,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.04, 0),
+                end: Offset.zero,
+              ).animate(curved),
+              child: child,
+            ),
           );
         },
       ),
     );
   }
 
-  Widget _buildConsultView(BuildContext context) {
-    final visibleVets = _HomeScreenState._vets
-        .where((vet) => _vetFilter == _VetFilter.all || vet.online)
-        .toList();
+  void _showAssessmentHistorySheet(List<AssessmentEntity> assessments) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return _BottomOverlay(
+          child: SizedBox(
+            height: MediaQuery.of(ctx).size.height * 0.74,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 22, 24, 10),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Latest Checks',
+                          style: Theme.of(ctx).textTheme.headlineSmall,
+                        ),
+                      ),
+                      _SquareIconButton(
+                        icon: Icons.close_rounded,
+                        onTap: () => Navigator.of(ctx).pop(),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+                    itemCount: assessments.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final assessment = assessments[index];
+                      return _AssessmentHistoryCard(
+                        assessment: assessment,
+                        onTap: () {
+                          Navigator.of(ctx).pop();
+                          _openAssessmentDetailScreen(assessment);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
+  void _showVetDirectorySheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final visibleVets = _HomeScreenState._vets
+            .where((vet) => _vetFilter == _VetFilter.all || vet.online)
+            .toList();
+        return _BottomOverlay(
+          child: SizedBox(
+            height: MediaQuery.of(ctx).size.height * 0.78,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 22, 24, 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Care Team',
+                          style: Theme.of(ctx).textTheme.headlineSmall,
+                        ),
+                      ),
+                      _FilterToggle(
+                        current: _vetFilter,
+                        onChanged: (filter) {
+                          _update(() {
+                            _vetFilter = filter;
+                          });
+                          Navigator.of(ctx).pop();
+                          _showVetDirectorySheet();
+                        },
+                      ),
+                      const SizedBox(width: 10),
+                      _SquareIconButton(
+                        icon: Icons.close_rounded,
+                        onTap: () => Navigator.of(ctx).pop(),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                    itemCount: visibleVets.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final vet = visibleVets[index];
+                      return _VetCard(
+                        vet: vet,
+                        onChat: () {
+                          Navigator.of(ctx).pop();
+                          _openVetChat(vet);
+                        },
+                        onCall: vet.online ? () => _startVetCall(vet) : null,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildConsultView(BuildContext context) {
     final assessmentController = context.watch<HealthAssessmentController>();
     final assessments = assessmentController.history;
+    final latestAssessment = assessments.isNotEmpty ? assessments.first : null;
+    final onlineVetCount = _HomeScreenState._vets
+        .where((vet) => vet.online)
+        .length;
+    final featuredVet = _HomeScreenState._vets.firstWhere(
+      (vet) => vet.online,
+      orElse: () => _HomeScreenState._vets.first,
+    );
 
     // Load assessment history on first build if empty
     if (assessments.isEmpty && !assessmentController.isLoading) {
@@ -199,15 +362,85 @@ extension _HomeConsultScreenPart on _HomeScreenState {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _SoftReveal(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 2),
-              child: Text(
-                'Assistant',
-                style: Theme.of(context).textTheme.headlineMedium,
+            child: Row(
+              children: [
+                Container(
+                  width: 6,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Assistant',
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          _SoftReveal(
+            delay: 0.04,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(22),
+              decoration: AppTheme.glassCardDecoration(
+                color: AppTheme.surfaceColor.withValues(alpha: 0.98),
+                borderRadius: BorderRadius.circular(34),
+                borderColor: AppTheme.primaryColor.withValues(alpha: 0.12),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 58,
+                    height: 58,
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor,
+                      borderRadius: BorderRadius.circular(22),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primaryColor.withValues(alpha: 0.14),
+                          blurRadius: 16,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.medical_services_rounded,
+                      color: Colors.white,
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'What does ${_activePet.name} need today?',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Scan symptoms, review records, or open a care chat.',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: AppTheme.mutedText,
+                                height: 1.3,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
           _SoftReveal(
             delay: 0.08,
             child: Row(
@@ -242,257 +475,43 @@ extension _HomeConsultScreenPart on _HomeScreenState {
               ],
             ),
           ),
-          const SizedBox(height: 24),
-
-          // ── Assessment History Section ──
+          const SizedBox(height: 16),
           _SoftReveal(
             delay: 0.12,
-            child: Row(
-              children: [
-                Container(
-                  width: 5,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: AppTheme.secondaryColor,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Assessment History',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: AppTheme.secondaryText,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                InkWell(
-                  onTap: _loadAssessmentHistory,
-                  borderRadius: BorderRadius.circular(999),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppTheme.secondaryColor.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.refresh_rounded,
-                            size: 14, color: AppTheme.secondaryColor),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Refresh',
-                          style:
-                              Theme.of(context).textTheme.labelSmall?.copyWith(
-                                    color: AppTheme.secondaryColor,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+            child: _AssistantSummaryCard(
+              icon: Icons.fact_check_rounded,
+              title: 'Latest check',
+              subtitle: assessmentController.isLoading && assessments.isEmpty
+                  ? 'Loading health records...'
+                  : latestAssessment?.symptoms ?? 'No assessment yet',
+              meta: latestAssessment?.riskLevel ?? 'Start scan',
+              onTap: latestAssessment == null
+                  ? () {
+                      _update(() {
+                        _showAssessment = true;
+                      });
+                    }
+                  : () => _openAssessmentDetailScreen(latestAssessment),
+              trailingLabel: assessments.length > 1 ? 'View all' : 'Refresh',
+              onTrailingTap: assessments.length > 1
+                  ? () => _showAssessmentHistorySheet(assessments)
+                  : _loadAssessmentHistory,
             ),
           ),
           const SizedBox(height: 12),
-
-          if (assessmentController.isLoading && assessments.isEmpty)
-            _SoftReveal(
-              delay: 0.16,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                decoration: AppTheme.glassCardDecoration(
-                  color: Colors.white.withValues(alpha: 0.96),
-                  borderColor:
-                      AppTheme.warmSurfaceColor.withValues(alpha: 0.38),
-                  borderWidth: 1.2,
-                ),
-                child: Column(
-                  children: [
-                    SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        color: AppTheme.secondaryColor,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Loading assessment history...',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppTheme.mutedText,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else if (assessments.isEmpty)
-            _SoftReveal(
-              delay: 0.16,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                decoration: AppTheme.glassCardDecoration(
-                  color: Colors.white.withValues(alpha: 0.96),
-                  borderColor:
-                      AppTheme.warmSurfaceColor.withValues(alpha: 0.38),
-                  borderWidth: 1.2,
-                ),
-                child: Column(
-                  children: [
-                    Icon(Icons.auto_awesome_rounded,
-                        size: 36,
-                        color: AppTheme.secondaryColor.withValues(alpha: 0.4)),
-                    const SizedBox(height: 12),
-                    Text(
-                      'No assessments yet',
-                      style:
-                          Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: AppTheme.secondaryText,
-                                fontWeight: FontWeight.w900,
-                              ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Use Smart AI Scan to analyze your pet\'s health',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.mutedText,
-                          ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else
-            for (final entry in assessments.take(3).indexed) ...[
-              _SoftReveal(
-                delay: 0.16 + (entry.$1 * 0.05),
-                child: _AssessmentHistoryCard(
-                  assessment: entry.$2,
-                  onTap: () => _showAssessmentDetail(entry.$2),
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
-
-          const SizedBox(height: 12),
-
-          // ── Talk to a Vet Section ──
           _SoftReveal(
-            delay: 0.24,
-            child: Row(
-              children: [
-                Container(
-                  width: 5,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Talk to a Vet',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: AppTheme.secondaryText,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                _FilterToggle(
-                  current: _vetFilter,
-                  onChanged: (filter) {
-                    _update(() {
-                      _vetFilter = filter;
-                    });
-                  },
-                ),
-              ],
+            delay: 0.16,
+            child: _AssistantSummaryCard(
+              icon: Icons.support_agent_rounded,
+              title: 'Care team',
+              subtitle:
+                  '${featuredVet.name} • ${featuredVet.specialty}\nShare ${_activePet.name}\'s profile, latest checks, and notes in chat.',
+              meta: '$onlineVetCount online',
+              onTap: () => _openVetChat(featuredVet),
+              trailingLabel: 'Open',
+              onTrailingTap: _showVetDirectorySheet,
             ),
           ),
-          const SizedBox(height: 12),
-          for (final entry in visibleVets.indexed) ...[
-            _SoftReveal(
-              delay: 0.30 + (entry.$1 * 0.05),
-              child: _VetCard(
-                vet: entry.$2,
-                onChat: () => _openVetChat(entry.$2),
-                onCall: entry.$2.online ? () => _startVetCall(entry.$2) : null,
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
-          const SizedBox(height: 18),
-          _SoftReveal(
-            delay: 0.42,
-            child: Row(
-              children: [
-                Container(
-                  width: 5,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Recent Consultations',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: AppTheme.secondaryText,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                InkWell(
-                  onTap: () {
-                    _update(() {
-                      _activeView = _View.history;
-                    });
-                  },
-                  borderRadius: BorderRadius.circular(999),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryColor,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      'View All',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          for (final entry in _HomeScreenState._history.take(3).indexed) ...[
-            _SoftReveal(
-              delay: 0.48 + (entry.$1 * 0.05),
-              child: _HistoryPreviewCard(item: entry.$2),
-            ),
-            const SizedBox(height: 12),
-          ],
         ],
       ),
     );
