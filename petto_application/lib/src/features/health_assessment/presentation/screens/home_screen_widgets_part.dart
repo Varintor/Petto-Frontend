@@ -1735,29 +1735,34 @@ class _CalendarScheduleHeader extends StatelessWidget {
         InkWell(
           onTap: onAdd,
           borderRadius: BorderRadius.circular(999),
-          child: Ink(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          child: Container(
+            height: 42,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
-              color: AppTheme.surfaceColor.withValues(alpha: 0.88),
+              color: AppTheme.primaryColor,
               borderRadius: BorderRadius.circular(999),
               border: Border.all(
-                color: AppTheme.primaryColor.withValues(alpha: 0.20),
-                width: 1.2,
+                color: AppTheme.surfaceColor.withValues(alpha: 0.72),
+                width: 1.6,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.14),
+                  blurRadius: 14,
+                  offset: const Offset(0, 7),
+                ),
+              ],
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.add_rounded,
-                  color: AppTheme.primaryColor,
-                  size: 18,
-                ),
-                const SizedBox(width: 5),
+                const Icon(Icons.add_rounded, color: Colors.white, size: 18),
+                const SizedBox(width: 6),
                 Text(
                   'Add',
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: AppTheme.primaryColor,
+                    color: Colors.white,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -1835,22 +1840,103 @@ class _NoPlansCard extends StatelessWidget {
           InkWell(
             onTap: onAdd,
             borderRadius: BorderRadius.circular(999),
-            child: Ink(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Container(
+              height: 48,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
                 color: AppTheme.primaryColor,
                 borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                'Create plan',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
+                border: Border.all(
+                  color: AppTheme.surfaceColor.withValues(alpha: 0.74),
+                  width: 1.8,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.16),
+                    blurRadius: 16,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.add_task_rounded,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Create plan',
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CalendarPlanTypeChip extends StatelessWidget {
+  const _CalendarPlanTypeChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppTheme.primaryColor
+              : AppTheme.creamSurfaceColor.withValues(alpha: 0.72),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: selected
+                ? AppTheme.primaryColor
+                : AppTheme.warmSurfaceColor.withValues(alpha: 0.70),
+            width: 1.2,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: selected ? Colors.white : AppTheme.primaryColor,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: selected ? Colors.white : AppTheme.secondaryText,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2166,6 +2252,149 @@ class _FilterToggle extends StatelessWidget {
   }
 }
 
+class _AssistantSummaryCard extends StatelessWidget {
+  const _AssistantSummaryCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.meta,
+    required this.onTap,
+    required this.trailingLabel,
+    required this.onTrailingTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String meta;
+  final VoidCallback onTap;
+  final String trailingLabel;
+  final VoidCallback onTrailingTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(32),
+      child: Container(
+        width: double.infinity,
+        constraints: const BoxConstraints(minHeight: 168),
+        padding: const EdgeInsets.all(18),
+        decoration: AppTheme.glassCardDecoration(
+          color: AppTheme.surfaceColor.withValues(alpha: 0.98),
+          borderRadius: BorderRadius.circular(32),
+          borderColor: AppTheme.primaryColor.withValues(alpha: 0.13),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.06),
+                    ),
+                  ),
+                  child: Icon(icon, color: AppTheme.primaryColor, size: 24),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: AppTheme.secondaryText,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 7),
+                      Text(
+                        subtitle,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTheme.mutedText,
+                          height: 1.34,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Container(
+                  constraints: const BoxConstraints(maxWidth: 150),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    meta,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: AppTheme.primaryColor,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                InkWell(
+                  onTap: onTrailingTap,
+                  borderRadius: BorderRadius.circular(999),
+                  child: Container(
+                    width: 116,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor,
+                      borderRadius: BorderRadius.circular(999),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primaryColor.withValues(alpha: 0.14),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Text(
+                        trailingLabel,
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                            ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ConsultActionCard extends StatelessWidget {
   const _ConsultActionCard({
     required this.dark,
@@ -2185,17 +2414,17 @@ class _ConsultActionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(32),
+      borderRadius: BorderRadius.circular(28),
       child: Container(
-        height: 172,
+        height: 142,
         decoration: AppTheme.glassCardDecoration(
           color: dark ? AppTheme.primaryColor : Colors.white,
-          borderRadius: BorderRadius.circular(32),
+          borderRadius: BorderRadius.circular(28),
           borderColor: dark
               ? AppTheme.primaryColor
               : AppTheme.primaryColor.withValues(alpha: 0.12),
         ),
-        padding: const EdgeInsets.all(22),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -2214,13 +2443,18 @@ class _ConsultActionCard extends StatelessWidget {
             const Spacer(),
             Text(
               title,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 color: dark ? Colors.white : AppTheme.secondaryText,
+                fontWeight: FontWeight.w900,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(
               subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: dark
                     ? Colors.white.withValues(alpha: 0.75)
@@ -2561,8 +2795,8 @@ class _AssessmentHistoryCard extends StatelessWidget {
     final color = _riskColor(riskBucket);
     final riskLabel = _riskLabel(riskBucket);
     final dateLabel = _formatDate(assessment.createdAt);
-    final symptomText = (assessment.symptoms != null &&
-            assessment.symptoms!.isNotEmpty)
+    final symptomText =
+        (assessment.symptoms != null && assessment.symptoms!.isNotEmpty)
         ? assessment.symptoms!
         : 'No symptom description';
     final aiPreview = assessment.aiResponse.length > 120
@@ -2587,8 +2821,9 @@ class _AssessmentHistoryCard extends StatelessWidget {
               Stack(
                 children: [
                   ClipRRect(
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(28)),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(28),
+                    ),
                     child: Image.network(
                       assessment.imageUri!,
                       width: double.infinity,
@@ -2598,8 +2833,11 @@ class _AssessmentHistoryCard extends StatelessWidget {
                         width: double.infinity,
                         height: 140,
                         color: color.withValues(alpha: 0.08),
-                        child: Icon(Icons.image_not_supported_rounded,
-                            color: color.withValues(alpha: 0.4), size: 36),
+                        child: Icon(
+                          Icons.image_not_supported_rounded,
+                          color: color.withValues(alpha: 0.4),
+                          size: 36,
+                        ),
                       ),
                     ),
                   ),
@@ -2608,7 +2846,9 @@ class _AssessmentHistoryCard extends StatelessWidget {
                     right: 10,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
                       decoration: BoxDecoration(
                         color: color,
                         borderRadius: BorderRadius.circular(999),
@@ -2622,11 +2862,10 @@ class _AssessmentHistoryCard extends StatelessWidget {
                       ),
                       child: Text(
                         riskLabel,
-                        style:
-                            Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900,
-                                ),
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                   ),
@@ -2635,18 +2874,19 @@ class _AssessmentHistoryCard extends StatelessWidget {
                     left: 10,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
                         dateLabel,
-                        style:
-                            Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ),
@@ -2665,34 +2905,37 @@ class _AssessmentHistoryCard extends StatelessWidget {
                         color: color.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      child: Icon(Icons.auto_awesome_rounded,
-                          color: color, size: 18),
+                      child: Icon(
+                        Icons.auto_awesome_rounded,
+                        color: color,
+                        size: 18,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         dateLabel,
-                        style:
-                            Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: AppTheme.mutedText,
-                                  fontWeight: FontWeight.w900,
-                                ),
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: AppTheme.mutedText,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
                       decoration: BoxDecoration(
                         color: color.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
                         riskLabel,
-                        style:
-                            Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: color,
-                                  fontWeight: FontWeight.w900,
-                                ),
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: color,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                   ],
@@ -2704,9 +2947,9 @@ class _AssessmentHistoryCard extends StatelessWidget {
               child: Text(
                 symptomText,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: AppTheme.secondaryText,
-                      fontWeight: FontWeight.w900,
-                    ),
+                  color: AppTheme.secondaryText,
+                  fontWeight: FontWeight.w900,
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -2723,10 +2966,10 @@ class _AssessmentHistoryCard extends StatelessWidget {
                 child: Text(
                   aiPreview,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.mutedText,
-                        height: 1.5,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: AppTheme.mutedText,
+                    height: 1.5,
+                    fontWeight: FontWeight.w600,
+                  ),
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -2762,10 +3005,560 @@ class _AssessmentHistoryCard extends StatelessWidget {
 
   String _formatDate(DateTime date) {
     const months = [
-      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+      'JAN',
+      'FEB',
+      'MAR',
+      'APR',
+      'MAY',
+      'JUN',
+      'JUL',
+      'AUG',
+      'SEP',
+      'OCT',
+      'NOV',
+      'DEC',
     ];
     return '${date.day} ${months[date.month - 1]}';
+  }
+}
+
+class _AssessmentDetailScreen extends StatelessWidget {
+  const _AssessmentDetailScreen({
+    required this.assessment,
+    required this.onShareWithVet,
+  });
+
+  final AssessmentEntity assessment;
+  final VoidCallback onShareWithVet;
+
+  @override
+  Widget build(BuildContext context) {
+    final riskBucket = assessment.riskBucket;
+    final color = _riskColor(riskBucket);
+    final riskLabel = _riskLabel(riskBucket);
+    final dateLabel = _formatDateTime(assessment.createdAt);
+    final symptomText =
+        (assessment.symptoms != null && assessment.symptoms!.isNotEmpty)
+        ? assessment.symptoms!
+        : 'No symptom description';
+
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          color: AppTheme.backgroundColor,
+          gradient: AppTheme.appBackgroundGradient,
+        ),
+        child: Stack(
+          children: [
+            _BackgroundDecor(),
+            SafeArea(
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
+                    child: Row(
+                      children: [
+                        _SquareIconButton(
+                          icon: Icons.arrow_back_rounded,
+                          onTap: () => Navigator.of(context).pop(),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Text(
+                            'Latest check',
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (assessment.imageUri != null &&
+                              assessment.imageUri!.isNotEmpty)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(28),
+                              child: Image.network(
+                                assessment.imageUri!,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  width: double.infinity,
+                                  height: 210,
+                                  decoration: BoxDecoration(
+                                    color: color.withValues(alpha: 0.08),
+                                    borderRadius: BorderRadius.circular(28),
+                                  ),
+                                  child: Icon(
+                                    Icons.image_not_supported_rounded,
+                                    color: color.withValues(alpha: 0.4),
+                                    size: 48,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: 16),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(18),
+                            decoration: AppTheme.glassCardDecoration(
+                              color: color.withValues(alpha: 0.09),
+                              borderRadius: BorderRadius.circular(30),
+                              borderColor: color.withValues(alpha: 0.16),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: color,
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
+                                  child: const Icon(
+                                    Icons.fact_check_rounded,
+                                    color: Colors.white,
+                                    size: 22,
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Assessment Complete',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium
+                                            ?.copyWith(
+                                              color: AppTheme.secondaryText,
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        dateLabel,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelSmall
+                                            ?.copyWith(
+                                              color: AppTheme.mutedText,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.surfaceColor.withValues(
+                                      alpha: 0.88,
+                                    ),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    riskLabel,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelSmall
+                                        ?.copyWith(
+                                          color: color,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(18),
+                            decoration: AppTheme.glassCardDecoration(
+                              color: AppTheme.surfaceColor.withValues(
+                                alpha: 0.98,
+                              ),
+                              borderRadius: BorderRadius.circular(30),
+                              borderColor: AppTheme.primaryColor.withValues(
+                                alpha: 0.10,
+                              ),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryColor.withValues(
+                                      alpha: 0.09,
+                                    ),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: const Icon(
+                                    Icons.report_rounded,
+                                    color: AppTheme.primaryColor,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 13),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Reported symptoms',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium
+                                            ?.copyWith(
+                                              color: AppTheme.secondaryText,
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 7),
+                                      Text(
+                                        symptomText,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium
+                                            ?.copyWith(
+                                              color: AppTheme.mutedText,
+                                              height: 1.38,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          _AiAnalysisPanel(
+                            riskColor: color,
+                            riskLabel: riskLabel,
+                            symptoms: symptomText,
+                            response: assessment.aiResponse,
+                          ),
+                          const SizedBox(height: 18),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: FilledButton.icon(
+                              onPressed: onShareWithVet,
+                              icon: const Icon(Icons.send_rounded),
+                              label: const Text('Share with Care Team'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _riskColor(String bucket) {
+    switch (bucket) {
+      case 'high':
+        return AppTheme.primaryColor;
+      case 'moderate':
+        return AppTheme.accentColor;
+      default:
+        return AppTheme.successColor;
+    }
+  }
+
+  String _riskLabel(String bucket) {
+    switch (bucket) {
+      case 'high':
+        return 'High Risk';
+      case 'moderate':
+        return 'Moderate';
+      default:
+        return 'Low Risk';
+    }
+  }
+
+  String _formatDateTime(DateTime date) {
+    const months = [
+      'JAN',
+      'FEB',
+      'MAR',
+      'APR',
+      'MAY',
+      'JUN',
+      'JUL',
+      'AUG',
+      'SEP',
+      'OCT',
+      'NOV',
+      'DEC',
+    ];
+    final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
+    final minute = date.minute.toString().padLeft(2, '0');
+    final suffix = date.hour >= 12 ? 'PM' : 'AM';
+    return '${date.day} ${months[date.month - 1]} • $hour:$minute $suffix';
+  }
+}
+
+class _AiAnalysisPanel extends StatelessWidget {
+  const _AiAnalysisPanel({
+    required this.riskColor,
+    required this.riskLabel,
+    required this.symptoms,
+    required this.response,
+  });
+
+  final Color riskColor;
+  final String riskLabel;
+  final String symptoms;
+  final String response;
+
+  @override
+  Widget build(BuildContext context) {
+    final observations = _pointsFrom(
+      response,
+      fallback: [
+        'Review the visible signs together with the reported symptoms.',
+        'Track changes in comfort, appetite, breathing, and activity.',
+      ],
+    );
+    final highRisk = riskLabel.toLowerCase().contains('high');
+    final concerns = highRisk
+        ? [
+            'Symptoms may need prompt professional review.',
+            'Watch for worsening pain, bleeding, weakness, or breathing changes.',
+          ]
+        : [
+            'Symptoms may be mild, but changes should still be monitored.',
+            'Follow up if the condition does not improve.',
+          ];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: AppTheme.glassCardDecoration(
+        color: AppTheme.surfaceColor.withValues(alpha: 0.99),
+        borderRadius: BorderRadius.circular(32),
+        borderColor: riskColor.withValues(alpha: 0.16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: riskColor.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  Icons.auto_awesome_rounded,
+                  color: riskColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'AI Analysis',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: AppTheme.secondaryText,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _AiAnalysisSection(
+            icon: Icons.visibility_rounded,
+            title: 'Observations',
+            color: AppTheme.primaryColor,
+            items: observations.take(2).toList(),
+          ),
+          const SizedBox(height: 10),
+          _AiAnalysisSection(
+            icon: Icons.health_and_safety_rounded,
+            title: 'Potential concerns',
+            color: riskColor,
+            items: concerns,
+          ),
+          const SizedBox(height: 10),
+          _AiAnalysisSection(
+            icon: Icons.lightbulb_rounded,
+            title: 'Recommended actions',
+            color: AppTheme.accentColor,
+            items: [
+              'Do: Keep ${_shortSymptom(symptoms)} under close observation.',
+              'Do not: Ignore worsening symptoms or sudden behavior changes.',
+              'Urgency: Contact your care team if symptoms persist.',
+            ],
+            itemIcons: const [
+              Icons.check_circle_rounded,
+              Icons.cancel_rounded,
+              Icons.notifications_active_rounded,
+            ],
+            itemColors: [
+              AppTheme.successColor,
+              AppTheme.primaryColor,
+              AppTheme.accentColor,
+            ],
+          ),
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppTheme.creamSurfaceColor.withValues(alpha: 0.58),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: AppTheme.primaryColor.withValues(alpha: 0.08),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.info_rounded,
+                  color: AppTheme.primaryColor.withValues(alpha: 0.72),
+                  size: 18,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Preliminary AI screening, not a diagnosis. Use this as guidance and consult a veterinarian when concerned.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.mutedText,
+                      height: 1.42,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<String> _pointsFrom(String value, {required List<String> fallback}) {
+    final cleaned = value.trim();
+    if (cleaned.isEmpty) return fallback;
+    final pieces = cleaned
+        .split(RegExp(r'(?<=[.!?])\s+|\n+|•'))
+        .map((line) => line.trim())
+        .where((line) => line.length > 8)
+        .toList();
+    if (pieces.isEmpty) return fallback;
+    return pieces.take(3).toList();
+  }
+
+  String _shortSymptom(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty || trimmed == 'No symptom description') {
+      return 'your pet';
+    }
+    return trimmed.length > 34 ? '${trimmed.substring(0, 34)}...' : trimmed;
+  }
+}
+
+class _AiAnalysisSection extends StatelessWidget {
+  const _AiAnalysisSection({
+    required this.icon,
+    required this.title,
+    required this.color,
+    required this.items,
+    this.itemIcons,
+    this.itemColors,
+  });
+
+  final IconData icon;
+  final String title;
+  final Color color;
+  final List<String> items;
+  final List<IconData>? itemIcons;
+  final List<Color>? itemColors;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.045),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: color.withValues(alpha: 0.12)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 17),
+              const SizedBox(width: 9),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: AppTheme.secondaryText,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          for (final entry in items.indexed) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  itemIcons != null && entry.$1 < itemIcons!.length
+                      ? itemIcons![entry.$1]
+                      : Icons.circle_rounded,
+                  size: itemIcons != null ? 16 : 7,
+                  color: itemColors != null && entry.$1 < itemColors!.length
+                      ? itemColors![entry.$1]
+                      : color.withValues(alpha: 0.72),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    entry.$2,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.secondaryText.withValues(alpha: 0.86),
+                      height: 1.42,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (entry.$1 != items.length - 1) const SizedBox(height: 8),
+          ],
+        ],
+      ),
+    );
   }
 }
 
@@ -2786,8 +3579,8 @@ class _AssessmentDetailSheet extends StatelessWidget {
     final dateLabel = _formatDateTime(assessment.createdAt);
     final symptomText =
         (assessment.symptoms != null && assessment.symptoms!.isNotEmpty)
-            ? assessment.symptoms!
-            : 'No symptom description';
+        ? assessment.symptoms!
+        : 'No symptom description';
 
     return Container(
       constraints: BoxConstraints(
@@ -2862,11 +3655,11 @@ class _AssessmentDetailSheet extends StatelessWidget {
                         ),
                         child: Text(
                           riskLabel,
-                          style:
-                              Theme.of(context).textTheme.labelSmall?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w900,
-                                  ),
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                              ),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -2876,21 +3669,23 @@ class _AssessmentDetailSheet extends StatelessWidget {
                           vertical: 7,
                         ),
                         decoration: BoxDecoration(
-                          color: AppTheme.creamSurfaceColor
-                              .withValues(alpha: 0.82),
+                          color: AppTheme.creamSurfaceColor.withValues(
+                            alpha: 0.82,
+                          ),
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.schedule_rounded,
-                                size: 13, color: AppTheme.mutedText),
+                            Icon(
+                              Icons.schedule_rounded,
+                              size: 13,
+                              color: AppTheme.mutedText,
+                            ),
                             const SizedBox(width: 5),
                             Text(
                               dateLabel,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelSmall
+                              style: Theme.of(context).textTheme.labelSmall
                                   ?.copyWith(
                                     color: AppTheme.mutedText,
                                     fontWeight: FontWeight.w700,
@@ -2905,27 +3700,27 @@ class _AssessmentDetailSheet extends StatelessWidget {
                   Text(
                     'SYMPTOMS',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppTheme.mutedText,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.6,
-                        ),
+                      color: AppTheme.mutedText,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.6,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     symptomText,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppTheme.secondaryText,
-                          fontWeight: FontWeight.w800,
-                        ),
+                      color: AppTheme.secondaryText,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 20),
                   Text(
                     'AI ANALYSIS',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppTheme.mutedText,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.6,
-                        ),
+                      color: AppTheme.mutedText,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.6,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Container(
@@ -2934,17 +3729,15 @@ class _AssessmentDetailSheet extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: color.withValues(alpha: 0.04),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: color.withValues(alpha: 0.10),
-                      ),
+                      border: Border.all(color: color.withValues(alpha: 0.10)),
                     ),
                     child: Text(
                       assessment.aiResponse,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppTheme.secondaryText,
-                            height: 1.6,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        color: AppTheme.secondaryText,
+                        height: 1.6,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -2999,8 +3792,18 @@ class _AssessmentDetailSheet extends StatelessWidget {
 
   String _formatDateTime(DateTime date) {
     const months = [
-      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+      'JAN',
+      'FEB',
+      'MAR',
+      'APR',
+      'MAY',
+      'JUN',
+      'JUL',
+      'AUG',
+      'SEP',
+      'OCT',
+      'NOV',
+      'DEC',
     ];
     final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
     final minute = date.minute.toString().padLeft(2, '0');

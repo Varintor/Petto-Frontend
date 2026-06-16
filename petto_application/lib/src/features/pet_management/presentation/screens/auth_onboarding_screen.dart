@@ -787,6 +787,155 @@ class _IntroPage extends StatelessWidget {
   }
 }
 
+class _IntroBrandPill extends StatelessWidget {
+  const _IntroBrandPill();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 7, 14, 7),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor.withValues(alpha: 0.82),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: _AuthOnboardingScreenState._red.withValues(alpha: 0.10),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: const BoxDecoration(
+              color: _AuthOnboardingScreenState._red,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.favorite_rounded,
+              color: Colors.white,
+              size: 15,
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Text(
+            'Daily pet care',
+            style: TextStyle(
+              fontFamily: AppTheme.sansFontFamily,
+              color: _AuthOnboardingScreenState._deepRed,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _IntroBrandLockup extends StatelessWidget {
+  const _IntroBrandLockup();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const Text(
+          'PETTO',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: AppTheme.displayFontFamily,
+            color: _AuthOnboardingScreenState._deepRed,
+            fontSize: 52,
+            height: 0.94,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0,
+          ),
+        ),
+        const SizedBox(height: 10),
+        const Text(
+          'pet wellness companion',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: AppTheme.sansFontFamily,
+            color: _AuthOnboardingScreenState._rose,
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.2,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          'AI PET GUARDIAN',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: AppTheme.sansFontFamily,
+            color: _AuthOnboardingScreenState._red.withValues(alpha: 0.58),
+            fontSize: 9,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 2.4,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _IntroFeatureRow extends StatelessWidget {
+  const _IntroFeatureRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 8,
+      runSpacing: 8,
+      children: const [
+        _IntroFeatureChip(icon: Icons.auto_awesome_rounded, label: 'AI care'),
+        _IntroFeatureChip(icon: Icons.flag_rounded, label: 'Missions'),
+        _IntroFeatureChip(icon: Icons.calendar_month_rounded, label: 'Plans'),
+      ],
+    );
+  }
+}
+
+class _IntroFeatureChip extends StatelessWidget {
+  const _IntroFeatureChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor.withValues(alpha: 0.76),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: _AuthOnboardingScreenState._red.withValues(alpha: 0.10),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: _AuthOnboardingScreenState._red, size: 15),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: _AuthOnboardingScreenState._deepRed,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _GatewayPage extends StatelessWidget {
   const _GatewayPage({
     required this.emailController,
@@ -834,19 +983,7 @@ class _GatewayPage extends StatelessWidget {
                       letterSpacing: -0.4,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Sign in with your account or continue another way.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: AppTheme.sansFontFamily,
-                      color: Color(0x664E1F22),
-                      fontSize: 14,
-                      height: 1.5,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 28),
                   _GatewayAuthField(
                     controller: emailController,
                     hint: 'Email address',
@@ -2840,6 +2977,116 @@ class _SummaryDivider extends StatelessWidget {
   }
 }
 
+class _IntroPetHero extends StatefulWidget {
+  const _IntroPetHero();
+
+  @override
+  State<_IntroPetHero> createState() => _IntroPetHeroState();
+}
+
+class _IntroPetHeroState extends State<_IntroPetHero>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3600),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final phase = _controller.value * math.pi * 2;
+        final floatY = math.sin(phase) * 2.2;
+        final scale = 1 + (math.sin(phase + 0.7) * 0.006);
+
+        return SizedBox(
+          width: 286,
+          height: 206,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              Positioned(
+                left: 20,
+                right: 20,
+                top: 14,
+                bottom: 12,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceColor.withValues(alpha: 0.78),
+                    borderRadius: BorderRadius.circular(44),
+                    border: Border.all(
+                      color: _AuthOnboardingScreenState._paleRose.withValues(
+                        alpha: 0.22,
+                      ),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _AuthOnboardingScreenState._deepRed.withValues(
+                          alpha: 0.06,
+                        ),
+                        blurRadius: 24,
+                        offset: const Offset(0, 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 28,
+                child: Container(
+                  width: 154,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: _AuthOnboardingScreenState._deepRed.withValues(
+                      alpha: 0.045,
+                    ),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 12,
+                child: Transform.translate(
+                  offset: Offset(0, floatY),
+                  child: Transform.scale(
+                    scale: scale,
+                    child: SizedBox(
+                      width: 176,
+                      height: 176,
+                      child: PetAvatarWidget(
+                        species: 'Cat',
+                        color: _AuthOnboardingScreenState._catColor,
+                        pattern: 'none',
+                        eyeType: 'default',
+                        mouthType: 'smile',
+                        equipped: const ['acc_collar'],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _WelcomePetMini extends StatefulWidget {
   const _WelcomePetMini();
 
@@ -2881,8 +3128,8 @@ class _WelcomePetMiniState extends State<_WelcomePetMini>
         final phase = _controller.value * math.pi * 2;
 
         return SizedBox(
-          width: 272,
-          height: 166,
+          width: 286,
+          height: 174,
           child: Stack(
             alignment: Alignment.center,
             clipBehavior: Clip.none,
@@ -2892,46 +3139,28 @@ class _WelcomePetMiniState extends State<_WelcomePetMini>
                   painter: _WelcomePetBackdropPainter(phase: phase),
                 ),
               ),
-              _WelcomeSparkle(
-                phase: phase,
-                offset: const Offset(-88, 22),
-                size: 5,
-                delay: 0.4,
-              ),
-              _WelcomeSparkle(
-                phase: phase,
-                offset: const Offset(96, 20),
-                size: 5,
-                delay: 1.8,
-              ),
-              _WelcomeSparkle(
-                phase: phase,
-                offset: const Offset(4, -46),
-                size: 4,
-                delay: 2.6,
-              ),
               _WelcomePetHead(
                 species: 'Dog',
                 color: _AuthOnboardingScreenState._dogColor,
                 pattern: 'patches',
-                size: 150,
+                size: 152,
                 phase: phase,
                 phaseOffset: 1.7,
                 restingAngle: 0.11,
                 tapSeed: _tapSeed,
-                offset: const Offset(42, 8),
+                offset: const Offset(45, 8),
                 onTap: _greet,
               ),
               _WelcomePetHead(
                 species: 'Cat',
                 color: _AuthOnboardingScreenState._catColor,
                 pattern: 'none',
-                size: 150,
+                size: 152,
                 phase: phase,
                 phaseOffset: 0,
                 restingAngle: -0.11,
                 tapSeed: _tapSeed,
-                offset: const Offset(-54, 8),
+                offset: const Offset(-58, 8),
                 onTap: _greet,
               ),
             ],
@@ -3023,31 +3252,48 @@ class _WelcomeSparkle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pulse = (math.sin((phase * 1.15) + delay) + 1) / 2;
-    final scale = 0.78 + (pulse * 0.28);
-    final opacity = 0.18 + (pulse * 0.28);
+    final pulse = (math.sin((phase * 0.9) + delay) + 1) / 2;
+    final shimmer = Curves.easeInOut.transform(pulse);
+    final scale = 0.82 + (shimmer * 0.22);
+    final opacity = 0.28 + (shimmer * 0.28);
+    final driftY = math.sin((phase * 0.72) + delay) * 2.2;
 
     return Positioned(
       left: 136 + offset.dx,
       top: 83 + offset.dy,
-      child: Transform.scale(
-        scale: scale,
-        child: Opacity(
-          opacity: opacity,
-          child: Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              color: _AuthOnboardingScreenState._red.withValues(alpha: 0.38),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: _AuthOnboardingScreenState._red.withValues(
-                    alpha: 0.10,
+      child: Transform.translate(
+        offset: Offset(0, driftY),
+        child: Transform.scale(
+          scale: scale,
+          child: Opacity(
+            opacity: opacity,
+            child: Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.50),
+                border: Border.all(
+                  color: _AuthOnboardingScreenState._paleRose.withValues(
+                    alpha: 0.46,
                   ),
-                  blurRadius: 7,
+                  width: 1,
                 ),
-              ],
+                boxShadow: [
+                  BoxShadow(
+                    color: _AuthOnboardingScreenState._red.withValues(
+                      alpha: 0.08,
+                    ),
+                    blurRadius: 12,
+                    spreadRadius: 2,
+                  ),
+                  BoxShadow(
+                    color: Colors.white.withValues(alpha: 0.72),
+                    blurRadius: 4,
+                    spreadRadius: -1,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
