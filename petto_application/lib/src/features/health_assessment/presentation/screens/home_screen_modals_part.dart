@@ -35,7 +35,7 @@ extension _HomeScreenModalsPart on _HomeScreenState {
               compactMode: true,
               initialPetName: _activePet.name,
               initialPetType: _activePet.species.toLowerCase(),
-              availablePets: _HomeScreenState._pets
+              availablePets: _pets
                   .asMap()
                   .entries
                   .map((entry) {

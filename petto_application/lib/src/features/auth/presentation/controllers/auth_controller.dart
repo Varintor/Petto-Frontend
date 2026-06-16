@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/config/app_config.dart';
 import '../../../../core/services/token_storage.dart';
@@ -7,6 +6,10 @@ import '../../data/repositories/auth_repository.dart';
 
 enum AuthStatus { loading, authenticated, unauthenticated, error }
 
+/// Holds the authenticated session. Identity comes from the FastAPI backend
+/// (`/api/v1/auth/*`), which wraps Supabase Auth and returns a Supabase JWT
+/// plus the backend's bigint user id. The JWT is sent as a Bearer token on
+/// authenticated calls (e.g. creating a pet).
 class AuthController extends ChangeNotifier {
   final AuthRepository repository;
   final TokenStorage storage;
@@ -18,63 +21,36 @@ class AuthController extends ChangeNotifier {
   String? _error;
 
   AuthController({required this.repository, TokenStorage? storage})
-      : storage = storage ?? TokenStorage() {
-    // Listen to Supabase auth state changes
-    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
-      final AuthChangeEvent event = data.event;
-      final Session? session = data.session;
-
-      if (event == AuthChangeEvent.signedIn) {
-        _token = session?.accessToken;
-        if (session?.user != null) {
-          _userId = _extractUserId(session!.user.id);
-        }
-        _status = AuthStatus.authenticated;
-        notifyListeners();
-      } else if (event == AuthChangeEvent.signedOut) {
-        _token = null;
-        _userId = null;
-        _status = AuthStatus.unauthenticated;
-        notifyListeners();
-      } else if (event == AuthChangeEvent.tokenRefreshed) {
-        _token = session?.accessToken;
-      }
-    });
-  }
+      : storage = storage ?? TokenStorage();
 
   AuthStatus get status => _status;
   String? get token => _token;
   int? get userId => _userId;
+
+  /// Falls back to the seed pet so feature endpoints keyed by pet id still work
+  /// before the user has created their own pet.
   int? get petId => _petId ?? AppConfig.defaultPetId;
   int? get rawPetId => _petId;
   String? get error => _error;
   bool get isAuthenticated => _status == AuthStatus.authenticated;
   bool get isGuest => _status == AuthStatus.unauthenticated && _token == null;
 
-  /// Extract numeric user ID from Supabase UUID string
-  int? _extractUserId(String uuid) {
-    // Supabase uses UUID strings. We'll use a hash of the UUID
-    // or you can use the user metadata if you store a numeric ID there
-    return uuid.hashCode;
-  }
-
   Future<void> tryAutoLogin() async {
     _status = AuthStatus.loading;
     notifyListeners();
 
     try {
-      // Supabase automatically restores the session
-      final currentUser = Supabase.instance.client.auth.currentUser;
-
-      if (currentUser == null) {
+      final token = await storage.getToken();
+      if (token == null) {
         _status = AuthStatus.unauthenticated;
         notifyListeners();
         return;
       }
 
-      await repository.getMe('');
-      _token = Supabase.instance.client.auth.currentSession?.accessToken;
-      _userId = _extractUserId(currentUser.id);
+      // Validate the stored token against the backend.
+      final user = await repository.getMe(token);
+      _token = token;
+      _userId = user.id;
       _petId = await storage.getPetId();
       _status = AuthStatus.authenticated;
       notifyListeners();
@@ -95,12 +71,7 @@ class AuthController extends ChangeNotifier {
 
     try {
       final result = await repository.register(email, password, name);
-      _token = result.accessToken;
-      _userId = _extractUserId(result.user.id);
-      // Supabase handles token storage automatically
-      await storage.saveUserId(_userId ?? 0);
-      _status = AuthStatus.authenticated;
-      notifyListeners();
+      await _applySession(result);
       return true;
     } catch (e) {
       _status = AuthStatus.error;
@@ -116,30 +87,25 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      print('🔐 Attempting login with: $email');
       final result = await repository.login(email, password);
-      print('✅ Login successful!');
-      print('   Access Token: ${result.accessToken.substring(0, 20)}...');
-      print('   User ID: ${result.user.id}');
-
-      _token = result.accessToken;
-      _userId = _extractUserId(result.user.id);
-      // Supabase handles token storage automatically
-      await storage.saveUserId(_userId ?? 0);
-      _petId = await storage.getPetId();
-      _status = AuthStatus.authenticated;
-      notifyListeners();
-
-      print('✅ Auth state updated to: authenticated');
-      print('   Current User: ${Supabase.instance.client.auth.currentUser?.email}');
+      await _applySession(result);
       return true;
     } catch (e) {
-      print('❌ Login failed: $e');
       _status = AuthStatus.error;
       _error = _parseError(e);
       notifyListeners();
       return false;
     }
+  }
+
+  Future<void> _applySession(AuthResult result) async {
+    _token = result.accessToken;
+    _userId = result.user.id;
+    await storage.saveToken(_token ?? '');
+    await storage.saveUserId(_userId ?? 0);
+    _petId = await storage.getPetId();
+    _status = AuthStatus.authenticated;
+    notifyListeners();
   }
 
   Future<void> setPetId(int id) async {
@@ -157,39 +123,18 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await Supabase.instance.client.auth.signOut();
     await storage.clear();
     _token = null;
     _userId = null;
     _petId = null;
-    _status = AuthStatus.unauthenticated;
     _error = null;
+    _status = AuthStatus.unauthenticated;
     notifyListeners();
   }
 
   String _parseError(dynamic e) {
-    // Handle Supabase-specific errors
-    if (e is AuthException) {
-      if (e.message.contains('Invalid login credentials')) {
-        return 'Invalid email or password';
-      }
-      if (e.message.contains('User already registered')) {
-        return 'Email already registered';
-      }
-      if (e.message.contains('Email not confirmed')) {
-        return 'Please confirm your email first';
-      }
-      return e.message;
-    }
-    if (e is Exception) {
-      final message = e.toString();
-      if (message.contains('Registration failed')) {
-        return 'Registration failed. Please try again.';
-      }
-      if (message.contains('Login failed')) {
-        return 'Login failed. Please check your credentials.';
-      }
-    }
-    return 'Something went wrong. Please try again.';
+    final message = e.toString().replaceFirst('Exception: ', '');
+    if (message.isEmpty) return 'Something went wrong. Please try again.';
+    return message;
   }
 }

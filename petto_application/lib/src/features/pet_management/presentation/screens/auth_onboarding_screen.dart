@@ -9,7 +9,7 @@ import '../../../../core/widgets/top_alert.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../health_assessment/presentation/screens/home_screen.dart';
 import '../../../health_assessment/presentation/widgets/pet_avatar_widget.dart';
-import '../../data/repositories/supabase_pet_repository.dart';
+import '../../data/repositories/pet_repository.dart';
 
 enum _AuthScreen {
   intro,
@@ -184,12 +184,16 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     }
 
     try {
-      // Create pet in Supabase
-      final petRepo = SupabasePetRepository();
+      // Create the pet via the backend; the owner is derived from the token.
+      final token = auth.token;
+      if (token == null) {
+        throw Exception('Missing auth token');
+      }
+      final petRepo = PetRepository();
       final dob = DateTime(_birthYear, _birthMonth, _birthDay);
 
-      print('🐾 Creating pet in Supabase...');
       final newPet = await petRepo.createPet(
+        token: token,
         name: _petNameOrDefault,
         species: _species,
         breed: _breed.text.trim().isEmpty ? null : _breed.text.trim(),
@@ -198,12 +202,10 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
         weightKg: double.tryParse(_weight.text.trim()),
       );
 
-      print('✅ Pet created with ID: ${newPet.id}');
-
-      // Store pet ID (using hash of UUID as integer ID)
-      await auth.setPetId(newPet.id.hashCode);
+      // Remember the new pet id for feature endpoints.
+      await auth.setPetId(newPet.id);
     } catch (e) {
-      print('❌ Failed to create pet: $e');
+      debugPrint('Failed to create pet: $e');
       if (!mounted) return;
       setState(() {
         _isLoading = false;

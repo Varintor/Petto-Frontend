@@ -16,6 +16,7 @@ import '../../../activity_tracking/presentation/controllers/activity_tracking_co
 import '../../../activity_tracking/presentation/screens/live_walk_screen.dart';
 import '../../../missions/presentation/controllers/missions_controller.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
+import '../../../pet_management/data/repositories/pet_repository.dart';
 import '../../../activity_tracking/presentation/screens/wellness_tracking_view.dart';
 import 'health_assessment_screen.dart';
 import '../widgets/pet_avatar_widget.dart';
@@ -68,7 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late final Map<String, List<_VetChatMessageData>> _vetConversations;
   final Map<int, Object?> _petProfileImages = {};
 
-  static const List<_PetData> _pets = [
+  static const List<_PetData> _mockPets = [
     _PetData(
       name: 'Milo',
       species: 'Cat',
@@ -86,6 +87,9 @@ class _HomeScreenState extends State<HomeScreen> {
       status: 'Ready to Play',
     ),
   ];
+
+  /// Starts as mock data; replaced by the user's real pets once loaded.
+  List<_PetData> _pets = _mockPets;
 
   static const List<_NotificationData> _notifications = [
     _NotificationData(
@@ -245,7 +249,58 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
       context.read<ActivityTrackingController>().loadStats();
       context.read<MissionsController>().loadAll();
+      _loadPets();
     });
+  }
+
+  /// Loads the signed-in user's real pets from the backend and replaces the
+  /// mock list. Keeps the mock fallback for guests or when none exist yet.
+  Future<void> _loadPets() async {
+    final userId = context.read<AuthController>().userId;
+    if (userId == null) return;
+    try {
+      final pets = await PetRepository().getUserPets(userId);
+      if (!mounted || pets.isEmpty) return;
+      setState(() {
+        _pets = pets.map(_petDataFromBackend).toList();
+        if (_activePetIndex >= _pets.length) _activePetIndex = 0;
+        _savedAppearances
+          ..clear()
+          ..addAll({
+            for (var i = 0; i < _pets.length; i++)
+              i: _defaultAppearanceForSpecies(_pets[i].species),
+          });
+      });
+      _loadDraftForPet(_activePetIndex);
+    } catch (_) {
+      // Keep the mock fallback if the backend is unreachable.
+    }
+  }
+
+  _PetData _petDataFromBackend(Pet pet) {
+    return _PetData(
+      name: pet.name,
+      species: pet.species ?? 'Cat',
+      breed: (pet.breed == null || pet.breed!.isEmpty) ? 'Unknown' : pet.breed!,
+      ageLabel: _ageLabelFromDob(pet.dateOfBirth),
+      weightLabel: pet.weightKg == null ? '—' : '${pet.weightKg}kg',
+      status: 'Currently Resting',
+    );
+  }
+
+  String _ageLabelFromDob(DateTime? dob) {
+    if (dob == null) return '—';
+    final now = DateTime.now();
+    var years = now.year - dob.year;
+    if (now.month < dob.month ||
+        (now.month == dob.month && now.day < dob.day)) {
+      years -= 1;
+    }
+    if (years <= 0) {
+      final months = (now.year - dob.year) * 12 + now.month - dob.month;
+      return '${months <= 0 ? 1 : months} Months Old';
+    }
+    return '$years Year${years == 1 ? '' : 's'} Old';
   }
 
   @override

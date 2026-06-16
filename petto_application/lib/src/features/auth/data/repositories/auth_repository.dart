@@ -1,29 +1,45 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:dio/dio.dart';
 
-/// User model from Supabase Auth
+import '../../../../core/config/app_config.dart';
+
+/// User returned by the Petto FastAPI backend (`public.users`, bigint id).
 class AuthUser {
-  final String id;
+  final int id;
   final String email;
   final String? name;
+  final String? avatarUri;
 
-  AuthUser({required this.id, required this.email, this.name});
+  AuthUser({
+    required this.id,
+    required this.email,
+    this.name,
+    this.avatarUri,
+  });
 
-  factory AuthUser.fromUser(User user) {
-    final metadata = user.userMetadata;
+  factory AuthUser.fromJson(Map<String, dynamic> json) {
     return AuthUser(
-      id: user.id,
-      email: user.email ?? '',
-      name: metadata?['name'] as String?,
+      id: json['id'] as int,
+      email: json['email'] as String? ?? '',
+      name: json['name'] as String?,
+      avatarUri: json['avatar_uri'] as String?,
     );
   }
 }
 
-/// Result of authentication (login/register)
+/// Result of authentication (register/login): a Supabase JWT issued by the
+/// backend plus the resolved backend user.
 class AuthResult {
   final String accessToken;
   final AuthUser user;
 
   AuthResult({required this.accessToken, required this.user});
+
+  factory AuthResult.fromJson(Map<String, dynamic> json) {
+    return AuthResult(
+      accessToken: json['access_token'] as String? ?? '',
+      user: AuthUser.fromJson(json['user'] as Map<String, dynamic>),
+    );
+  }
 }
 
 abstract class AuthRepository {
@@ -32,76 +48,78 @@ abstract class AuthRepository {
   Future<AuthUser> getMe(String token);
 }
 
+/// Talks to the FastAPI backend (`/api/v1/auth/*`). The backend wraps Supabase
+/// Auth and maps the Supabase user to a `public.users` row, so the rest of the
+/// app keys off the backend's bigint user id.
 class AuthRepositoryImpl implements AuthRepository {
-  final SupabaseClient _supabase = Supabase.instance.client;
+  final Dio dio;
+
+  AuthRepositoryImpl({Dio? dio})
+      : dio = dio ??
+            Dio(BaseOptions(
+              baseUrl: AppConfig.apiBaseUrl,
+              connectTimeout: AppConfig.connectionTimeout,
+              receiveTimeout: AppConfig.receiveTimeout,
+              sendTimeout: AppConfig.sendTimeout,
+              headers: {'Accept': 'application/json'},
+            ));
 
   @override
   Future<AuthResult> register(String email, String password, String name) async {
     try {
-      print('📝 Register attempt: email=$email, name=$name');
-      print('📝 Password length: ${password.length}');
-
-      final response = await _supabase.auth.signUp(
-        email: email,
-        password: password,
-        data: {'name': name},
+      final response = await dio.post(
+        AppConfig.registerEndpoint,
+        data: {'email': email, 'password': password, 'name': name},
       );
-
-      if (response.user == null) {
-        print('❌ Registration failed: user is null');
-        throw Exception('Registration failed. Please try again.');
-      }
-
-      final accessToken = response.session?.accessToken ?? '';
-      print('✅ Registration successful for: ${response.user!.email}');
-      return AuthResult(
-        accessToken: accessToken,
-        user: AuthUser.fromUser(response.user!),
-      );
-    } on AuthException catch (e) {
-      print('❌ Supabase Auth Error: ${e.message}');
-      print('   Status: ${e.statusCode}');
-      rethrow;
+      return AuthResult.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw Exception(_describeDioError(e));
     }
   }
 
   @override
   Future<AuthResult> login(String email, String password) async {
     try {
-      print('🔐 Login attempt: email=$email');
-
-      final response = await _supabase.auth.signInWithPassword(
-        email: email,
-        password: password,
+      final response = await dio.post(
+        AppConfig.loginEndpoint,
+        data: {'email': email, 'password': password},
       );
-
-      if (response.user == null) {
-        print('❌ Login failed: user is null');
-        throw Exception('Login failed. Please check your credentials.');
-      }
-
-      final accessToken = response.session?.accessToken ?? '';
-      print('✅ Login successful for: ${response.user!.email}');
-      return AuthResult(
-        accessToken: accessToken,
-        user: AuthUser.fromUser(response.user!),
-      );
-    } on AuthException catch (e) {
-      print('❌ Supabase Auth Error: ${e.message}');
-      print('   Status: ${e.statusCode}');
-      rethrow;
+      return AuthResult.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw Exception(_describeDioError(e));
     }
   }
 
   @override
   Future<AuthUser> getMe(String token) async {
-    // Supabase automatically manages the current session
-    final currentUser = _supabase.auth.currentUser;
-
-    if (currentUser == null) {
-      throw Exception('No authenticated user found.');
+    try {
+      final response = await dio.get(
+        AppConfig.meEndpoint,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      return AuthUser.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw Exception(_describeDioError(e));
     }
+  }
 
-    return AuthUser.fromUser(currentUser);
+  String _describeDioError(DioException e) {
+    // FastAPI returns errors as {"detail": "..."}.
+    if (e.type == DioExceptionType.badResponse) {
+      final data = e.response?.data;
+      final detail = data is Map ? data['detail'] : null;
+      if (detail is String && detail.isNotEmpty) return detail;
+      return 'Server error ${e.response?.statusCode}.';
+    }
+    switch (e.type) {
+      case DioExceptionType.connectionError:
+        return 'Cannot reach the server. Please check your connection.';
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.receiveTimeout:
+      case DioExceptionType.sendTimeout:
+        return 'Network timeout. Please try again.';
+      default:
+        return 'Network error. Please try again.';
+    }
   }
 }

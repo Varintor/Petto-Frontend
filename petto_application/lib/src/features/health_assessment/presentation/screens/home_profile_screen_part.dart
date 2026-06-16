@@ -11,15 +11,15 @@ extension _HomeProfileScreenPart on _HomeScreenState {
             height: 58,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: _HomeScreenState._pets.length + 1,
+              itemCount: _pets.length + 1,
               separatorBuilder: (context, index) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
-                if (index == _HomeScreenState._pets.length) {
+                if (index == _pets.length) {
                   return _AddPetChip(
                     onTap: () => _showPreviewSnackBar('Add Pet'),
                   );
                 }
-                final pet = _HomeScreenState._pets[index];
+                final pet = _pets[index];
                 final appearance =
                     _savedAppearances[index] ??
                     _defaultAppearanceForSpecies(pet.species);
