@@ -3104,118 +3104,153 @@ class _AssessmentDetailScreen extends StatelessWidget {
                           const SizedBox(height: 16),
                           Container(
                             width: double.infinity,
-                            padding: const EdgeInsets.all(20),
+                            padding: const EdgeInsets.all(18),
                             decoration: AppTheme.glassCardDecoration(
-                              color: AppTheme.surfaceColor.withValues(
-                                alpha: 0.98,
-                              ),
-                              borderRadius: BorderRadius.circular(32),
-                              borderColor: color.withValues(alpha: 0.14),
+                              color: color.withValues(alpha: 0.09),
+                              borderRadius: BorderRadius.circular(30),
+                              borderColor: color.withValues(alpha: 0.16),
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            child: Row(
                               children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      width: 48,
-                                      height: 48,
-                                      decoration: BoxDecoration(
-                                        color: color.withValues(alpha: 0.11),
-                                        borderRadius: BorderRadius.circular(18),
-                                      ),
-                                      child: Icon(
-                                        Icons.fact_check_rounded,
-                                        color: color,
-                                        size: 22,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            riskLabel,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleMedium
-                                                ?.copyWith(
-                                                  color: AppTheme.secondaryText,
-                                                  fontWeight: FontWeight.w900,
-                                                ),
-                                          ),
-                                          const SizedBox(height: 3),
-                                          Text(
-                                            dateLabel,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .labelSmall
-                                                ?.copyWith(
-                                                  color: AppTheme.mutedText,
-                                                  fontWeight: FontWeight.w800,
-                                                ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 22),
-                                Text(
-                                  'SYMPTOMS',
-                                  style: Theme.of(context).textTheme.labelSmall
-                                      ?.copyWith(
-                                        color: AppTheme.mutedText,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 0.6,
-                                      ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  symptomText,
-                                  style: Theme.of(context).textTheme.titleMedium
-                                      ?.copyWith(
-                                        color: AppTheme.secondaryText,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                ),
-                                const SizedBox(height: 22),
-                                Text(
-                                  'AI ANALYSIS',
-                                  style: Theme.of(context).textTheme.labelSmall
-                                      ?.copyWith(
-                                        color: AppTheme.mutedText,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 0.6,
-                                      ),
-                                ),
-                                const SizedBox(height: 8),
                                 Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.all(16),
+                                  width: 48,
+                                  height: 48,
                                   decoration: BoxDecoration(
-                                    color: color.withValues(alpha: 0.05),
-                                    borderRadius: BorderRadius.circular(22),
-                                    border: Border.all(
-                                      color: color.withValues(alpha: 0.10),
+                                    color: color,
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
+                                  child: const Icon(
+                                    Icons.fact_check_rounded,
+                                    color: Colors.white,
+                                    size: 22,
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Assessment Complete',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium
+                                            ?.copyWith(
+                                              color: AppTheme.secondaryText,
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        dateLabel,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelSmall
+                                            ?.copyWith(
+                                              color: AppTheme.mutedText,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.surfaceColor.withValues(
+                                      alpha: 0.88,
                                     ),
+                                    borderRadius: BorderRadius.circular(999),
                                   ),
                                   child: Text(
-                                    assessment.aiResponse,
+                                    riskLabel,
                                     style: Theme.of(context)
                                         .textTheme
-                                        .bodyMedium
+                                        .labelSmall
                                         ?.copyWith(
-                                          color: AppTheme.secondaryText,
-                                          height: 1.58,
-                                          fontWeight: FontWeight.w600,
+                                          color: color,
+                                          fontWeight: FontWeight.w900,
                                         ),
                                   ),
                                 ),
                               ],
                             ),
+                          ),
+                          const SizedBox(height: 14),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(18),
+                            decoration: AppTheme.glassCardDecoration(
+                              color: AppTheme.surfaceColor.withValues(
+                                alpha: 0.98,
+                              ),
+                              borderRadius: BorderRadius.circular(30),
+                              borderColor: AppTheme.primaryColor.withValues(
+                                alpha: 0.10,
+                              ),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryColor.withValues(
+                                      alpha: 0.09,
+                                    ),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: const Icon(
+                                    Icons.report_rounded,
+                                    color: AppTheme.primaryColor,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 13),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Reported symptoms',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium
+                                            ?.copyWith(
+                                              color: AppTheme.secondaryText,
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 7),
+                                      Text(
+                                        symptomText,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium
+                                            ?.copyWith(
+                                              color: AppTheme.mutedText,
+                                              height: 1.38,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          _AiAnalysisPanel(
+                            riskColor: color,
+                            riskLabel: riskLabel,
+                            symptoms: symptomText,
+                            response: assessment.aiResponse,
                           ),
                           const SizedBox(height: 18),
                           SizedBox(
@@ -3281,6 +3316,249 @@ class _AssessmentDetailScreen extends StatelessWidget {
     final minute = date.minute.toString().padLeft(2, '0');
     final suffix = date.hour >= 12 ? 'PM' : 'AM';
     return '${date.day} ${months[date.month - 1]} • $hour:$minute $suffix';
+  }
+}
+
+class _AiAnalysisPanel extends StatelessWidget {
+  const _AiAnalysisPanel({
+    required this.riskColor,
+    required this.riskLabel,
+    required this.symptoms,
+    required this.response,
+  });
+
+  final Color riskColor;
+  final String riskLabel;
+  final String symptoms;
+  final String response;
+
+  @override
+  Widget build(BuildContext context) {
+    final observations = _pointsFrom(
+      response,
+      fallback: [
+        'Review the visible signs together with the reported symptoms.',
+        'Track changes in comfort, appetite, breathing, and activity.',
+      ],
+    );
+    final highRisk = riskLabel.toLowerCase().contains('high');
+    final concerns = highRisk
+        ? [
+            'Symptoms may need prompt professional review.',
+            'Watch for worsening pain, bleeding, weakness, or breathing changes.',
+          ]
+        : [
+            'Symptoms may be mild, but changes should still be monitored.',
+            'Follow up if the condition does not improve.',
+          ];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: AppTheme.glassCardDecoration(
+        color: AppTheme.surfaceColor.withValues(alpha: 0.99),
+        borderRadius: BorderRadius.circular(32),
+        borderColor: riskColor.withValues(alpha: 0.16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: riskColor.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  Icons.auto_awesome_rounded,
+                  color: riskColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'AI Analysis',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: AppTheme.secondaryText,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _AiAnalysisSection(
+            icon: Icons.visibility_rounded,
+            title: 'Observations',
+            color: AppTheme.primaryColor,
+            items: observations.take(2).toList(),
+          ),
+          const SizedBox(height: 10),
+          _AiAnalysisSection(
+            icon: Icons.health_and_safety_rounded,
+            title: 'Potential concerns',
+            color: riskColor,
+            items: concerns,
+          ),
+          const SizedBox(height: 10),
+          _AiAnalysisSection(
+            icon: Icons.lightbulb_rounded,
+            title: 'Recommended actions',
+            color: AppTheme.accentColor,
+            items: [
+              'Do: Keep ${_shortSymptom(symptoms)} under close observation.',
+              'Do not: Ignore worsening symptoms or sudden behavior changes.',
+              'Urgency: Contact your care team if symptoms persist.',
+            ],
+            itemIcons: const [
+              Icons.check_circle_rounded,
+              Icons.cancel_rounded,
+              Icons.notifications_active_rounded,
+            ],
+            itemColors: [
+              AppTheme.successColor,
+              AppTheme.primaryColor,
+              AppTheme.accentColor,
+            ],
+          ),
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppTheme.creamSurfaceColor.withValues(alpha: 0.58),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: AppTheme.primaryColor.withValues(alpha: 0.08),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.info_rounded,
+                  color: AppTheme.primaryColor.withValues(alpha: 0.72),
+                  size: 18,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Preliminary AI screening, not a diagnosis. Use this as guidance and consult a veterinarian when concerned.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.mutedText,
+                      height: 1.42,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<String> _pointsFrom(String value, {required List<String> fallback}) {
+    final cleaned = value.trim();
+    if (cleaned.isEmpty) return fallback;
+    final pieces = cleaned
+        .split(RegExp(r'(?<=[.!?])\s+|\n+|•'))
+        .map((line) => line.trim())
+        .where((line) => line.length > 8)
+        .toList();
+    if (pieces.isEmpty) return fallback;
+    return pieces.take(3).toList();
+  }
+
+  String _shortSymptom(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty || trimmed == 'No symptom description') {
+      return 'your pet';
+    }
+    return trimmed.length > 34 ? '${trimmed.substring(0, 34)}...' : trimmed;
+  }
+}
+
+class _AiAnalysisSection extends StatelessWidget {
+  const _AiAnalysisSection({
+    required this.icon,
+    required this.title,
+    required this.color,
+    required this.items,
+    this.itemIcons,
+    this.itemColors,
+  });
+
+  final IconData icon;
+  final String title;
+  final Color color;
+  final List<String> items;
+  final List<IconData>? itemIcons;
+  final List<Color>? itemColors;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.045),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: color.withValues(alpha: 0.12)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 17),
+              const SizedBox(width: 9),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: AppTheme.secondaryText,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          for (final entry in items.indexed) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  itemIcons != null && entry.$1 < itemIcons!.length
+                      ? itemIcons![entry.$1]
+                      : Icons.circle_rounded,
+                  size: itemIcons != null ? 16 : 7,
+                  color: itemColors != null && entry.$1 < itemColors!.length
+                      ? itemColors![entry.$1]
+                      : color.withValues(alpha: 0.72),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    entry.$2,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.secondaryText.withValues(alpha: 0.86),
+                      height: 1.42,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (entry.$1 != items.length - 1) const SizedBox(height: 8),
+          ],
+        ],
+      ),
+    );
   }
 }
 
