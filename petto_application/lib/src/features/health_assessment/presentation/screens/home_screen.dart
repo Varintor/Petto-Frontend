@@ -17,6 +17,8 @@ import '../../../activity_tracking/presentation/screens/live_walk_screen.dart';
 import '../../../missions/presentation/controllers/missions_controller.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../pet_management/data/repositories/pet_repository.dart';
+import '../../../pet_management/domain/entities/pet_entity.dart';
+import '../../../pet_management/presentation/screens/pet_form_screen.dart';
 import '../../../activity_tracking/presentation/screens/wellness_tracking_view.dart';
 import 'health_assessment_screen.dart';
 import '../widgets/pet_avatar_widget.dart';
@@ -303,6 +305,42 @@ class _HomeScreenState extends State<HomeScreen> {
       return '${months <= 0 ? 1 : months} Months Old';
     }
     return '$years Year${years == 1 ? '' : 's'} Old';
+  }
+
+  /// Opens the pet form, creates the pet via the backend, then refreshes Home.
+  Future<void> _addPet() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final token = context.read<AuthController>().token;
+    if (token == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Please log in to add a pet.')),
+      );
+      return;
+    }
+    final result = await Navigator.of(context).push<PetEntity>(
+      MaterialPageRoute(builder: (_) => const PetFormScreen()),
+    );
+    if (result == null || !mounted) return;
+    try {
+      await PetRepository().createPet(
+        token: token,
+        name: result.name,
+        species: result.species,
+        breed: result.breed,
+        gender: result.gender,
+        dateOfBirth: result.dateOfBirth,
+        weightKg: result.weightKg,
+      );
+      if (!mounted) return;
+      await _loadPets();
+      messenger.showSnackBar(
+        SnackBar(content: Text('${result.name} added!')),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Failed to add pet: $e')),
+      );
+    }
   }
 
   @override

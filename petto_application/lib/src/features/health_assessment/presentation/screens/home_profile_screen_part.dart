@@ -16,7 +16,7 @@ extension _HomeProfileScreenPart on _HomeScreenState {
               itemBuilder: (context, index) {
                 if (index == _pets.length) {
                   return _AddPetChip(
-                    onTap: () => _showPreviewSnackBar('Add Pet'),
+                    onTap: _addPet,
                   );
                 }
                 final pet = _pets[index];
