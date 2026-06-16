@@ -126,6 +126,20 @@ class _CalendarEventData {
   final IconData icon;
 }
 
+class _CalendarPlanStyle {
+  const _CalendarPlanStyle({
+    required this.label,
+    required this.defaultTitle,
+    required this.icon,
+    required this.color,
+  });
+
+  final String label;
+  final String defaultTitle;
+  final IconData icon;
+  final Color color;
+}
+
 class _VetChatMessageData {
   const _VetChatMessageData({
     required this.fromVet,

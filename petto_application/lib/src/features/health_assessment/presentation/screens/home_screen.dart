@@ -62,6 +62,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final Set<String> _draftEquippedAccessoryIds = {'acc_collar'};
   late final Map<int, _PetAppearanceData> _savedAppearances;
   late final Map<String, List<_VetChatMessageData>> _vetConversations;
+  late final List<_CalendarEventData> _calendarEvents;
   final Map<int, Object?> _petProfileImages = {};
 
   static const List<_PetData> _pets = [
@@ -130,7 +131,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   ];
 
-  static const List<_CalendarEventData> _calendarEvents = [
+  static const List<_CalendarEventData> _defaultCalendarEvents = [
     _CalendarEventData(
       id: 'e1',
       title: 'Morning medication',
@@ -257,6 +258,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _vetConversations = {
       for (final vet in _vets) vet.id: _seedVetConversation(vet),
     };
+    _calendarEvents = List<_CalendarEventData>.of(_defaultCalendarEvents);
     _loadDraftForPet(_activePetIndex);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;

@@ -1735,29 +1735,34 @@ class _CalendarScheduleHeader extends StatelessWidget {
         InkWell(
           onTap: onAdd,
           borderRadius: BorderRadius.circular(999),
-          child: Ink(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          child: Container(
+            height: 42,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
-              color: AppTheme.surfaceColor.withValues(alpha: 0.88),
+              color: AppTheme.primaryColor,
               borderRadius: BorderRadius.circular(999),
               border: Border.all(
-                color: AppTheme.primaryColor.withValues(alpha: 0.20),
-                width: 1.2,
+                color: AppTheme.surfaceColor.withValues(alpha: 0.72),
+                width: 1.6,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.14),
+                  blurRadius: 14,
+                  offset: const Offset(0, 7),
+                ),
+              ],
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.add_rounded,
-                  color: AppTheme.primaryColor,
-                  size: 18,
-                ),
-                const SizedBox(width: 5),
+                const Icon(Icons.add_rounded, color: Colors.white, size: 18),
+                const SizedBox(width: 6),
                 Text(
                   'Add',
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: AppTheme.primaryColor,
+                    color: Colors.white,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -1835,22 +1840,103 @@ class _NoPlansCard extends StatelessWidget {
           InkWell(
             onTap: onAdd,
             borderRadius: BorderRadius.circular(999),
-            child: Ink(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Container(
+              height: 48,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
                 color: AppTheme.primaryColor,
                 borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                'Create plan',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
+                border: Border.all(
+                  color: AppTheme.surfaceColor.withValues(alpha: 0.74),
+                  width: 1.8,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.16),
+                    blurRadius: 16,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.add_task_rounded,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Create plan',
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CalendarPlanTypeChip extends StatelessWidget {
+  const _CalendarPlanTypeChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppTheme.primaryColor
+              : AppTheme.creamSurfaceColor.withValues(alpha: 0.72),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: selected
+                ? AppTheme.primaryColor
+                : AppTheme.warmSurfaceColor.withValues(alpha: 0.70),
+            width: 1.2,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: selected ? Colors.white : AppTheme.primaryColor,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: selected ? Colors.white : AppTheme.secondaryText,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
