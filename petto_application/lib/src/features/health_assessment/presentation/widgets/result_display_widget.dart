@@ -115,33 +115,39 @@ class ResultDisplayWidget extends StatelessWidget {
           if (assessment.symptoms != null && assessment.symptoms!.isNotEmpty)
             _buildInfoCard('Symptoms', assessment.symptoms!),
           const SizedBox(height: 24),
-          Text('AI Analysis', style: Theme.of(context).textTheme.titleLarge),
+          Row(
+            children: [
+              Icon(Icons.auto_awesome_rounded, size: 20, color: risk.color),
+              const SizedBox(width: 8),
+              Text('AI Analysis', style: Theme.of(context).textTheme.titleLarge),
+            ],
+          ),
           const SizedBox(height: 12),
+          ..._buildAiSections(context, risk.color),
+          const SizedBox(height: 4),
           Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
+              color: Colors.grey.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline_rounded, size: 16, color: Colors.grey[600]),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'This is a preliminary AI screening, not a medical diagnosis. '
+                    'Please consult a licensed veterinarian if you are concerned.',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: Colors.grey[700]),
+                  ),
                 ),
               ],
             ),
-            child: Text(
-              assessment.aiResponse.isEmpty
-                  ? 'ไม่มีรายละเอียดจาก AI'
-                  : assessment.aiResponse,
-              style: const TextStyle(fontSize: 15, height: 1.5),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '⚠️ นี่เป็นการคัดกรองเบื้องต้นด้วย AI ไม่ใช่การวินิจฉัยทางการแพทย์ '
-            'หากกังวลควรปรึกษาสัตวแพทย์',
-            style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 24),
           if (compactMode) ...[
@@ -204,4 +210,180 @@ class ResultDisplayWidget extends StatelessWidget {
       ),
     );
   }
+
+  // ---- AI response formatting ----
+
+  List<Widget> _buildAiSections(BuildContext context, Color accent) {
+    final sections = _parseAiResponse(assessment.aiResponse);
+    if (sections.isEmpty) {
+      // Fallback: AI didn't follow the expected structure — show raw text.
+      return [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10),
+            ],
+          ),
+          child: Text(
+            assessment.aiResponse.isEmpty
+                ? 'No details returned by AI.'
+                : assessment.aiResponse,
+            style: const TextStyle(fontSize: 15, height: 1.5),
+          ),
+        ),
+      ];
+    }
+    return [
+      for (final s in sections) ...[
+        _buildSectionCard(context, s, accent),
+        const SizedBox(height: 12),
+      ],
+    ];
+  }
+
+  Widget _buildSectionCard(BuildContext context, _AiSection s, Color accent) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: accent.withValues(alpha: 0.15)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(s.icon, size: 18, color: accent),
+              const SizedBox(width: 8),
+              Text(
+                s.title,
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...s.body.map(_buildBodyLine),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBodyLine(String line) {
+    final clean = line.replaceFirst(RegExp(r'^[\-\*•]\s*'), '').trim();
+    final upper = clean.toUpperCase();
+    IconData? icon;
+    Color? color;
+    if (upper.startsWith('DO NOT') || upper.startsWith("DON'T")) {
+      icon = Icons.cancel_rounded;
+      color = AppTheme.dangerColor;
+    } else if (upper.startsWith('DO:') || upper.startsWith('DO ')) {
+      icon = Icons.check_circle_rounded;
+      color = AppTheme.successColor;
+    } else if (upper.startsWith('URGENCY')) {
+      icon = Icons.schedule_rounded;
+      color = AppTheme.accentColor;
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (icon != null) ...[
+            Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: Icon(icon, size: 15, color: color),
+            ),
+            const SizedBox(width: 6),
+          ] else ...[
+            Padding(
+              padding: const EdgeInsets.only(top: 7, right: 8),
+              child: Container(
+                width: 4,
+                height: 4,
+                decoration: const BoxDecoration(
+                  color: Colors.grey,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+          ],
+          Expanded(
+            child: Text(clean, style: const TextStyle(fontSize: 14, height: 1.45)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<_AiSection> _parseAiResponse(String raw) {
+    if (raw.trim().isEmpty) return [];
+    final text = raw
+        .replaceAll(
+          RegExp(
+            r'^\s*risk\s*:\s*(low|moderate|high)\s*$',
+            multiLine: true,
+            caseSensitive: false,
+          ),
+          '',
+        )
+        .replaceAll('**', '')
+        .replaceAll(RegExp(r'^#{1,6}\s*', multiLine: true), '')
+        .trim();
+
+    final defs = <(List<String>, String, IconData)>[
+      (['OBSERVATION'], 'Observations', Icons.visibility_rounded),
+      (
+        ['POTENTIAL CONCERN', 'CONCERN'],
+        'Potential Concerns',
+        Icons.medical_services_rounded,
+      ),
+      (
+        ['RECOMMENDED ACTION', 'FIRST-AID', 'NEXT STEP'],
+        'Recommended Actions',
+        Icons.tips_and_updates_rounded,
+      ),
+      (['DISCLAIMER'], 'Disclaimer', Icons.info_outline_rounded),
+    ];
+
+    bool isHeader(String line, List<String> keys) {
+      final up =
+          line.toUpperCase().replaceAll(RegExp(r'^[\s\d\.\)\-:]+'), '').trim();
+      return keys.any(up.startsWith);
+    }
+
+    final sections = <_AiSection>[];
+    _AiSection? current;
+    for (final line in text.split('\n')) {
+      (List<String>, String, IconData)? matched;
+      for (final d in defs) {
+        if (isHeader(line, d.$1)) {
+          matched = d;
+          break;
+        }
+      }
+      if (matched != null) {
+        current = _AiSection(title: matched.$2, icon: matched.$3, body: []);
+        sections.add(current);
+      } else if (current != null && line.trim().isNotEmpty) {
+        current.body.add(line.trim());
+      }
+    }
+    return sections;
+  }
+}
+
+class _AiSection {
+  _AiSection({required this.title, required this.icon, required this.body});
+  final String title;
+  final IconData icon;
+  final List<String> body;
 }
