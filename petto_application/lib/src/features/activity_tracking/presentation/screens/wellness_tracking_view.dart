@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../controllers/activity_tracking_controller.dart';
+import '../../../missions/presentation/controllers/missions_controller.dart';
 import 'live_walk_screen.dart';
 
 /// Content of the "wellness" tab (map icon in the dock).
@@ -29,12 +30,17 @@ class _WellnessTrackingViewState extends State<WellnessTrackingView> {
   }
 
   void _startWalk() {
-    final controller = context.read<ActivityTrackingController>();
+    final activityController = context.read<ActivityTrackingController>();
+    final missionsController = context.read<MissionsController>();
     Navigator.of(context)
         .push(MaterialPageRoute(
           builder: (_) => LiveWalkScreen(petName: widget.petName),
         ))
-        .then((_) => controller.loadStats());
+        .then((_) {
+      // Refresh both activity stats and missions after walk completes
+      activityController.loadStats();
+      missionsController.loadAll();
+    });
   }
 
   @override
