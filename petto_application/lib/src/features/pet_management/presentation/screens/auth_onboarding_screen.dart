@@ -186,8 +186,8 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     try {
       // Create the pet via the backend; the owner is derived from the token.
       final token = auth.token;
-      if (token == null) {
-        throw Exception('Missing auth token');
+      if (token == null || token.isEmpty) {
+        throw Exception('Missing auth token after registration');
       }
       final petRepo = PetRepository();
       final dob = DateTime(_birthYear, _birthMonth, _birthDay);
@@ -207,10 +207,12 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     } catch (e) {
       debugPrint('Failed to create pet: $e');
       if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Account created but failed to create pet. Error: $e\nYou can add a pet later.';
-      });
+      setState(() => _isLoading = false);
+      showTopAlert(
+        context,
+        'Account created, but adding the pet failed — you can add it from Home. ($e)',
+        icon: Icons.info_outline_rounded,
+      );
       _openHome();
       return;
     }
