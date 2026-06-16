@@ -7,10 +7,16 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../domain/entities/assessment_entity.dart';
+import '../controllers/health_assessment_controller.dart';
 import '../../../../core/widgets/top_alert.dart';
 import '../../../activity_tracking/presentation/controllers/activity_tracking_controller.dart';
 import '../../../activity_tracking/presentation/screens/live_walk_screen.dart';
+import '../../../missions/presentation/controllers/missions_controller.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
+import '../../../pet_management/data/repositories/pet_repository.dart';
 import '../../../activity_tracking/presentation/screens/wellness_tracking_view.dart';
 import 'health_assessment_screen.dart';
 import '../widgets/pet_avatar_widget.dart';
@@ -53,7 +59,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final TextEditingController _chatMessageController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
-  final Set<String> _completedMissionIds = {'water'};
   String _selectedSpecies = 'Cat';
   String _selectedColor = '#9F3E43';
   String _selectedEyeType = 'default';
@@ -65,7 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late final List<_CalendarEventData> _calendarEvents;
   final Map<int, Object?> _petProfileImages = {};
 
-  static const List<_PetData> _pets = [
+  static const List<_PetData> _mockPets = [
     _PetData(
       name: 'Milo',
       species: 'Cat',
@@ -84,26 +89,8 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   ];
 
-  static const List<_MissionData> _missions = [
-    _MissionData(
-      id: 'walk',
-      title: 'Walk for 15 mins',
-      reward: '50 Treats',
-      icon: Icons.pets_rounded,
-    ),
-    _MissionData(
-      id: 'water',
-      title: 'Water Log',
-      reward: '20 Treats',
-      icon: Icons.water_drop_rounded,
-    ),
-    _MissionData(
-      id: 'ai_check',
-      title: 'AI Quick Check',
-      reward: '100 Treats',
-      icon: Icons.search_rounded,
-    ),
-  ];
+  /// Starts as mock data; replaced by the user's real pets once loaded.
+  List<_PetData> _pets = _mockPets;
 
   static const List<_NotificationData> _notifications = [
     _NotificationData(
@@ -263,7 +250,59 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<ActivityTrackingController>().loadStats();
+      context.read<MissionsController>().loadAll();
+      _loadPets();
     });
+  }
+
+  /// Loads the signed-in user's real pets from the backend and replaces the
+  /// mock list. Keeps the mock fallback for guests or when none exist yet.
+  Future<void> _loadPets() async {
+    final userId = context.read<AuthController>().userId;
+    if (userId == null) return;
+    try {
+      final pets = await PetRepository().getUserPets(userId);
+      if (!mounted || pets.isEmpty) return;
+      setState(() {
+        _pets = pets.map(_petDataFromBackend).toList();
+        if (_activePetIndex >= _pets.length) _activePetIndex = 0;
+        _savedAppearances
+          ..clear()
+          ..addAll({
+            for (var i = 0; i < _pets.length; i++)
+              i: _defaultAppearanceForSpecies(_pets[i].species),
+          });
+      });
+      _loadDraftForPet(_activePetIndex);
+    } catch (_) {
+      // Keep the mock fallback if the backend is unreachable.
+    }
+  }
+
+  _PetData _petDataFromBackend(Pet pet) {
+    return _PetData(
+      name: pet.name,
+      species: pet.species ?? 'Cat',
+      breed: (pet.breed == null || pet.breed!.isEmpty) ? 'Unknown' : pet.breed!,
+      ageLabel: _ageLabelFromDob(pet.dateOfBirth),
+      weightLabel: pet.weightKg == null ? '—' : '${pet.weightKg}kg',
+      status: 'Currently Resting',
+    );
+  }
+
+  String _ageLabelFromDob(DateTime? dob) {
+    if (dob == null) return '—';
+    final now = DateTime.now();
+    var years = now.year - dob.year;
+    if (now.month < dob.month ||
+        (now.month == dob.month && now.day < dob.day)) {
+      years -= 1;
+    }
+    if (years <= 0) {
+      final months = (now.year - dob.year) * 12 + now.month - dob.month;
+      return '${months <= 0 ? 1 : months} Months Old';
+    }
+    return '$years Year${years == 1 ? '' : 's'} Old';
   }
 
   @override

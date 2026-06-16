@@ -11,15 +11,15 @@ extension _HomeProfileScreenPart on _HomeScreenState {
             height: 58,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: _HomeScreenState._pets.length + 1,
+              itemCount: _pets.length + 1,
               separatorBuilder: (context, index) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
-                if (index == _HomeScreenState._pets.length) {
+                if (index == _pets.length) {
                   return _AddPetChip(
                     onTap: () => _showPreviewSnackBar('Add Pet'),
                   );
                 }
-                final pet = _HomeScreenState._pets[index];
+                final pet = _pets[index];
                 final appearance =
                     _savedAppearances[index] ??
                     _defaultAppearanceForSpecies(pet.species);
@@ -162,9 +162,42 @@ extension _HomeProfileScreenPart on _HomeScreenState {
             tint: AppTheme.secondaryColor,
             onTap: () => _showPreviewSnackBar('Edit Bio'),
           ),
+          const SizedBox(height: 12),
+          _ProfileActionButton(
+            label: 'Logout',
+            icon: Icons.logout_rounded,
+            tint: AppTheme.primaryColor,
+            onTap: () => _handleLogout(context),
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _handleLogout(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      final auth = context.read<AuthController>();
+      await auth.logout();
+      // AuthGate will automatically redirect to login screen
+    }
   }
 
   Object? get _activePetProfileImage => _petProfileImages[_activePetIndex];

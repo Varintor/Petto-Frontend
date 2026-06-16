@@ -9,7 +9,7 @@ extension _HomeWardrobeScreenPart on _HomeScreenState {
   void _loadDraftForPet(int index) {
     final appearance =
         _savedAppearances[index] ??
-        _defaultAppearanceForSpecies(_HomeScreenState._pets[index].species);
+        _defaultAppearanceForSpecies(_pets[index].species);
     _selectedSpecies = appearance.species;
     _selectedColor = appearance.colorHex;
     _selectedEyeType = appearance.eyeType;

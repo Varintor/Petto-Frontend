@@ -1,15 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'src/core/theme/app_theme.dart';
+import 'src/features/auth/data/repositories/auth_repository.dart';
+import 'src/features/auth/presentation/controllers/auth_controller.dart';
+import 'src/features/auth/presentation/screens/auth_gate.dart';
 import 'src/features/health_assessment/presentation/controllers/health_assessment_controller.dart';
 import 'src/features/health_assessment/data/repositories/health_assessment_repository.dart';
 import 'src/features/activity_tracking/presentation/controllers/activity_tracking_controller.dart';
 import 'src/features/activity_tracking/data/repositories/activity_repository.dart';
 import 'src/features/vaccinations/presentation/controllers/vaccination_controller.dart';
 import 'src/features/vaccinations/data/repositories/vaccination_repository.dart';
-import 'src/features/pet_management/presentation/screens/auth_onboarding_screen.dart';
+import 'src/features/missions/presentation/controllers/missions_controller.dart';
+import 'src/features/missions/data/repositories/missions_repository.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Supabase
+  await Supabase.initialize(
+    url: 'https://tufobbenxkgpphrplzds.supabase.co',
+    publishableKey:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1Zm9iYmVueGtncHBocnBsemRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5NTkwMDQsImV4cCI6MjA5MzUzNTAwNH0.DCjYyx3koOvXy0gUZSAga7hmpzPfP8M6D7V9_ocalf0',
+  );
+
   runApp(const PettoApp());
 }
 
@@ -20,6 +34,11 @@ class PettoApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(
+          create: (_) => AuthController(
+            repository: AuthRepositoryImpl(),
+          ),
+        ),
         ChangeNotifierProvider(
           create: (_) => HealthAssessmentController(
             repository: HealthAssessmentRepositoryImpl(),
@@ -33,13 +52,17 @@ class PettoApp extends StatelessWidget {
           create: (_) =>
               VaccinationController(repository: VaccinationRepositoryImpl()),
         ),
+        ChangeNotifierProvider(
+          create: (_) =>
+              MissionsController(repository: MissionsRepositoryImpl()),
+        ),
       ],
       child: MaterialApp(
         title: 'Petto - Pet Health Assessment',
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.light,
-        home: const AuthOnboardingScreen(),
+        home: const AuthGate(),
         debugShowCheckedModeBanner: false,
       ),
     );

@@ -55,7 +55,44 @@ class AppConfig {
   static String activityDetailEndpoint(int activityId) =>
       '$apiPrefix/activities/$activityId';
 
-  /// Vaccinations (สมุดวัคซีน) -> /api/v1/vaccinations
+  /// Assessments for a specific pet -> /api/v1/pets/{petId}/assessments
+  static String petAssessmentsEndpoint(int petId) =>
+      '$apiPrefix/pets/$petId/assessments';
+
+  // ---- Missions (Daily Missions) ----
+
+  /// Today's missions -> /api/v1/pets/{petId}/missions/today
+  static String petTodayMissionsEndpoint(int petId) =>
+      '$apiPrefix/pets/$petId/missions/today';
+
+  /// Seed today's missions -> /api/v1/pets/{petId}/missions/seed-today
+  static String petSeedTodayMissionsEndpoint(int petId) =>
+      '$apiPrefix/pets/$petId/missions/seed-today';
+
+  /// Complete a mission -> /api/v1/missions/{missionId}/complete
+  static String completeMissionEndpoint(int missionId) =>
+      '$apiPrefix/missions/$missionId/complete';
+
+  // ---- Dashboard Stats ----
+
+  /// Dashboard stats -> /api/v1/pets/{petId}/stats/dashboard
+  static String petDashboardStatsEndpoint(int petId) =>
+      '$apiPrefix/pets/$petId/stats/dashboard';
+
+  // ---- Auth ----
+
+  static const String registerEndpoint = '$apiPrefix/auth/register';
+  static const String loginEndpoint = '$apiPrefix/auth/login';
+  static const String meEndpoint = '$apiPrefix/auth/me';
+
+  /// Create pet (authenticated) -> POST /api/v1/pets
+  static const String petsEndpoint = '$apiPrefix/pets';
+
+  /// My pets -> GET /api/v1/users/{userId}/pets
+  static String userPetsEndpoint(int userId) =>
+      '$apiPrefix/users/$userId/pets';
+
+  /// Vaccinations -> /api/v1/vaccinations
   static const String vaccinationsEndpoint = '$apiPrefix/vaccinations';
 
   /// Pet vaccinations -> /api/v1/pets/{petId}/vaccinations

@@ -2635,6 +2635,466 @@ class _VetChatBubble extends StatelessWidget {
   }
 }
 
+class _AssessmentHistoryCard extends StatelessWidget {
+  const _AssessmentHistoryCard({required this.assessment, this.onTap});
+
+  final AssessmentEntity assessment;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final riskBucket = assessment.riskBucket;
+    final color = _riskColor(riskBucket);
+    final riskLabel = _riskLabel(riskBucket);
+    final dateLabel = _formatDate(assessment.createdAt);
+    final symptomText = (assessment.symptoms != null &&
+            assessment.symptoms!.isNotEmpty)
+        ? assessment.symptoms!
+        : 'No symptom description';
+    final aiPreview = assessment.aiResponse.length > 120
+        ? '${assessment.aiResponse.substring(0, 120)}...'
+        : assessment.aiResponse;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(28),
+      child: Container(
+        decoration: AppTheme.glassCardDecoration(
+          color: Colors.white.withValues(alpha: 0.96),
+          borderColor: color.withValues(alpha: 0.22),
+          borderWidth: 1.3,
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image + risk badge row
+            if (assessment.imageUri != null && assessment.imageUri!.isNotEmpty)
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(28)),
+                    child: Image.network(
+                      assessment.imageUri!,
+                      width: double.infinity,
+                      height: 140,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _a, _b) => Container(
+                        width: double.infinity,
+                        height: 140,
+                        color: color.withValues(alpha: 0.08),
+                        child: Icon(Icons.image_not_supported_rounded,
+                            color: color.withValues(alpha: 0.4), size: 36),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(999),
+                        boxShadow: [
+                          BoxShadow(
+                            color: color.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        riskLabel,
+                        style:
+                            Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 10,
+                    left: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        dateLabel,
+                        style:
+                            Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            else
+              // No image — compact header
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(Icons.auto_awesome_rounded,
+                          color: color, size: 18),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        dateLabel,
+                        style:
+                            Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  color: AppTheme.mutedText,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        riskLabel,
+                        style:
+                            Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  color: color,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+              child: Text(
+                symptomText,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: AppTheme.secondaryText,
+                      fontWeight: FontWeight.w900,
+                    ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  aiPreview,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.mutedText,
+                        height: 1.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _riskColor(String bucket) {
+    switch (bucket) {
+      case 'high':
+        return AppTheme.primaryColor;
+      case 'moderate':
+        return AppTheme.accentColor;
+      default:
+        return AppTheme.successColor;
+    }
+  }
+
+  String _riskLabel(String bucket) {
+    switch (bucket) {
+      case 'high':
+        return 'High Risk';
+      case 'moderate':
+        return 'Moderate';
+      default:
+        return 'Low Risk';
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    const months = [
+      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+    ];
+    return '${date.day} ${months[date.month - 1]}';
+  }
+}
+
+class _AssessmentDetailSheet extends StatelessWidget {
+  const _AssessmentDetailSheet({
+    required this.assessment,
+    required this.onShareWithVet,
+  });
+
+  final AssessmentEntity assessment;
+  final VoidCallback onShareWithVet;
+
+  @override
+  Widget build(BuildContext context) {
+    final riskBucket = assessment.riskBucket;
+    final color = _riskColor(riskBucket);
+    final riskLabel = _riskLabel(riskBucket);
+    final dateLabel = _formatDateTime(assessment.createdAt);
+    final symptomText =
+        (assessment.symptoms != null && assessment.symptoms!.isNotEmpty)
+            ? assessment.symptoms!
+            : 'No symptom description';
+
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.88,
+      ),
+      clipBehavior: Clip.antiAlias,
+      decoration: AppTheme.glassCardDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(42)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 8),
+              width: 46,
+              height: 5,
+              decoration: BoxDecoration(
+                color: AppTheme.secondaryColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          ),
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (assessment.imageUri != null &&
+                      assessment.imageUri!.isNotEmpty)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: Image.network(
+                        assessment.imageUri!,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          width: double.infinity,
+                          height: 200,
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          child: Icon(
+                            Icons.image_not_supported_rounded,
+                            color: color.withValues(alpha: 0.4),
+                            size: 48,
+                          ),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: color,
+                          borderRadius: BorderRadius.circular(999),
+                          boxShadow: [
+                            BoxShadow(
+                              color: color.withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          riskLabel,
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.creamSurfaceColor
+                              .withValues(alpha: 0.82),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.schedule_rounded,
+                                size: 13, color: AppTheme.mutedText),
+                            const SizedBox(width: 5),
+                            Text(
+                              dateLabel,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
+                                    color: AppTheme.mutedText,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    'SYMPTOMS',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: AppTheme.mutedText,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.6,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    symptomText,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: AppTheme.secondaryText,
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'AI ANALYSIS',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: AppTheme.mutedText,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.6,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.04),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: color.withValues(alpha: 0.10),
+                      ),
+                    ),
+                    child: Text(
+                      assessment.aiResponse,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppTheme.secondaryText,
+                            height: 1.6,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: FilledButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        onShareWithVet();
+                      },
+                      icon: const Icon(Icons.send_rounded, size: 18),
+                      label: const Text('Share with Vet'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppTheme.primaryColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _riskColor(String bucket) {
+    switch (bucket) {
+      case 'high':
+        return AppTheme.primaryColor;
+      case 'moderate':
+        return AppTheme.accentColor;
+      default:
+        return AppTheme.successColor;
+    }
+  }
+
+  String _riskLabel(String bucket) {
+    switch (bucket) {
+      case 'high':
+        return 'High Risk';
+      case 'moderate':
+        return 'Moderate';
+      default:
+        return 'Low Risk';
+    }
+  }
+
+  String _formatDateTime(DateTime date) {
+    const months = [
+      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+    ];
+    final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
+    final minute = date.minute.toString().padLeft(2, '0');
+    final suffix = date.hour >= 12 ? 'PM' : 'AM';
+    return '${date.day} ${months[date.month - 1]} ${date.year}, $hour:$minute $suffix';
+  }
+}
+
 class _HistoryPreviewCard extends StatelessWidget {
   const _HistoryPreviewCard({required this.item});
 

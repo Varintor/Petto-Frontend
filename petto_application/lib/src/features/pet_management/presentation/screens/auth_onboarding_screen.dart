@@ -2,11 +2,14 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:provider/provider.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/top_alert.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../health_assessment/presentation/screens/home_screen.dart';
 import '../../../health_assessment/presentation/widgets/pet_avatar_widget.dart';
+import '../../data/repositories/pet_repository.dart';
 
 enum _AuthScreen {
   intro,
@@ -17,7 +20,7 @@ enum _AuthScreen {
   summary,
 }
 
-enum _RegisterStep { owner, petType, petName, petDetails, birthday }
+enum _RegisterStep { owner, credentials, petType, petName, petDetails, birthday }
 
 class AuthOnboardingScreen extends StatefulWidget {
   const AuthOnboardingScreen({super.key});
@@ -45,6 +48,8 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _confirmPassword = TextEditingController();
+  final _loginEmail = TextEditingController();
+  final _loginPassword = TextEditingController();
   final _petName = TextEditingController();
   final _breed = TextEditingController();
   final _bloodType = TextEditingController();
@@ -54,12 +59,17 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
   int _birthMonth = 1;
   int _birthYear = DateTime.now().year - 1;
 
+  bool _isLoading = false;
+  String? _errorMessage;
+
   @override
   void dispose() {
     _ownerName.dispose();
     _email.dispose();
     _password.dispose();
     _confirmPassword.dispose();
+    _loginEmail.dispose();
+    _loginPassword.dispose();
     _petName.dispose();
     _breed.dispose();
     _bloodType.dispose();
@@ -122,6 +132,91 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     Navigator.of(
       context,
     ).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
+  }
+
+  Future<void> _handleLogin() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    final email = _loginEmail.text.trim();
+    final password = _loginPassword.text;
+    if (email.isEmpty || password.isEmpty) {
+      setState(() => _errorMessage = 'Please enter email and password');
+      return;
+    }
+    setState(() { _isLoading = true; _errorMessage = null; });
+    final auth = context.read<AuthController>();
+    final success = await auth.login(email, password);
+    if (!mounted) return;
+    if (success) {
+      _openHome();
+    } else {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        showTopAlert(
+          context,
+          auth.error ?? 'Login failed. Please try again.',
+          icon: Icons.info_outline_rounded,
+        );
+      }
+    }
+  }
+
+  Future<void> _handleGuestMode() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    await context.read<AuthController>().enterGuestMode();
+    if (!mounted) return;
+    _openHome();
+  }
+
+  Future<void> _handleRegisterAndCreatePet() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() { _isLoading = true; _errorMessage = null; });
+
+    final auth = context.read<AuthController>();
+    final success = await auth.register(
+      _email.text.trim(),
+      _password.text,
+      _ownerName.text.trim(),
+    );
+    if (!mounted) return;
+    if (!success) {
+      setState(() { _isLoading = false; _errorMessage = auth.error; });
+      return;
+    }
+
+    try {
+      // Create the pet via the backend; the owner is derived from the token.
+      final token = auth.token;
+      if (token == null) {
+        throw Exception('Missing auth token');
+      }
+      final petRepo = PetRepository();
+      final dob = DateTime(_birthYear, _birthMonth, _birthDay);
+
+      final newPet = await petRepo.createPet(
+        token: token,
+        name: _petNameOrDefault,
+        species: _species,
+        breed: _breed.text.trim().isEmpty ? null : _breed.text.trim(),
+        gender: _gender,
+        dateOfBirth: dob,
+        weightKg: double.tryParse(_weight.text.trim()),
+      );
+
+      // Remember the new pet id for feature endpoints.
+      await auth.setPetId(newPet.id);
+    } catch (e) {
+      debugPrint('Failed to create pet: $e');
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Account created but failed to create pet. Error: $e\nYou can add a pet later.';
+      });
+      _openHome();
+      return;
+    }
+
+    if (!mounted) return;
+    _openHome();
   }
 
   void _openRegisterFlow() {
@@ -283,14 +378,14 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
         return _PanelFrame(
           key: ValueKey(_AuthScreen.gateway.name),
           child: _GatewayPage(
+            emailController: _loginEmail,
+            passwordController: _loginPassword,
             onBack: _back,
-            onGoogle: _openHome,
-            onLogin: _openHome,
+            onLogin: _handleLogin,
+            onGoogle: () {},
             onRegister: _openRegisterFlow,
             onForgotPassword: _openForgotPassword,
-            onGuest: _openPetOnboarding,
-            emailController: _email,
-            passwordController: _password,
+            onGuest: _handleGuestMode,
           ),
         );
       case _AuthScreen.forgotPassword:
@@ -334,26 +429,62 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
         );
       case _AuthScreen.summary:
         return _PanelFrame(
-          key: ValueKey(_AuthScreen.summary.name),
-          child: _ProfileSummaryPage(
-            ownerName: _ownerName.text.trim(),
-            petName: _petNameOrDefault,
-            species: _species,
-            petColor: _petColor,
-            gender: _gender,
-            age: _age.text.trim(),
-            weight: _weight.text.trim(),
-            breed: _breed.text.trim(),
-            bloodType: _bloodType.text.trim(),
-            birthday: _birthdayLabel,
-            onBack: () {
-              setState(() {
-                _transitionDirection = -1;
-                _screen = _AuthScreen.register;
-                _step = _RegisterStep.birthday;
-              });
-            },
-            onContinue: _openHome,
+          key: const ValueKey('summary'),
+          child: Stack(
+            children: [
+              _ProfileSummaryPage(
+                ownerName: _ownerName.text.trim(),
+                petName: _petNameOrDefault,
+                species: _species,
+                petColor: _petColor,
+                gender: _gender,
+                age: _age.text.trim(),
+                weight: _weight.text.trim(),
+                breed: _breed.text.trim(),
+                bloodType: _bloodType.text.trim(),
+                birthday: _birthdayLabel,
+                errorMessage: _errorMessage,
+                onBack: () {
+                  setState(() {
+                    _transitionDirection = -1;
+                    _errorMessage = null;
+                    _screen = _AuthScreen.register;
+                    _step = _RegisterStep.birthday;
+                  });
+                },
+                onContinue: _handleRegisterAndCreatePet,
+              ),
+              if (_isLoading)
+                Positioned.fill(
+                  child: Container(
+                    color: _cream.withValues(alpha: 0.85),
+                    child: const Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 32, height: 32,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: _red,
+                            ),
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'Creating your account...',
+                            style: TextStyle(
+                              fontFamily: AppTheme.sansFontFamily,
+                              color: _deepRed,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         );
     }
@@ -411,6 +542,75 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
           ),
           primaryLabel: 'NEXT',
           onPrimary: _nextStep,
+        );
+      case _RegisterStep.credentials:
+        return _StepPage(
+          step: 2,
+          showHeader: false,
+          topPet: null,
+          title: 'Your Account',
+          subtitle: 'Create login credentials for your Petto account.',
+          body: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 380),
+            child: Column(
+              children: [
+                _IconInputField(
+                  icon: Icons.email_rounded,
+                  hint: 'Email',
+                  controller: _email,
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 14),
+                _IconInputField(
+                  icon: Icons.lock_rounded,
+                  hint: 'Password',
+                  controller: _password,
+                  obscure: true,
+                ),
+                const SizedBox(height: 14),
+                _IconInputField(
+                  icon: Icons.lock_outline_rounded,
+                  hint: 'Confirm Password',
+                  controller: _confirmPassword,
+                  obscure: true,
+                ),
+                if (_errorMessage != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    _errorMessage!,
+                    style: const TextStyle(
+                      fontFamily: AppTheme.sansFontFamily,
+                      color: Color(0xFFB33A3A),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          secondaryLabel: 'BACK',
+          onSecondary: _back,
+          primaryLabel: 'NEXT',
+          onPrimary: () {
+            final email = _email.text.trim();
+            final pass = _password.text;
+            final confirm = _confirmPassword.text;
+            if (email.isEmpty || !email.contains('@')) {
+              setState(() => _errorMessage = 'Please enter a valid email');
+              return;
+            }
+            if (pass.length < 6) {
+              setState(() => _errorMessage = 'Password must be at least 6 characters');
+              return;
+            }
+            if (pass != confirm) {
+              setState(() => _errorMessage = 'Passwords do not match');
+              return;
+            }
+            setState(() => _errorMessage = null);
+            _nextStep();
+          },
         );
       case _RegisterStep.petType:
         return _PetTypeStep(
@@ -738,24 +938,24 @@ class _IntroFeatureChip extends StatelessWidget {
 
 class _GatewayPage extends StatelessWidget {
   const _GatewayPage({
+    required this.emailController,
+    required this.passwordController,
     required this.onBack,
-    required this.onGoogle,
     required this.onLogin,
+    required this.onGoogle,
     required this.onRegister,
     required this.onForgotPassword,
     required this.onGuest,
-    required this.emailController,
-    required this.passwordController,
   });
 
+  final TextEditingController emailController;
+  final TextEditingController passwordController;
   final VoidCallback onBack;
-  final VoidCallback onGoogle;
   final VoidCallback onLogin;
+  final VoidCallback onGoogle;
   final VoidCallback onRegister;
   final VoidCallback onForgotPassword;
   final VoidCallback onGuest;
-  final TextEditingController emailController;
-  final TextEditingController passwordController;
 
   @override
   Widget build(BuildContext context) {
@@ -1184,7 +1384,7 @@ class _RegisterStepHeader extends StatelessWidget {
         _StepIndicator(step: step),
         const SizedBox(height: 18),
         Text(
-          'STEP $step OF 5',
+          'STEP $step OF 6',
           textAlign: TextAlign.center,
           style: const TextStyle(
             fontFamily: AppTheme.sansFontFamily,
@@ -2332,6 +2532,7 @@ class _ProfileSummaryPage extends StatelessWidget {
     required this.breed,
     required this.bloodType,
     required this.birthday,
+    this.errorMessage,
     required this.onBack,
     required this.onContinue,
   });
@@ -2346,6 +2547,7 @@ class _ProfileSummaryPage extends StatelessWidget {
   final String breed;
   final String bloodType;
   final String birthday;
+  final String? errorMessage;
   final VoidCallback onBack;
   final VoidCallback onContinue;
 
@@ -2583,6 +2785,19 @@ class _ProfileSummaryPage extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (errorMessage != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    errorMessage!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: AppTheme.sansFontFamily,
+                      color: Color(0xFFB33A3A),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 14),
                 Row(
                   children: [
@@ -3649,12 +3864,14 @@ class _IconInputField extends StatelessWidget {
     required this.hint,
     required this.controller,
     this.keyboardType,
+    this.obscure = false,
   });
 
   final IconData icon;
   final String hint;
   final TextEditingController controller;
   final TextInputType? keyboardType;
+  final bool obscure;
 
   @override
   Widget build(BuildContext context) {
@@ -3663,6 +3880,7 @@ class _IconInputField extends StatelessWidget {
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
+        obscureText: obscure,
         cursorColor: _AuthOnboardingScreenState._red,
         style: const TextStyle(
           fontFamily: AppTheme.sansFontFamily,
