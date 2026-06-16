@@ -62,6 +62,9 @@ class ActivityTrackingController extends ChangeNotifier {
   double get distanceMeters => _distanceMeters;
   double get currentSpeedKmh => _currentSpeedMps * 3.6;
   List<GeoPoint> get points => List.unmodifiable(_points);
+
+  /// Latest known location, for centering the live map. Null until the first fix.
+  GeoPoint? get currentPoint => _points.isEmpty ? null : _points.last;
   String? get error => _error;
   ActivityStatsModel get stats => _stats;
   bool get statsLoading => _statsLoading;
@@ -114,6 +117,17 @@ class ActivityTrackingController extends ChangeNotifier {
     _last = null;
 
     _state = WalkState.tracking;
+    notifyListeners();
+
+    // Center the map immediately on the current location instead of waiting for
+    // the stream's first movement-based update (so it shows the moment you start).
+    final initial = await locationService.currentPosition();
+    if (_state == WalkState.tracking && initial != null) {
+      _last = initial;
+      _points.add(GeoPoint(initial.latitude, initial.longitude));
+      notifyListeners();
+    }
+
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_state == WalkState.tracking) {
         _elapsed += const Duration(seconds: 1);

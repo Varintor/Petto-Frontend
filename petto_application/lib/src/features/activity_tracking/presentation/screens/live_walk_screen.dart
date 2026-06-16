@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../controllers/activity_tracking_controller.dart';
-import '../widgets/route_trace_view.dart';
+import '../widgets/walk_map_view.dart';
 import 'walk_summary_screen.dart';
 
 /// Live "Nike Run"-style walk session for Mode A (no device).
@@ -172,7 +172,10 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
                       Expanded(
                         child: c.state == WalkState.error
                             ? _errorView(context, c)
-                            : RouteTraceView(points: c.points),
+                            : WalkMapView(
+                                points: c.points,
+                                current: c.currentPoint,
+                              ),
                       ),
                       const SizedBox(height: 16),
                       _statsRow(context, c),
