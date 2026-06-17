@@ -4,6 +4,11 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
   void _triggerMission(int missionId, Offset origin) {
     final controller = context.read<MissionsController>();
     if (controller.isMissionCompleted(missionId)) return;
+    // Look up the mission so we know which cosmetic to unlock.
+    final mission = controller.missions.firstWhere(
+      (m) => m.id == missionId,
+      orElse: () => controller.missions.first,
+    );
     _update(() {
       _showConfetti = true;
       _confettiOrigin = origin;
@@ -11,6 +16,18 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
       _burstMissionId = missionId.toString();
     });
     controller.completeMission(missionId);
+
+    // Unlock the matching wardrobe item and tell the user.
+    final reward = _HomeScreenState._accessoryForMission(mission.missionType);
+    if (reward != null && !_unlockedAccessoryIds.contains(reward.id)) {
+      _update(() => _unlockedAccessoryIds.add(reward.id));
+      showTopAlert(
+        context,
+        'Unlocked ${reward.emoji} ${reward.name}!',
+        icon: Icons.celebration_rounded,
+      );
+    }
+
     Timer(const Duration(milliseconds: 950), () {
       if (!mounted) return;
       _update(() {
@@ -23,6 +40,17 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
   void _selectPet(int index) {
     _activePetIndex = index;
     _loadDraftForPet(index);
+
+    // Sync petId with AuthController for other features (health assessment, etc.)
+    final selectedPet = _pets[index];
+    context.read<AuthController>().setPetId(selectedPet.id);
+
+    // Reload health assessment history for the newly selected pet
+    context.read<HealthAssessmentController>().loadPetHistory(selectedPet.id);
+
+    // Reload missions and stats for the newly selected pet
+    context.read<MissionsController>().loadAll(petId: selectedPet.id);
+    context.read<ActivityTrackingController>().loadStats(petId: selectedPet.id);
   }
 
   Widget _buildDashboardView(BuildContext context) {
@@ -220,6 +248,8 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
                       reward: mission.rewardDisplay,
                       icon: mission.icon,
                     ),
+                    rewardAccessory:
+                        _HomeScreenState._accessoryForMission(mission.missionType),
                     completed: mission.isCompleted,
                     bursting: _burstMissionId == mission.id.toString(),
                     onTap: (origin) => _triggerMission(mission.id, origin),
@@ -414,6 +444,8 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
                       reward: mission.rewardDisplay,
                       icon: mission.icon,
                     ),
+                    rewardAccessory:
+                        _HomeScreenState._accessoryForMission(mission.missionType),
                     completed: mission.isCompleted,
                     bursting: _burstMissionId == mission.id.toString(),
                     onTap: (origin) => _triggerMission(mission.id, origin),

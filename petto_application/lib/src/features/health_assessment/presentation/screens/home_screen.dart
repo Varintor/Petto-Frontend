@@ -7,7 +7,10 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../../../../core/config/app_config.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/assessment_entity.dart';
 import '../controllers/health_assessment_controller.dart';
@@ -74,6 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   static const List<_PetData> _mockPets = [
     _PetData(
+      id: 1,
       name: 'Milo',
       species: 'Cat',
       breed: 'Scottish Fold',
@@ -82,6 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
       status: 'Currently Resting',
     ),
     _PetData(
+      id: 2,
       name: 'Buddy',
       species: 'Dog',
       breed: 'Golden Retriever',
@@ -91,8 +96,16 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   ];
 
-  /// Starts as mock data; replaced by the user's real pets once loaded.
-  List<_PetData> _pets = _mockPets;
+  /// Pets shown in the dashboard. Authenticated users start empty (with
+  /// [_petsLoading] true) until /users/{id}/pets resolves, so they never see
+  /// the seed mock pets flash on top of their real data. Guest mode populates
+  /// [_pets] with [_mockPets] in initState.
+  List<_PetData> _pets = const [];
+
+  /// True while the initial pet fetch is in-flight. Build shows a loading
+  /// screen during this so we don't render the dashboard against an empty
+  /// (or stale mock) pet list.
+  bool _petsLoading = true;
 
   static const List<_NotificationData> _notifications = [
     _NotificationData(
@@ -120,48 +133,65 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   ];
 
-  static const List<_CalendarEventData> _defaultCalendarEvents = [
-    _CalendarEventData(
-      id: 'e1',
-      title: 'Morning medication',
-      timeLabel: '08:00 AM',
-      type: 'medication',
-      completed: false,
-      day: 19,
-      color: AppTheme.accentColor,
-      icon: Icons.medication_rounded,
-    ),
-    _CalendarEventData(
-      id: 'e2',
-      title: 'Vet follow-up',
-      timeLabel: '03:30 PM',
-      type: 'vet',
-      completed: false,
-      day: 21,
-      color: AppTheme.primaryColor,
-      icon: Icons.medical_services_rounded,
-    ),
-    _CalendarEventData(
-      id: 'e3',
-      title: 'Grooming',
-      timeLabel: '11:00 AM',
-      type: 'grooming',
-      completed: true,
-      day: 25,
-      color: AppTheme.secondaryColor,
-      icon: Icons.content_cut_rounded,
-    ),
-    _CalendarEventData(
-      id: 'e4',
-      title: 'Outdoor walk',
-      timeLabel: '06:00 PM',
-      type: 'exercise',
-      completed: false,
-      day: 22,
-      color: AppTheme.accentColor,
-      icon: Icons.directions_walk_rounded,
-    ),
-  ];
+  /// Seed events for the current month — shown until the user (a) loads their
+  /// own persisted plans from SharedPreferences or (b) adds their first event.
+  /// Built lazily because DateTime can't appear in a `const` expression.
+  static List<_CalendarEventData> _defaultCalendarEvents() {
+    final now = DateTime.now();
+    DateTime offsetFrom(int day, int hour, int minute) {
+      // Anchor the demo events at "today + offset days" so they're always
+      // visible relative to whatever month the user lands in.
+      final base = DateTime(now.year, now.month, now.day, hour, minute);
+      return base.add(Duration(days: day));
+    }
+
+    return [
+      _CalendarEventData(
+        id: 'seed_med',
+        title: 'Morning medication',
+        timeLabel: '08:00 AM',
+        type: 'medication',
+        completed: false,
+        date: offsetFrom(1, 8, 0),
+        startsAt: offsetFrom(1, 8, 0),
+        color: AppTheme.accentColor,
+        icon: Icons.medication_rounded,
+      ),
+      _CalendarEventData(
+        id: 'seed_vet',
+        title: 'Vet follow-up',
+        timeLabel: '03:30 PM',
+        type: 'vet',
+        completed: false,
+        date: offsetFrom(3, 15, 30),
+        startsAt: offsetFrom(3, 15, 30),
+        color: AppTheme.primaryColor,
+        icon: Icons.medical_services_rounded,
+      ),
+      _CalendarEventData(
+        id: 'seed_groom',
+        title: 'Grooming',
+        timeLabel: '11:00 AM',
+        type: 'grooming',
+        completed: true,
+        date: offsetFrom(6, 11, 0),
+        startsAt: offsetFrom(6, 11, 0),
+        color: AppTheme.secondaryColor,
+        icon: Icons.content_cut_rounded,
+      ),
+      _CalendarEventData(
+        id: 'seed_walk',
+        title: 'Outdoor walk',
+        timeLabel: '06:00 PM',
+        type: 'exercise',
+        completed: false,
+        date: offsetFrom(4, 18, 0),
+        startsAt: offsetFrom(4, 18, 0),
+        color: AppTheme.accentColor,
+        icon: Icons.directions_walk_rounded,
+      ),
+    ];
+  }
 
   static const List<_VetData> _vets = [
     _VetData(
@@ -211,26 +241,72 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   ];
 
+  /// Every accessory the user can equip. The Golden Collar is a starter — all
+  /// others are unlocked by completing the daily mission that maps to them in
+  /// [_missionAccessoryMap]. The `unlocked` field here is the *default* state;
+  /// runtime unlocks live in [_unlockedAccessoryIds] and the wardrobe reads
+  /// availability via [_isAccessoryUnlocked].
   static const List<_AccessoryData> _accessories = [
-    _AccessoryData(
-      id: 'acc_hat',
-      name: 'Cool Hat',
-      emoji: '🎩',
-      unlocked: true,
-    ),
-    _AccessoryData(
-      id: 'acc_collar',
-      name: 'Golden Collar',
-      emoji: '🎗️',
-      unlocked: true,
-    ),
-    _AccessoryData(
-      id: 'acc_glasses',
-      name: 'Funky Shades',
-      emoji: '🕶️',
-      unlocked: false,
-    ),
+    _AccessoryData(id: 'acc_collar', name: 'Golden Collar', emoji: '🎗️', unlocked: true),
+    _AccessoryData(id: 'acc_hat', name: 'Cool Hat', emoji: '🎩', unlocked: false),
+    _AccessoryData(id: 'acc_water_bowl', name: 'Crystal Bowl', emoji: '🥣', unlocked: false),
+    _AccessoryData(id: 'acc_doctor_coat', name: 'Doctor Coat', emoji: '🩺', unlocked: false),
+    _AccessoryData(id: 'acc_brush', name: 'Hair Brush', emoji: '🪮', unlocked: false),
+    _AccessoryData(id: 'acc_ball', name: 'Toy Ball', emoji: '⚽', unlocked: false),
+    _AccessoryData(id: 'acc_camera', name: 'Photo Frame', emoji: '📷', unlocked: false),
+    _AccessoryData(id: 'acc_toothbrush', name: 'Pearl Toothbrush', emoji: '🦷', unlocked: false),
+    _AccessoryData(id: 'acc_nail_file', name: 'Nail File', emoji: '💅', unlocked: false),
+    _AccessoryData(id: 'acc_ear_tag', name: 'Ear Tag', emoji: '👂', unlocked: false),
+    _AccessoryData(id: 'acc_scale', name: 'Scale Charm', emoji: '⚖️', unlocked: false),
+    _AccessoryData(id: 'acc_heart', name: 'Heart Locket', emoji: '💖', unlocked: false),
+    _AccessoryData(id: 'acc_diploma', name: 'Graduate Cap', emoji: '🎓', unlocked: false),
+    _AccessoryData(id: 'acc_bowl', name: 'Premium Bowl', emoji: '🍽️', unlocked: false),
+    _AccessoryData(id: 'acc_glasses', name: 'Funky Shades', emoji: '🕶️', unlocked: false),
+    _AccessoryData(id: 'acc_friendship', name: 'Friendship Tag', emoji: '🤝', unlocked: false),
   ];
+
+  /// Maps a backend mission_type to the cosmetic it grants on completion.
+  /// Keep aligned with backend `_CORE_MISSIONS` + `_BONUS_MISSIONS` types.
+  static const Map<String, String> _missionAccessoryMap = {
+    'walk': 'acc_hat',
+    'water': 'acc_water_bowl',
+    'ai_check': 'acc_doctor_coat',
+    'grooming': 'acc_brush',
+    'play': 'acc_ball',
+    'photo': 'acc_camera',
+    'dental_check': 'acc_toothbrush',
+    'nail_check': 'acc_nail_file',
+    'ear_check': 'acc_ear_tag',
+    'weight_log': 'acc_scale',
+    'bonding': 'acc_heart',
+    'training': 'acc_diploma',
+    'feeding_check': 'acc_bowl',
+    'eye_nose_check': 'acc_glasses',
+    'social': 'acc_friendship',
+  };
+
+  /// Runtime unlock set across this app session. Seeded with the starter
+  /// collar; missions add to this when completed.
+  // TODO(persistence): hoist to backend/local storage so unlocks survive a
+  // restart. For now they reset per session — fine for the MVP/demo flow.
+  final Set<String> _unlockedAccessoryIds = {'acc_collar'};
+
+  /// Resolves the cosmetic reward for a backend mission type. Returns null
+  /// when the mission type isn't mapped (caller falls back to the legacy
+  /// "+X treats XP" badge).
+  static _AccessoryData? _accessoryForMission(String missionType) {
+    final id = _missionAccessoryMap[missionType];
+    if (id == null) return null;
+    for (final a in _accessories) {
+      if (a.id == id) return a;
+    }
+    return null;
+  }
+
+  /// True if the user has earned (or starts with) this accessory.
+  bool _isAccessoryUnlocked(_AccessoryData accessory) {
+    return accessory.unlocked || _unlockedAccessoryIds.contains(accessory.id);
+  }
 
   _PetData get _activePet => _pets[_activePetIndex];
   _PetAppearanceData get _activeAppearance =>
@@ -240,31 +316,62 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _savedAppearances = {
-      for (var i = 0; i < _pets.length; i++)
-        i: _defaultAppearanceForSpecies(_pets[i].species),
-    };
-    _vetConversations = {
-      for (final vet in _vets) vet.id: _seedVetConversation(vet),
-    };
-    _calendarEvents = List<_CalendarEventData>.of(_defaultCalendarEvents);
-    _loadDraftForPet(_activePetIndex);
+    _savedAppearances = {};
+    // Vet conversations are seeded lazily in [_seedVetConversationsIfNeeded]
+    // once pets have arrived — the seed text references _activePet.name and
+    // would RangeError if built against the initially-empty _pets list.
+    _vetConversations = {};
+    _calendarEvents = _defaultCalendarEvents();
+    // Replace defaults with whatever the user persisted last session (async).
+    _restorePersistedCalendar();
+    // Make sure tomorrow's morning + tonight's evening mission reminders are
+    // armed. Idempotent — overwrites existing schedules with the same id.
+    NotificationService.instance.scheduleDailyMissionReminders();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      context.read<ActivityTrackingController>().loadStats();
-      context.read<MissionsController>().loadAll();
+      final auth = context.read<AuthController>();
+      // Guest mode: no backend pets to fetch — fall back to the demo mock list
+      // so the dashboard isn't empty.
+      if (auth.isGuest || auth.userId == null) {
+        setState(() {
+          _pets = _mockPets;
+          _savedAppearances.addAll({
+            for (var i = 0; i < _pets.length; i++)
+              i: _defaultAppearanceForSpecies(_pets[i].species),
+          });
+          _petsLoading = false;
+        });
+        _seedVetConversationsIfNeeded();
+        _loadDraftForPet(_activePetIndex);
+        context.read<ActivityTrackingController>().loadStats();
+        context.read<MissionsController>().loadAll();
+        return;
+      }
+      // Authenticated: wait for the real pet list before showing anything.
       _loadPets();
     });
   }
 
-  /// Loads the signed-in user's real pets from the backend and replaces the
-  /// mock list. Keeps the mock fallback for guests or when none exist yet.
+  /// Seeds the vet chat with intro messages once we know which pet is active.
+  /// Safe to call multiple times — only seeds vets that aren't already keyed.
+  void _seedVetConversationsIfNeeded() {
+    if (_pets.isEmpty) return;
+    for (final vet in _vets) {
+      _vetConversations.putIfAbsent(vet.id, () => _seedVetConversation(vet));
+    }
+  }
+
+  /// Loads the signed-in user's real pets from the backend. Authenticated users
+  /// only — guest mode is handled inline in [initState].
   Future<void> _loadPets() async {
-    final userId = context.read<AuthController>().userId;
-    if (userId == null) return;
+    final auth = context.read<AuthController>();
+    final userId = auth.userId;
+    if (userId == null || auth.isGuest) return;
+
     try {
       final pets = await PetRepository().getUserPets(userId);
-      if (!mounted || pets.isEmpty) return;
+      if (!mounted) return;
+
       setState(() {
         _pets = pets.map(_petDataFromBackend).toList();
         if (_activePetIndex >= _pets.length) _activePetIndex = 0;
@@ -274,15 +381,39 @@ class _HomeScreenState extends State<HomeScreen> {
             for (var i = 0; i < _pets.length; i++)
               i: _defaultAppearanceForSpecies(_pets[i].species),
           });
+        _petsLoading = false;
       });
+
+      // Empty list means "user has no pets" — show the empty-state CTA and
+      // skip the per-pet wiring (would otherwise RangeError on _pets[0]).
+      if (_pets.isEmpty) return;
+
+      _seedVetConversationsIfNeeded();
       _loadDraftForPet(_activePetIndex);
-    } catch (_) {
-      // Keep the mock fallback if the backend is unreachable.
+
+      // Re-key every pet-scoped feature to the user's REAL active pet. Until
+      // this runs they default to AppConfig.defaultPetId (the seed pet, Milo),
+      // which is what leaked one user's missions/assessments to everyone.
+      final activeId = _pets[_activePetIndex].id;
+      await context.read<AuthController>().setPetId(activeId);
+      if (!mounted) return;
+      context.read<MissionsController>().loadAll(petId: activeId);
+      context.read<ActivityTrackingController>().loadStats(petId: activeId);
+      context.read<HealthAssessmentController>().loadPetHistory(activeId);
+    } catch (e) {
+      debugPrint('Failed to load pets: $e');
+      if (mounted) {
+        setState(() {
+          _pets = [];
+          _petsLoading = false;
+        });
+      }
     }
   }
 
   _PetData _petDataFromBackend(Pet pet) {
     return _PetData(
+      id: pet.id,
       name: pet.name,
       species: pet.species ?? 'Cat',
       breed: (pet.breed == null || pet.breed!.isEmpty) ? 'Unknown' : pet.breed!,
@@ -352,6 +483,58 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _update(VoidCallback action) => setState(action);
 
+  // ============================================================
+  // Calendar persistence + reminders
+  // ============================================================
+
+  static const String _calendarPrefsKey = 'petto.calendar.events.v1';
+
+  Future<void> _restorePersistedCalendar() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_calendarPrefsKey);
+      if (raw == null || raw.isEmpty || !mounted) return;
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return;
+      final restored = decoded
+          .whereType<Map<String, dynamic>>()
+          .map(_CalendarEventData.fromJson)
+          .toList();
+      if (restored.isEmpty || !mounted) return;
+      setState(() {
+        // User-saved list replaces the demo seeds. New users without persisted
+        // data keep the seeds (the early return above protects that case).
+        _calendarEvents
+          ..clear()
+          ..addAll(restored);
+      });
+      // Re-arm OS notifications for any future events (cancelled by reboot).
+      for (final ev in restored) {
+        if (ev.startsAt != null && ev.startsAt!.isAfter(DateTime.now())) {
+          NotificationService.instance.scheduleEventReminder(
+            eventId: ev.id,
+            when: ev.startsAt!,
+            title: ev.title,
+            body: 'Upcoming for ${_pets.isEmpty ? 'your pet' : _activePet.name}',
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Failed to restore calendar: $e');
+    }
+  }
+
+  Future<void> _persistCalendar() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final encoded =
+          jsonEncode(_calendarEvents.map((e) => e.toJson()).toList());
+      await prefs.setString(_calendarPrefsKey, encoded);
+    } catch (e) {
+      debugPrint('Failed to persist calendar: $e');
+    }
+  }
+
   List<_VetChatMessageData> _seedVetConversation(_VetData vet) {
     return [
       _VetChatMessageData(
@@ -375,6 +558,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.read<AuthController>();
+    // Block the dashboard until the user's pets land. Otherwise a fresh login
+    // would briefly render mock pets / blow up on _pets[0] before _loadPets
+    // returns.
+    if (_petsLoading) return _buildLoadingState(context);
+    // Authenticated user resolved with no pets → show the "add your first pet"
+    // empty state instead of trying to render the dashboard.
+    if (!auth.isGuest && auth.userId != null && _pets.isEmpty) {
+      return _buildEmptyState(context);
+    }
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -908,5 +1102,123 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Color _colorFromHex(String hex) {
     return Color(int.parse(hex.replaceFirst('#', '0xFF')));
+  }
+
+  /// Splash shown while the user's pets are still loading. Matches the
+  /// dashboard background so the transition feels seamless.
+  Widget _buildLoadingState(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          color: AppTheme.backgroundColor,
+          gradient: AppTheme.appBackgroundGradient,
+        ),
+        child: const SafeArea(
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: AppTheme.primaryColor,
+                  ),
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Loading your pets...',
+                  style: TextStyle(
+                    fontFamily: AppTheme.sansFontFamily,
+                    color: AppTheme.primaryColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Empty state screen when authenticated user has no pets yet.
+  Widget _buildEmptyState(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          color: AppTheme.backgroundColor,
+          gradient: AppTheme.appBackgroundGradient,
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Pet illustration
+                  Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.pets_rounded,
+                      size: 64,
+                      color: AppTheme.primaryColor,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'No pets yet',
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Add your first pet to get started with health tracking, daily missions, and more!',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.secondaryText,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 32),
+                  FilledButton.icon(
+                    onPressed: _addPet,
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text('Add Your First Pet'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppTheme.primaryColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextButton.icon(
+                    onPressed: () => context.read<AuthController>().logout(),
+                    icon: const Icon(Icons.logout_rounded),
+                    label: const Text('Log out'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
