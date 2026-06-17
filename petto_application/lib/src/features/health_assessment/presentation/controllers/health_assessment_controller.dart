@@ -127,6 +127,7 @@ class HealthAssessmentController extends ChangeNotifier {
     required String petType,
     String? symptoms,
     dynamic imageData,
+    int? petId,
   }) async {
     _status = AssessmentStatus.loading;
     _error = null;
@@ -140,6 +141,7 @@ class HealthAssessmentController extends ChangeNotifier {
         petType: petType,
         symptoms: symptoms,
         imageData: imageData,
+        petId: petId,
       );
 
       _status = AssessmentStatus.success;
