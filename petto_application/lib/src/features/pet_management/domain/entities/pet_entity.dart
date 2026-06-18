@@ -10,6 +10,7 @@ class PetEntity {
   final String? gender; // "male" / "female"
   final DateTime? dateOfBirth;
   final double? weightKg;
+  final String? bloodType;
   final String? avatarUri;
 
   const PetEntity({
@@ -20,6 +21,7 @@ class PetEntity {
     this.gender,
     this.dateOfBirth,
     this.weightKg,
+    this.bloodType,
     this.avatarUri,
   });
 
@@ -46,6 +48,7 @@ class PetEntity {
     String? gender,
     DateTime? dateOfBirth,
     double? weightKg,
+    String? bloodType,
     String? avatarUri,
   }) {
     return PetEntity(
@@ -56,6 +59,7 @@ class PetEntity {
       gender: gender ?? this.gender,
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       weightKg: weightKg ?? this.weightKg,
+      bloodType: bloodType ?? this.bloodType,
       avatarUri: avatarUri ?? this.avatarUri,
     );
   }

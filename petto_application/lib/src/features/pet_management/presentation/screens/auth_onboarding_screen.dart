@@ -214,6 +214,9 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
         gender: _gender,
         dateOfBirth: dob,
         weightKg: double.tryParse(_weight.text.trim()),
+        bloodType: _bloodType.text.trim().isEmpty
+            ? null
+            : _bloodType.text.trim(),
       );
       // Cache the new pet id so feature endpoints can scope to it immediately.
       await auth.setPetId(newPet.id);

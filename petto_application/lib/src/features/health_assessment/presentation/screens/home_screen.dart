@@ -541,6 +541,7 @@ class _HomeScreenState extends State<HomeScreen> {
         gender: result.gender,
         dateOfBirth: result.dateOfBirth,
         weightKg: result.weightKg,
+        bloodType: result.bloodType,
       );
       if (!mounted) return;
       await _loadPets();

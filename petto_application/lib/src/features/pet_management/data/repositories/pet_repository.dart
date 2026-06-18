@@ -12,6 +12,7 @@ class Pet {
   final String? gender;
   final DateTime? dateOfBirth;
   final double? weightKg;
+  final String? bloodType;
   final String? avatarUri;
 
   Pet({
@@ -23,6 +24,7 @@ class Pet {
     this.gender,
     this.dateOfBirth,
     this.weightKg,
+    this.bloodType,
     this.avatarUri,
   });
 
@@ -38,6 +40,7 @@ class Pet {
           ? DateTime.tryParse(json['date_of_birth'] as String)
           : null,
       weightKg: (json['weight_kg'] as num?)?.toDouble(),
+      bloodType: json['blood_type'] as String?,
       avatarUri: json['avatar_uri'] as String?,
     );
   }
@@ -49,14 +52,17 @@ class PetRepository {
   final Dio dio;
 
   PetRepository({Dio? dio})
-      : dio = dio ??
-            Dio(BaseOptions(
+    : dio =
+          dio ??
+          Dio(
+            BaseOptions(
               baseUrl: AppConfig.apiBaseUrl,
               connectTimeout: AppConfig.connectionTimeout,
               receiveTimeout: AppConfig.receiveTimeout,
               sendTimeout: AppConfig.sendTimeout,
               headers: {'Accept': 'application/json'},
-            ));
+            ),
+          );
 
   /// POST /api/v1/pets — owner taken from the Bearer token by the backend.
   Future<Pet> createPet({
@@ -67,6 +73,7 @@ class PetRepository {
     String? gender,
     DateTime? dateOfBirth,
     double? weightKg,
+    String? bloodType,
   }) async {
     try {
       final response = await dio.post(
@@ -78,6 +85,8 @@ class PetRepository {
           'gender': gender,
           'date_of_birth': dateOfBirth?.toIso8601String().split('T').first,
           'weight_kg': weightKg,
+          if (bloodType != null && bloodType.isNotEmpty)
+            'blood_type': bloodType,
         },
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
