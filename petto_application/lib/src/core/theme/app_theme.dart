@@ -318,38 +318,24 @@ class AppTheme {
   }
 
   static ThemeData get darkTheme => lightTheme;
+
+  static const Duration motionFast = Duration(milliseconds: 80);
+  static const Duration motionNormal = Duration(milliseconds: 130);
+  static const Duration motionSlow = Duration(milliseconds: 240);
+  static const Curve motionCurve = Curves.easeOutCubic;
+  static const Curve motionCurveSoft = Curves.easeOutCubic;
+  static const Curve motionReverseCurve = Curves.easeInCubic;
 }
 
 class _PettoPageTransitionsBuilder extends PageTransitionsBuilder {
   const _PettoPageTransitionsBuilder();
 
-  static final Animatable<double> _fadeIn = CurveTween(
-    curve: const Interval(0.0, 0.78, curve: Curves.easeOutCubic),
-  );
-
-  static final Animatable<double> _fadeOut = CurveTween(
-    curve: const Interval(0.0, 0.34, curve: Curves.easeOutCubic),
-  ).chain(Tween<double>(begin: 1, end: 0.94));
-
-  static final Animatable<Offset> _slideIn = Tween<Offset>(
-    begin: const Offset(0.055, 0.018),
-    end: Offset.zero,
-  ).chain(CurveTween(curve: Curves.easeOutCubic));
-
-  static final Animatable<Offset> _slideOut = Tween<Offset>(
-    begin: Offset.zero,
-    end: const Offset(-0.018, -0.006),
-  ).chain(CurveTween(curve: Curves.easeOutCubic));
-
-  static final Animatable<double> _scaleIn = Tween<double>(
-    begin: 0.985,
-    end: 1,
-  ).chain(CurveTween(curve: Curves.easeOutCubic));
-
-  static final Animatable<double> _scaleOut = Tween<double>(
-    begin: 1,
-    end: 0.992,
-  ).chain(CurveTween(curve: Curves.easeOutCubic));
+  static final Animatable<Offset> _slideIn =
+      Tween<Offset>(begin: const Offset(0.004, 0.001), end: Offset.zero).chain(
+        CurveTween(
+          curve: const Interval(0.0, 0.24, curve: AppTheme.motionCurveSoft),
+        ),
+      );
 
   @override
   Widget buildTransitions<T>(
@@ -360,38 +346,18 @@ class _PettoPageTransitionsBuilder extends PageTransitionsBuilder {
     Widget child,
   ) {
     if (route.fullscreenDialog) {
-      return FadeTransition(
-        opacity: animation.drive(_fadeIn),
-        child: SlideTransition(
-          position: animation.drive(
-            Tween<Offset>(
-              begin: const Offset(0, 0.04),
-              end: Offset.zero,
-            ).chain(CurveTween(curve: Curves.easeOutCubic)),
-          ),
-          child: child,
-        ),
-      );
-    }
-
-    return FadeTransition(
-      opacity: secondaryAnimation.drive(_fadeOut),
-      child: SlideTransition(
-        position: secondaryAnimation.drive(_slideOut),
-        child: ScaleTransition(
-          scale: secondaryAnimation.drive(_scaleOut),
-          child: FadeTransition(
-            opacity: animation.drive(_fadeIn),
-            child: SlideTransition(
-              position: animation.drive(_slideIn),
-              child: ScaleTransition(
-                scale: animation.drive(_scaleIn),
-                child: child,
-              ),
+      return SlideTransition(
+        position: animation.drive(
+          Tween<Offset>(begin: const Offset(0, 0.006), end: Offset.zero).chain(
+            CurveTween(
+              curve: const Interval(0.0, 0.28, curve: Curves.easeOutCubic),
             ),
           ),
         ),
-      ),
-    );
+        child: child,
+      );
+    }
+
+    return SlideTransition(position: animation.drive(_slideIn), child: child);
   }
 }

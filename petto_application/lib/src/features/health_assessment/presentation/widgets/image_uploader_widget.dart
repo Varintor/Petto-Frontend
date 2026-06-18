@@ -589,13 +589,16 @@ class _ImageUploaderWidgetState extends State<ImageUploaderWidget>
   void _showImageSourceSheet(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
+      showDragHandle: false,
+      barrierColor: AppTheme.secondaryText.withValues(alpha: 0.18),
       backgroundColor: Colors.transparent,
       builder: (context) => SafeArea(
         child: Container(
           margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
           padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.surfaceColor,
             borderRadius: BorderRadius.circular(30),
             boxShadow: AppTheme.cardShadow,
           ),

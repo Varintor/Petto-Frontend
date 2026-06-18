@@ -129,9 +129,10 @@ class _RoomStage extends StatelessWidget {
 }
 
 class _BottomOverlay extends StatelessWidget {
-  const _BottomOverlay({required this.child});
+  const _BottomOverlay({required this.child, this.expand = false});
 
   final Widget child;
+  final bool expand;
 
   @override
   Widget build(BuildContext context) {
@@ -142,10 +143,18 @@ class _BottomOverlay extends StatelessWidget {
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 320),
-      curve: Curves.easeOutQuint,
+      duration: AppTheme.motionNormal,
+      curve: AppTheme.motionCurveSoft,
       builder: (context, value, child) {
         final eased = Curves.easeOutQuint.transform(value);
+        final panelMaxHeight = math.max(240.0, maxPanelHeight);
+        final panelChild = Transform(
+          alignment: Alignment.bottomCenter,
+          transform: Matrix4.identity()
+            ..translateByDouble(0, 24 * (1 - eased), 0, 1)
+            ..scaleByDouble(0.985 + (0.015 * eased), 1, 1, 1),
+          child: Opacity(opacity: eased, child: child),
+        );
         return Positioned.fill(
           child: BackdropFilter(
             filter: ui.ImageFilter.blur(sigmaX: 9 * eased, sigmaY: 9 * eased),
@@ -153,21 +162,15 @@ class _BottomOverlay extends StatelessWidget {
               color: AppTheme.secondaryColor.withValues(alpha: 0.13 * eased),
               alignment: Alignment.bottomCenter,
               child: AnimatedPadding(
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOutCubic,
+                duration: AppTheme.motionFast,
+                curve: AppTheme.motionCurve,
                 padding: EdgeInsets.only(bottom: keyboardInset),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxHeight: math.max(240, maxPanelHeight),
-                  ),
-                  child: Transform(
-                    alignment: Alignment.bottomCenter,
-                    transform: Matrix4.identity()
-                      ..translateByDouble(0, 24 * (1 - eased), 0, 1)
-                      ..scaleByDouble(0.985 + (0.015 * eased), 1, 1, 1),
-                    child: Opacity(opacity: eased, child: child),
-                  ),
-                ),
+                child: expand
+                    ? SizedBox(height: panelMaxHeight, child: panelChild)
+                    : ConstrainedBox(
+                        constraints: BoxConstraints(maxHeight: panelMaxHeight),
+                        child: panelChild,
+                      ),
               ),
             ),
           ),
@@ -224,12 +227,12 @@ class _SoftReveal extends StatelessWidget {
     final clampedDelay = delay.clamp(0.0, 0.72);
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
-      duration: Duration(milliseconds: 520 + (clampedDelay * 360).round()),
+      duration: Duration(milliseconds: 460 + (clampedDelay * 320).round()),
       curve: Curves.linear,
       builder: (context, value, child) {
         final localProgress = ((value - clampedDelay) / (1 - clampedDelay))
             .clamp(0.0, 1.0);
-        final eased = Curves.easeOutCubic.transform(localProgress);
+        final eased = AppTheme.motionCurve.transform(localProgress);
         return Opacity(
           opacity: eased,
           child: Transform.translate(
@@ -599,15 +602,15 @@ class _DockNavItem extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(24),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
+        duration: AppTheme.motionFast,
+        curve: AppTheme.motionCurve,
         padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOutCubic,
+              duration: AppTheme.motionFast,
+              curve: AppTheme.motionCurve,
               width: 42,
               height: 32,
               decoration: BoxDecoration(
@@ -1268,8 +1271,8 @@ class _PetChip extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(999),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
+        duration: AppTheme.motionFast,
+        curve: AppTheme.motionCurve,
         constraints: const BoxConstraints(minWidth: 126),
         padding: const EdgeInsets.fromLTRB(6, 5, 16, 5),
         decoration: BoxDecoration(
@@ -1638,11 +1641,12 @@ class _MissionCard extends StatelessWidget {
                             rewardAccessory != null
                                 ? rewardAccessory!.name
                                 : '+${mission.reward} treats XP',
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: AppTheme.primaryColor,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.2,
-                            ),
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(
+                                  color: AppTheme.primaryColor,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.2,
+                                ),
                           ),
                         ],
                       ),

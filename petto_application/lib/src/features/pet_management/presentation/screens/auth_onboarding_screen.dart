@@ -458,10 +458,10 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
           const Positioned.fill(child: _ReferenceBackground()),
           Positioned.fill(
             child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 230),
-              reverseDuration: const Duration(milliseconds: 130),
-              switchInCurve: Curves.easeOutQuart,
-              switchOutCurve: Curves.easeInQuart,
+              duration: AppTheme.motionFast,
+              reverseDuration: AppTheme.motionFast,
+              switchInCurve: AppTheme.motionCurveSoft,
+              switchOutCurve: AppTheme.motionReverseCurve,
               transitionBuilder: _buildAuthTransition,
               layoutBuilder: _buildLockedTransitionLayout,
               child: _currentView,
@@ -526,10 +526,10 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
           child: _RegisterStepShell(
             step: _RegisterStep.values.indexOf(_step) + 1,
             child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 220),
-              reverseDuration: const Duration(milliseconds: 120),
-              switchInCurve: Curves.easeOutQuart,
-              switchOutCurve: Curves.easeInQuart,
+              duration: AppTheme.motionFast,
+              reverseDuration: AppTheme.motionFast,
+              switchInCurve: AppTheme.motionCurveSoft,
+              switchOutCurve: AppTheme.motionReverseCurve,
               transitionBuilder: _buildAuthTransition,
               layoutBuilder: _buildLockedTransitionLayout,
               child: KeyedSubtree(
@@ -616,11 +616,11 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
   }
 
   Widget _buildAuthTransition(Widget child, Animation<double> animation) {
-    final startOffset = Offset(0.024 * _transitionDirection, 0);
+    final startOffset = Offset(0.003 * _transitionDirection, 0);
     final slideCurve = CurvedAnimation(
       parent: animation,
-      curve: Curves.easeOutQuart,
-      reverseCurve: Curves.easeInQuart,
+      curve: AppTheme.motionCurveSoft,
+      reverseCurve: AppTheme.motionReverseCurve,
     );
 
     return SlideTransition(
@@ -628,10 +628,7 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
         begin: startOffset,
         end: Offset.zero,
       ).animate(slideCurve),
-      child: ScaleTransition(
-        scale: Tween<double>(begin: 0.998, end: 1).animate(slideCurve),
-        child: child,
-      ),
+      child: child,
     );
   }
 
@@ -1456,72 +1453,22 @@ class _AccountStepCharm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 150,
-      height: 72,
-      child: Stack(
-        alignment: Alignment.center,
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            width: 112,
-            height: 52,
-            decoration: BoxDecoration(
-              color: AppTheme.surfaceColor.withValues(alpha: 0.78),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: _AuthOnboardingScreenState._paleRose.withValues(
-                  alpha: 0.58,
-                ),
-                width: 1.2,
-              ),
-            ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.mail_rounded,
-                  size: 18,
-                  color: _AuthOnboardingScreenState._red,
-                ),
-                SizedBox(width: 12),
-                Icon(
-                  Icons.lock_rounded,
-                  size: 18,
-                  color: _AuthOnboardingScreenState._red,
-                ),
-              ],
-            ),
+      width: 96,
+      height: 96,
+      child: Center(
+        child: Container(
+          width: 74,
+          height: 74,
+          decoration: BoxDecoration(
+            color: _AuthOnboardingScreenState._paleRose.withValues(alpha: 0.44),
+            borderRadius: BorderRadius.circular(26),
           ),
-          Positioned(
-            left: 18,
-            bottom: 4,
-            child: _AccountCharmDot(size: 8, alpha: 0.18),
+          child: const Icon(
+            Icons.admin_panel_settings_rounded,
+            color: _AuthOnboardingScreenState._red,
+            size: 32,
           ),
-          Positioned(
-            right: 20,
-            top: 2,
-            child: _AccountCharmDot(size: 11, alpha: 0.14),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AccountCharmDot extends StatelessWidget {
-  const _AccountCharmDot({required this.size, required this.alpha});
-
-  final double size;
-  final double alpha;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: _AuthOnboardingScreenState._red.withValues(alpha: alpha),
-        shape: BoxShape.circle,
+        ),
       ),
     );
   }
@@ -1936,16 +1883,14 @@ class _PetThoughtBubble extends StatelessWidget {
     final text = isDog ? 'DOG MODE!' : 'CAT MODE!';
 
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 260),
-      switchInCurve: Curves.easeOutCubic,
-      switchOutCurve: Curves.easeInCubic,
+      duration: AppTheme.motionFast,
+      reverseDuration: AppTheme.motionFast,
+      switchInCurve: AppTheme.motionCurve,
+      switchOutCurve: AppTheme.motionReverseCurve,
       transitionBuilder: (child, animation) {
         return FadeTransition(
-          opacity: animation,
-          child: ScaleTransition(
-            scale: Tween<double>(begin: 0.96, end: 1).animate(animation),
-            child: child,
-          ),
+          opacity: Tween<double>(begin: 0.84, end: 1).animate(animation),
+          child: child,
         );
       },
       child: Stack(
@@ -4052,6 +3997,9 @@ class _BigInput extends StatelessWidget {
           controller: controller,
           autofocus: autofocus,
           onChanged: onChanged,
+          scrollPadding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(context).bottom + 140,
+          ),
           cursorColor: _AuthOnboardingScreenState._red,
           style: const TextStyle(
             fontFamily: AppTheme.sansFontFamily,
@@ -4139,6 +4087,9 @@ class _IconInputField extends StatelessWidget {
         controller: controller,
         keyboardType: keyboardType,
         obscureText: obscure,
+        scrollPadding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(context).bottom + 140,
+        ),
         cursorColor: _AuthOnboardingScreenState._red,
         style: const TextStyle(
           fontFamily: AppTheme.sansFontFamily,
@@ -4543,6 +4494,9 @@ class _GatewayAuthFieldState extends State<_GatewayAuthField> {
         textInputAction: widget.textInputAction,
         obscureText: _obscured,
         onSubmitted: widget.onSubmitted,
+        scrollPadding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(context).bottom + 140,
+        ),
         cursorColor: _AuthOnboardingScreenState._red,
         style: const TextStyle(
           fontFamily: AppTheme.sansFontFamily,
@@ -4585,12 +4539,12 @@ class _GatewayAuthFieldState extends State<_GatewayAuthField> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 14),
                       child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 160),
+                        duration: AppTheme.motionFast,
                         transitionBuilder: (child, animation) {
                           return ScaleTransition(
                             scale: CurvedAnimation(
                               parent: animation,
-                              curve: Curves.easeOutBack,
+                              curve: AppTheme.motionCurveSoft,
                             ),
                             child: FadeTransition(
                               opacity: animation,

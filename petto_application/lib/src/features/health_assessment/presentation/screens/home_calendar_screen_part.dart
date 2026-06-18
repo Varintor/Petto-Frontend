@@ -633,6 +633,10 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
                         TextField(
                           controller: titleController,
                           textInputAction: TextInputAction.done,
+                          scrollPadding: EdgeInsets.only(
+                            bottom:
+                                MediaQuery.viewInsetsOf(context).bottom + 120,
+                          ),
                           decoration: const InputDecoration(
                             hintText: 'Plan name',
                             prefixIcon: Icon(Icons.edit_note_rounded),

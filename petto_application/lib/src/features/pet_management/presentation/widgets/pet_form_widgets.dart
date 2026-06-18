@@ -29,6 +29,9 @@ class PettoTextField extends StatelessWidget {
       obscureText: obscure,
       keyboardType: keyboardType,
       validator: validator,
+      scrollPadding: EdgeInsets.only(
+        bottom: MediaQuery.viewInsetsOf(context).bottom + 120,
+      ),
       style: const TextStyle(
         fontFamily: AppTheme.sansFontFamily,
         color: AppTheme.secondaryText,

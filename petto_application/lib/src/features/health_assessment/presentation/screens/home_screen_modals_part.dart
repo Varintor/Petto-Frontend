@@ -3,8 +3,8 @@ part of 'home_screen.dart';
 extension _HomeScreenModalsPart on _HomeScreenState {
   Widget _buildAssessmentModal(BuildContext context) {
     return _BottomOverlay(
+      expand: true,
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
@@ -28,8 +28,7 @@ extension _HomeScreenModalsPart on _HomeScreenState {
             ),
           ),
           const SizedBox(height: 8),
-          SizedBox(
-            height: MediaQuery.of(context).size.height * 0.74,
+          Expanded(
             child: HealthAssessmentScreen(
               embedInScaffold: false,
               compactMode: true,
@@ -120,6 +119,9 @@ extension _HomeScreenModalsPart on _HomeScreenState {
             TextField(
               controller: _notesController,
               maxLines: 5,
+              scrollPadding: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(context).bottom + 140,
+              ),
               decoration: const InputDecoration(
                 hintText: 'Write summary or notes from your vet visit...',
               ),

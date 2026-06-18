@@ -247,22 +247,102 @@ class _HomeScreenState extends State<HomeScreen> {
   /// runtime unlocks live in [_unlockedAccessoryIds] and the wardrobe reads
   /// availability via [_isAccessoryUnlocked].
   static const List<_AccessoryData> _accessories = [
-    _AccessoryData(id: 'acc_collar', name: 'Golden Collar', emoji: '🎗️', unlocked: true),
-    _AccessoryData(id: 'acc_hat', name: 'Cool Hat', emoji: '🎩', unlocked: false),
-    _AccessoryData(id: 'acc_water_bowl', name: 'Crystal Bowl', emoji: '🥣', unlocked: false),
-    _AccessoryData(id: 'acc_doctor_coat', name: 'Doctor Coat', emoji: '🩺', unlocked: false),
-    _AccessoryData(id: 'acc_brush', name: 'Hair Brush', emoji: '🪮', unlocked: false),
-    _AccessoryData(id: 'acc_ball', name: 'Toy Ball', emoji: '⚽', unlocked: false),
-    _AccessoryData(id: 'acc_camera', name: 'Photo Frame', emoji: '📷', unlocked: false),
-    _AccessoryData(id: 'acc_toothbrush', name: 'Pearl Toothbrush', emoji: '🦷', unlocked: false),
-    _AccessoryData(id: 'acc_nail_file', name: 'Nail File', emoji: '💅', unlocked: false),
-    _AccessoryData(id: 'acc_ear_tag', name: 'Ear Tag', emoji: '👂', unlocked: false),
-    _AccessoryData(id: 'acc_scale', name: 'Scale Charm', emoji: '⚖️', unlocked: false),
-    _AccessoryData(id: 'acc_heart', name: 'Heart Locket', emoji: '💖', unlocked: false),
-    _AccessoryData(id: 'acc_diploma', name: 'Graduate Cap', emoji: '🎓', unlocked: false),
-    _AccessoryData(id: 'acc_bowl', name: 'Premium Bowl', emoji: '🍽️', unlocked: false),
-    _AccessoryData(id: 'acc_glasses', name: 'Funky Shades', emoji: '🕶️', unlocked: false),
-    _AccessoryData(id: 'acc_friendship', name: 'Friendship Tag', emoji: '🤝', unlocked: false),
+    _AccessoryData(
+      id: 'acc_collar',
+      name: 'Golden Collar',
+      emoji: '🎗️',
+      unlocked: true,
+    ),
+    _AccessoryData(
+      id: 'acc_hat',
+      name: 'Cool Hat',
+      emoji: '🎩',
+      unlocked: false,
+    ),
+    _AccessoryData(
+      id: 'acc_water_bowl',
+      name: 'Crystal Bowl',
+      emoji: '🥣',
+      unlocked: false,
+    ),
+    _AccessoryData(
+      id: 'acc_doctor_coat',
+      name: 'Doctor Coat',
+      emoji: '🩺',
+      unlocked: false,
+    ),
+    _AccessoryData(
+      id: 'acc_brush',
+      name: 'Hair Brush',
+      emoji: '🪮',
+      unlocked: false,
+    ),
+    _AccessoryData(
+      id: 'acc_ball',
+      name: 'Toy Ball',
+      emoji: '⚽',
+      unlocked: false,
+    ),
+    _AccessoryData(
+      id: 'acc_camera',
+      name: 'Photo Frame',
+      emoji: '📷',
+      unlocked: false,
+    ),
+    _AccessoryData(
+      id: 'acc_toothbrush',
+      name: 'Pearl Toothbrush',
+      emoji: '🦷',
+      unlocked: false,
+    ),
+    _AccessoryData(
+      id: 'acc_nail_file',
+      name: 'Nail File',
+      emoji: '💅',
+      unlocked: false,
+    ),
+    _AccessoryData(
+      id: 'acc_ear_tag',
+      name: 'Ear Tag',
+      emoji: '👂',
+      unlocked: false,
+    ),
+    _AccessoryData(
+      id: 'acc_scale',
+      name: 'Scale Charm',
+      emoji: '⚖️',
+      unlocked: false,
+    ),
+    _AccessoryData(
+      id: 'acc_heart',
+      name: 'Heart Locket',
+      emoji: '💖',
+      unlocked: false,
+    ),
+    _AccessoryData(
+      id: 'acc_diploma',
+      name: 'Graduate Cap',
+      emoji: '🎓',
+      unlocked: false,
+    ),
+    _AccessoryData(
+      id: 'acc_bowl',
+      name: 'Premium Bowl',
+      emoji: '🍽️',
+      unlocked: false,
+    ),
+    _AccessoryData(
+      id: 'acc_glasses',
+      name: 'Funky Shades',
+      emoji: '🕶️',
+      unlocked: false,
+    ),
+    _AccessoryData(
+      id: 'acc_friendship',
+      name: 'Friendship Tag',
+      emoji: '🤝',
+      unlocked: false,
+    ),
   ];
 
   /// Maps a backend mission_type to the cosmetic it grants on completion.
@@ -511,7 +591,8 @@ class _HomeScreenState extends State<HomeScreen> {
             eventId: ev.id,
             when: ev.startsAt!,
             title: ev.title,
-            body: 'Upcoming for ${_pets.isEmpty ? 'your pet' : _activePet.name}',
+            body:
+                'Upcoming for ${_pets.isEmpty ? 'your pet' : _activePet.name}',
           );
         }
       }
@@ -523,8 +604,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _persistCalendar() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final encoded =
-          jsonEncode(_calendarEvents.map((e) => e.toJson()).toList());
+      final encoded = jsonEncode(
+        _calendarEvents.map((e) => e.toJson()).toList(),
+      );
       await prefs.setString(_calendarPrefsKey, encoded);
     } catch (e) {
       debugPrint('Failed to persist calendar: $e');
@@ -584,31 +666,22 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   Expanded(
                     child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 320),
-                      reverseDuration: const Duration(milliseconds: 220),
-                      switchInCurve: Curves.easeOutCubic,
-                      switchOutCurve: Curves.easeInCubic,
+                      duration: AppTheme.motionFast,
+                      reverseDuration: AppTheme.motionFast,
+                      switchInCurve: AppTheme.motionCurveSoft,
+                      switchOutCurve: AppTheme.motionReverseCurve,
                       transitionBuilder: (child, animation) {
                         final curved = CurvedAnimation(
                           parent: animation,
-                          curve: Curves.easeOutCubic,
-                          reverseCurve: Curves.easeInCubic,
+                          curve: AppTheme.motionCurveSoft,
+                          reverseCurve: AppTheme.motionReverseCurve,
                         );
-                        return FadeTransition(
-                          opacity: curved,
-                          child: SlideTransition(
-                            position: Tween<Offset>(
-                              begin: const Offset(0, 0.018),
-                              end: Offset.zero,
-                            ).animate(curved),
-                            child: ScaleTransition(
-                              scale: Tween<double>(
-                                begin: 0.992,
-                                end: 1,
-                              ).animate(curved),
-                              child: child,
-                            ),
-                          ),
+                        return SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0, 0.002),
+                            end: Offset.zero,
+                          ).animate(curved),
+                          child: child,
                         );
                       },
                       child: KeyedSubtree(
@@ -693,7 +766,8 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       borderRadius: BorderRadius.circular(999),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
+        duration: AppTheme.motionFast,
+        curve: AppTheme.motionCurve,
         width: 50,
         height: 50,
         decoration: BoxDecoration(
@@ -718,7 +792,8 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Center(
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
+                duration: AppTheme.motionFast,
+                curve: AppTheme.motionCurve,
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
@@ -827,14 +902,14 @@ class _HomeScreenState extends State<HomeScreen> {
             child: IgnorePointer(
               ignoring: !_showNavActionMenu,
               child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 180),
+                duration: AppTheme.motionFast,
                 opacity: _showNavActionMenu ? 1 : 0,
                 child: AnimatedSlide(
-                  duration: const Duration(milliseconds: 220),
-                  curve: Curves.easeOutCubic,
+                  duration: AppTheme.motionNormal,
+                  curve: AppTheme.motionCurveSoft,
                   offset: _showNavActionMenu
                       ? Offset.zero
-                      : const Offset(0, 0.12),
+                      : const Offset(0, 0.08),
                   child: Row(
                     children: [
                       Expanded(

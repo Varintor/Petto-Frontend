@@ -426,10 +426,12 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
                 },
                 borderRadius: BorderRadius.circular(28),
                 child: AnimatedScale(
-                  duration: const Duration(milliseconds: 180),
+                  duration: AppTheme.motionFast,
+                  curve: AppTheme.motionCurve,
                   scale: isSelected ? 1 : 0.985,
                   child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
+                    duration: AppTheme.motionFast,
+                    curve: AppTheme.motionCurve,
                     width: 168,
                     padding: const EdgeInsets.all(11),
                     decoration: BoxDecoration(
@@ -481,7 +483,8 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
                             ),
                             const Spacer(),
                             AnimatedContainer(
-                              duration: const Duration(milliseconds: 180),
+                              duration: AppTheme.motionFast,
+                              curve: AppTheme.motionCurve,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 9,
                                 vertical: 5,
@@ -642,6 +645,9 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
               controller: controller,
               maxLines: maxLines,
               validator: validator,
+              scrollPadding: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(context).bottom + 140,
+              ),
               decoration: InputDecoration(
                 hintText: hintText,
                 border: InputBorder.none,
@@ -682,7 +688,8 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
         return GestureDetector(
           onTap: () => setState(() => _selectedPetType = id),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
+            duration: AppTheme.motionFast,
+            curve: AppTheme.motionCurve,
             width: 152,
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(

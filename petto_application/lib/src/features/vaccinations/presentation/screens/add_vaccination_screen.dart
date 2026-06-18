@@ -104,6 +104,9 @@ class _AddVaccinationScreenState extends State<AddVaccinationScreen> {
                   // Vaccine Name
                   TextFormField(
                     controller: _vaccineNameController,
+                    scrollPadding: EdgeInsets.only(
+                      bottom: MediaQuery.viewInsetsOf(context).bottom + 120,
+                    ),
                     decoration: const InputDecoration(
                       labelText: 'ชื่อวัคซีน',
                       hintText: 'เช่น วัคซีนพาร์โบ, วัคซีนบริเทณ',
@@ -164,6 +167,9 @@ class _AddVaccinationScreenState extends State<AddVaccinationScreen> {
                   // Clinic Name
                   TextFormField(
                     controller: _clinicNameController,
+                    scrollPadding: EdgeInsets.only(
+                      bottom: MediaQuery.viewInsetsOf(context).bottom + 120,
+                    ),
                     decoration: const InputDecoration(
                       labelText: 'คลินิก/โรงพยาบาล',
                       hintText: 'ระบุสถานที่ฉีดวัคซีน (ถ้าจำได้)',
@@ -176,6 +182,9 @@ class _AddVaccinationScreenState extends State<AddVaccinationScreen> {
                   // Notes
                   TextFormField(
                     controller: _notesController,
+                    scrollPadding: EdgeInsets.only(
+                      bottom: MediaQuery.viewInsetsOf(context).bottom + 140,
+                    ),
                     decoration: const InputDecoration(
                       labelText: 'บันทึกเพิ่มเติม',
                       hintText: 'รายละเอียดอื่นๆ',

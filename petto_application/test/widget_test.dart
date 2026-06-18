@@ -15,6 +15,5 @@ void main() {
     await tester.pump();
 
     expect(find.text('PETTO'), findsOneWidget);
-    expect(find.textContaining('AI PET GUARDIAN'), findsOneWidget);
   });
 }

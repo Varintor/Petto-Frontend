@@ -19,7 +19,7 @@ void showTopAlert(
   );
 
   overlay.insert(entry);
-  Future<void>.delayed(duration + const Duration(milliseconds: 260), () {
+  Future<void>.delayed(duration + AppTheme.motionFast, () {
     if (entry.mounted) entry.remove();
   });
 }
@@ -41,14 +41,17 @@ class _TopAlertOverlay extends StatelessWidget {
           bottom: false,
           child: TweenAnimationBuilder<double>(
             tween: Tween(begin: 0, end: 1),
-            duration: const Duration(milliseconds: 260),
-            curve: Curves.easeOutCubic,
+            duration: AppTheme.motionFast,
+            curve: AppTheme.motionCurveSoft,
             builder: (context, value, child) {
               return Opacity(
                 opacity: value,
                 child: Transform.translate(
-                  offset: Offset(0, -18 * (1 - value)),
-                  child: child,
+                  offset: Offset(0, -14 * (1 - value)),
+                  child: Transform.scale(
+                    scale: 0.985 + (0.015 * value),
+                    child: child,
+                  ),
                 ),
               );
             },
