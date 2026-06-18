@@ -8,16 +8,16 @@ extension _HomeProfileScreenPart on _HomeScreenState {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            height: 58,
+            height: 72,
             child: ListView.separated(
+              clipBehavior: Clip.none,
+              padding: const EdgeInsets.symmetric(vertical: 6),
               scrollDirection: Axis.horizontal,
               itemCount: _pets.length + 1,
               separatorBuilder: (context, index) => const SizedBox(width: 12),
               itemBuilder: (context, index) {
                 if (index == _pets.length) {
-                  return _AddPetChip(
-                    onTap: _addPet,
-                  );
+                  return _AddPetChip(onTap: _addPet);
                 }
                 final pet = _pets[index];
                 final appearance =

@@ -317,9 +317,9 @@ class _HomeScreenState extends State<HomeScreen> {
       );
       return;
     }
-    final result = await Navigator.of(context).push<PetEntity>(
-      MaterialPageRoute(builder: (_) => const PetFormScreen()),
-    );
+    final result = await Navigator.of(
+      context,
+    ).push<PetEntity>(MaterialPageRoute(builder: (_) => const PetFormScreen()));
     if (result == null || !mounted) return;
     try {
       await PetRepository().createPet(
@@ -333,13 +333,9 @@ class _HomeScreenState extends State<HomeScreen> {
       );
       if (!mounted) return;
       await _loadPets();
-      messenger.showSnackBar(
-        SnackBar(content: Text('${result.name} added!')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text('${result.name} added!')));
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('Failed to add pet: $e')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text('Failed to add pet: $e')));
     }
   }
 
@@ -376,6 +372,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Container(
         decoration: const BoxDecoration(
           color: AppTheme.backgroundColor,

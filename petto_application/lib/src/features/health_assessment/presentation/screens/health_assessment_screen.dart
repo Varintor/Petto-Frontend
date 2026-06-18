@@ -211,6 +211,8 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
 
     final content = Consumer<HealthAssessmentController>(
       builder: (context, controller, child) {
+        final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+
         if (controller.isLoading) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -256,7 +258,7 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
           child: ClipRect(
             child: Scrollbar(
               controller: _scrollController,
-              thickness: 4,
+              thickness: 3,
               radius: const Radius.circular(999),
               child: SingleChildScrollView(
                 controller: _scrollController,
@@ -265,7 +267,7 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
                   widget.compactMode ? 20.0 : 24.0,
                   widget.compactMode ? 20.0 : 24.0,
                   widget.compactMode ? 16.0 : 20.0,
-                  widget.compactMode ? 28.0 : 36.0,
+                  (widget.compactMode ? 28.0 : 36.0) + keyboardInset,
                 ),
                 child: Form(
                   key: _formKey,
@@ -371,6 +373,7 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
     }
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(title: const Text('Health Assessment')),
       body: content,
     );

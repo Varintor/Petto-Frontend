@@ -81,7 +81,10 @@ class _AddVaccinationScreenState extends State<AddVaccinationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: const Text('เพิ่มบันทึกวัคซีน'),
         actions: [
@@ -91,7 +94,8 @@ class _AddVaccinationScreenState extends State<AddVaccinationScreen> {
       body: Consumer<VaccinationController>(
         builder: (context, controller, child) {
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + keyboardInset),
             child: Form(
               key: _formKey,
               child: Column(

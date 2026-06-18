@@ -83,7 +83,10 @@ class _PetFormScreenState extends State<PetFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -100,7 +103,8 @@ class _PetFormScreenState extends State<PetFormScreen> {
         child: Form(
           key: _formKey,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(24, 12, 24, 40),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: EdgeInsets.fromLTRB(24, 12, 24, 40 + keyboardInset),
             children: [
               PettoTextField(
                 controller: _name,

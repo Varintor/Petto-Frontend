@@ -135,6 +135,11 @@ class _BottomOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final keyboardInset = media.viewInsets.bottom;
+    final maxPanelHeight =
+        media.size.height - media.padding.top - keyboardInset - 12;
+
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
       duration: const Duration(milliseconds: 320),
@@ -147,12 +152,22 @@ class _BottomOverlay extends StatelessWidget {
             child: Container(
               color: AppTheme.secondaryColor.withValues(alpha: 0.13 * eased),
               alignment: Alignment.bottomCenter,
-              child: Transform(
-                alignment: Alignment.bottomCenter,
-                transform: Matrix4.identity()
-                  ..translateByDouble(0, 24 * (1 - eased), 0, 1)
-                  ..scaleByDouble(0.985 + (0.015 * eased), 1, 1, 1),
-                child: Opacity(opacity: eased, child: child),
+              child: AnimatedPadding(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                padding: EdgeInsets.only(bottom: keyboardInset),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: math.max(240, maxPanelHeight),
+                  ),
+                  child: Transform(
+                    alignment: Alignment.bottomCenter,
+                    transform: Matrix4.identity()
+                      ..translateByDouble(0, 24 * (1 - eased), 0, 1)
+                      ..scaleByDouble(0.985 + (0.015 * eased), 1, 1, 1),
+                    child: Opacity(opacity: eased, child: child),
+                  ),
+                ),
               ),
             ),
           ),
@@ -1265,7 +1280,9 @@ class _PetChip extends StatelessWidget {
                   colors: [AppTheme.primaryColor, Color(0xFF934247)],
                 )
               : null,
-          color: selected ? null : Colors.white.withValues(alpha: 0.96),
+          color: selected
+              ? null
+              : AppTheme.surfaceColor.withValues(alpha: 0.82),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: selected
@@ -1276,16 +1293,18 @@ class _PetChip extends StatelessWidget {
           boxShadow: selected
               ? [
                   BoxShadow(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.14),
-                    blurRadius: 14,
-                    offset: const Offset(0, 6),
+                    color: AppTheme.primaryColor.withValues(alpha: 0.10),
+                    blurRadius: 18,
+                    spreadRadius: -6,
+                    offset: const Offset(0, 7),
                   ),
                 ]
               : [
                   BoxShadow(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.045),
-                    blurRadius: 12,
-                    offset: const Offset(0, 5),
+                    color: AppTheme.secondaryText.withValues(alpha: 0.035),
+                    blurRadius: 16,
+                    spreadRadius: -7,
+                    offset: const Offset(0, 8),
                   ),
                 ],
         ),
@@ -1389,7 +1408,7 @@ class _AddPetChip extends StatelessWidget {
           constraints: const BoxConstraints(minWidth: 132),
           padding: const EdgeInsets.fromLTRB(6, 5, 16, 5),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceColor.withValues(alpha: 0.96),
+            color: AppTheme.surfaceColor.withValues(alpha: 0.82),
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
               color: AppTheme.primaryColor.withValues(alpha: 0.10),
@@ -1397,9 +1416,10 @@ class _AddPetChip extends StatelessWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: AppTheme.primaryColor.withValues(alpha: 0.06),
-                blurRadius: 14,
-                offset: const Offset(0, 6),
+                color: AppTheme.secondaryText.withValues(alpha: 0.035),
+                blurRadius: 16,
+                spreadRadius: -7,
+                offset: const Offset(0, 8),
               ),
             ],
           ),

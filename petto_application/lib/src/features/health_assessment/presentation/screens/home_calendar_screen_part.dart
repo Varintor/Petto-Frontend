@@ -496,146 +496,154 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
         return StatefulBuilder(
           builder: (context, setSheetState) {
             final typeStyle = _calendarPlanStyle(selectedType);
-            return Padding(
+            return AnimatedPadding(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
               padding: EdgeInsets.fromLTRB(18, 0, 18, 18 + bottomInset),
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-                decoration: BoxDecoration(
-                  color: AppTheme.surfaceColor,
-                  borderRadius: BorderRadius.circular(32),
-                  border: Border.all(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.12),
-                    width: 1.4,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.secondaryText.withValues(alpha: 0.14),
-                      blurRadius: 24,
-                      offset: const Offset(0, 12),
+              child: SingleChildScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceColor,
+                    borderRadius: BorderRadius.circular(32),
+                    border: Border.all(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.12),
+                      width: 1.4,
                     ),
-                  ],
-                ),
-                child: SafeArea(
-                  top: false,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 44,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: AppTheme.warmSurfaceColor,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      Row(
-                        children: [
-                          Container(
-                            width: 50,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              color: typeStyle.color.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            child: Icon(
-                              typeStyle.icon,
-                              color: typeStyle.color,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Create care plan',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineSmall
-                                      ?.copyWith(fontWeight: FontWeight.w900),
-                                ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  _formattedSelectedDate(),
-                                  style: Theme.of(context).textTheme.bodyMedium
-                                      ?.copyWith(color: AppTheme.mutedText),
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            icon: const Icon(Icons.close_rounded),
-                            color: AppTheme.secondaryText,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
-                      TextField(
-                        controller: titleController,
-                        textInputAction: TextInputAction.done,
-                        decoration: const InputDecoration(
-                          hintText: 'Plan name',
-                          prefixIcon: Icon(Icons.edit_note_rounded),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          for (final type in const [
-                            'care',
-                            'medication',
-                            'vet',
-                            'grooming',
-                            'walk',
-                          ])
-                            _CalendarPlanTypeChip(
-                              label: _calendarPlanStyle(type).label,
-                              icon: _calendarPlanStyle(type).icon,
-                              selected: selectedType == type,
-                              onTap: () {
-                                setSheetState(() {
-                                  selectedType = type;
-                                });
-                              },
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 18),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 54,
-                        child: FilledButton.icon(
-                          onPressed: () {
-                            final style = _calendarPlanStyle(selectedType);
-                            final typedTitle = titleController.text.trim();
-                            Navigator.of(context).pop(
-                              _CalendarEventData(
-                                id: 'custom_${DateTime.now().microsecondsSinceEpoch}',
-                                title: typedTitle.isEmpty
-                                    ? style.defaultTitle
-                                    : typedTitle,
-                                timeLabel: 'All day',
-                                type: selectedType,
-                                completed: false,
-                                day: _selectedDate.day,
-                                color: style.color,
-                                icon: style.icon,
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.add_rounded),
-                          label: const Text('Save plan'),
-                        ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.secondaryText.withValues(alpha: 0.14),
+                        blurRadius: 24,
+                        offset: const Offset(0, 12),
                       ),
                     ],
+                  ),
+                  child: SafeArea(
+                    top: false,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 44,
+                            height: 5,
+                            decoration: BoxDecoration(
+                              color: AppTheme.warmSurfaceColor,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Row(
+                          children: [
+                            Container(
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: typeStyle.color.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              child: Icon(
+                                typeStyle.icon,
+                                color: typeStyle.color,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Create care plan',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .headlineSmall
+                                        ?.copyWith(fontWeight: FontWeight.w900),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    _formattedSelectedDate(),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(color: AppTheme.mutedText),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              icon: const Icon(Icons.close_rounded),
+                              color: AppTheme.secondaryText,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 18),
+                        TextField(
+                          controller: titleController,
+                          textInputAction: TextInputAction.done,
+                          decoration: const InputDecoration(
+                            hintText: 'Plan name',
+                            prefixIcon: Icon(Icons.edit_note_rounded),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final type in const [
+                              'care',
+                              'medication',
+                              'vet',
+                              'grooming',
+                              'walk',
+                            ])
+                              _CalendarPlanTypeChip(
+                                label: _calendarPlanStyle(type).label,
+                                icon: _calendarPlanStyle(type).icon,
+                                selected: selectedType == type,
+                                onTap: () {
+                                  setSheetState(() {
+                                    selectedType = type;
+                                  });
+                                },
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 18),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: FilledButton.icon(
+                            onPressed: () {
+                              final style = _calendarPlanStyle(selectedType);
+                              final typedTitle = titleController.text.trim();
+                              Navigator.of(context).pop(
+                                _CalendarEventData(
+                                  id: 'custom_${DateTime.now().microsecondsSinceEpoch}',
+                                  title: typedTitle.isEmpty
+                                      ? style.defaultTitle
+                                      : typedTitle,
+                                  timeLabel: 'All day',
+                                  type: selectedType,
+                                  completed: false,
+                                  day: _selectedDate.day,
+                                  color: style.color,
+                                  icon: style.icon,
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.add_rounded),
+                            label: const Text('Save plan'),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

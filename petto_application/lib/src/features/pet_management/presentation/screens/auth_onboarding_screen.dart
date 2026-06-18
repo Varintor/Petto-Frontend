@@ -20,7 +20,14 @@ enum _AuthScreen {
   summary,
 }
 
-enum _RegisterStep { owner, credentials, petType, petName, petDetails, birthday }
+enum _RegisterStep {
+  owner,
+  credentials,
+  petType,
+  petName,
+  petDetails,
+  birthday,
+}
 
 class AuthOnboardingScreen extends StatefulWidget {
   const AuthOnboardingScreen({super.key});
@@ -142,7 +149,10 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
       setState(() => _errorMessage = 'Please enter email and password');
       return;
     }
-    setState(() { _isLoading = true; _errorMessage = null; });
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
     final auth = context.read<AuthController>();
     final success = await auth.login(email, password);
     if (!mounted) return;
@@ -169,7 +179,10 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
 
   Future<void> _handleRegisterAndCreatePet() async {
     FocusManager.instance.primaryFocus?.unfocus();
-    setState(() { _isLoading = true; _errorMessage = null; });
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
     final auth = context.read<AuthController>();
     final success = await auth.register(
@@ -179,7 +192,10 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     );
     if (!mounted) return;
     if (!success) {
-      setState(() { _isLoading = false; _errorMessage = auth.error; });
+      setState(() {
+        _isLoading = false;
+        _errorMessage = auth.error;
+      });
       return;
     }
 
@@ -342,6 +358,7 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: _cream,
       body: Stack(
         children: [
@@ -465,7 +482,8 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           SizedBox(
-                            width: 32, height: 32,
+                            width: 32,
+                            height: 32,
                             child: CircularProgressIndicator(
                               strokeWidth: 2.5,
                               color: _red,
@@ -549,7 +567,7 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
         return _StepPage(
           step: 2,
           showHeader: false,
-          topPet: null,
+          topPet: const _AccountStepCharm(),
           title: 'Your Account',
           subtitle: 'Create login credentials for your Petto account.',
           body: ConstrainedBox(
@@ -603,7 +621,9 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
               return;
             }
             if (pass.length < 6) {
-              setState(() => _errorMessage = 'Password must be at least 6 characters');
+              setState(
+                () => _errorMessage = 'Password must be at least 6 characters',
+              );
               return;
             }
             if (pass != confirm) {
@@ -687,9 +707,13 @@ class _PanelFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         return SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: EdgeInsets.only(bottom: keyboardInset),
           child: ConstrainedBox(
             constraints: BoxConstraints(minHeight: constraints.maxHeight),
             child: IntrinsicHeight(child: child),
@@ -1266,6 +1290,8 @@ class _RegisterAccountPage extends StatelessWidget {
                     textInputAction: TextInputAction.done,
                     onSubmitted: (_) => onSubmit(),
                   ),
+                  const SizedBox(height: 10),
+                  const _RegisterPasswordHint(),
                   const SizedBox(height: 18),
                   _ReferenceButton(
                     label: 'CONTINUE',
@@ -1274,13 +1300,129 @@ class _RegisterAccountPage extends StatelessWidget {
                     fullWidth: true,
                     animatedIcon: true,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
                   _GhostButton(label: 'BACK TO LOGIN', onTap: onBack),
                 ],
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _RegisterPasswordHint extends StatelessWidget {
+  const _RegisterPasswordHint();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: _AuthOnboardingScreenState._paleRose.withValues(alpha: 0.28),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: const BoxDecoration(
+              color: _AuthOnboardingScreenState._red,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Text(
+            'Password needs at least 6 characters',
+            style: TextStyle(
+              fontFamily: AppTheme.sansFontFamily,
+              color: _AuthOnboardingScreenState._deepRed,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              height: 1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AccountStepCharm extends StatelessWidget {
+  const _AccountStepCharm();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 150,
+      height: 72,
+      child: Stack(
+        alignment: Alignment.center,
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 112,
+            height: 52,
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceColor.withValues(alpha: 0.78),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: _AuthOnboardingScreenState._paleRose.withValues(
+                  alpha: 0.58,
+                ),
+                width: 1.2,
+              ),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.mail_rounded,
+                  size: 18,
+                  color: _AuthOnboardingScreenState._red,
+                ),
+                SizedBox(width: 12),
+                Icon(
+                  Icons.lock_rounded,
+                  size: 18,
+                  color: _AuthOnboardingScreenState._red,
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            left: 18,
+            bottom: 4,
+            child: _AccountCharmDot(size: 8, alpha: 0.18),
+          ),
+          Positioned(
+            right: 20,
+            top: 2,
+            child: _AccountCharmDot(size: 11, alpha: 0.14),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AccountCharmDot extends StatelessWidget {
+  const _AccountCharmDot({required this.size, required this.alpha});
+
+  final double size;
+  final double alpha;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: _AuthOnboardingScreenState._red.withValues(alpha: alpha),
+        shape: BoxShape.circle,
       ),
     );
   }
@@ -1552,15 +1694,15 @@ class _PetTypeStep extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final compact = constraints.maxHeight < 620;
+        final compact = constraints.maxHeight < 660;
         final titleSize = compact ? 31.0 : 36.0;
         final subtitleSize = compact ? 16.0 : 18.0;
-        final avatarStageHeight = compact ? 132.0 : 164.0;
-        final avatarSize = compact ? 128.0 : 160.0;
+        final avatarStageHeight = compact ? 148.0 : 176.0;
+        final avatarSize = compact ? 122.0 : 150.0;
         final topPadding = compact
-            ? MediaQuery.paddingOf(context).top + 96
-            : MediaQuery.paddingOf(context).top + 126;
-        final bottomPadding = compact ? 34.0 : 78.0;
+            ? MediaQuery.paddingOf(context).top + 88
+            : MediaQuery.paddingOf(context).top + 112;
+        final bottomPadding = compact ? 38.0 : 68.0;
         return SingleChildScrollView(
           physics: compact
               ? const ClampingScrollPhysics()
@@ -1570,97 +1712,110 @@ class _PetTypeStep extends StatelessWidget {
             child: Padding(
               padding: EdgeInsets.fromLTRB(38, topPadding, 38, bottomPadding),
               child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Meet Your\nCompanion',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: AppTheme.displayFontFamily,
-                        color: _AuthOnboardingScreenState._deepRed,
-                        fontSize: titleSize,
-                        height: 1.08,
-                        fontWeight: FontWeight.w900,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Meet Your\nCompanion',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: AppTheme.displayFontFamily,
+                          color: _AuthOnboardingScreenState._deepRed,
+                          fontSize: titleSize,
+                          height: 1.08,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: compact ? 10 : 14),
-                    Text(
-                      'What kind of pet do you have?',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: AppTheme.sansFontFamily,
-                        color: _AuthOnboardingScreenState._rose,
-                        fontSize: subtitleSize,
-                        fontWeight: FontWeight.w600,
+                      SizedBox(height: compact ? 10 : 14),
+                      Text(
+                        'What kind of pet do you have?',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: AppTheme.sansFontFamily,
+                          color: _AuthOnboardingScreenState._rose,
+                          fontSize: subtitleSize,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: compact ? 14 : 24),
-                    SizedBox(
-                      height: avatarStageHeight,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        clipBehavior: Clip.none,
+                      SizedBox(height: compact ? 14 : 22),
+                      SizedBox(
+                        height: avatarStageHeight,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          clipBehavior: Clip.none,
+                          children: [
+                            Positioned(
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              child: Center(
+                                child: _PetThoughtBubble(species: species),
+                              ),
+                            ),
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              child: Center(
+                                child: _PetAvatar(
+                                  species: species,
+                                  color: petColor,
+                                  size: avatarSize,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: compact ? 16 : 20),
+                      Row(
                         children: [
-                          _PetAvatar(
-                            species: species,
-                            color: petColor,
-                            size: avatarSize,
+                          Expanded(
+                            child: _PetChoice(
+                              label: 'DOG',
+                              species: 'Dog',
+                              color: _AuthOnboardingScreenState._dogColor,
+                              pattern: 'patches',
+                              selected: species == 'Dog',
+                              onTap: () => onSelect('Dog'),
+                              compact: compact,
+                            ),
                           ),
-                          Positioned(
-                            top: compact ? -2 : -4,
-                            right: compact ? 18 : -8,
-                            child: _PetThoughtBubble(species: species),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _PetChoice(
+                              label: 'CAT',
+                              species: 'Cat',
+                              color: _AuthOnboardingScreenState._catColor,
+                              pattern: 'none',
+                              selected: species == 'Cat',
+                              onTap: () => onSelect('Cat'),
+                              compact: compact,
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                    SizedBox(height: compact ? 14 : 18),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _PetChoice(
-                            label: 'DOG',
-                            species: 'Dog',
-                            color: _AuthOnboardingScreenState._dogColor,
-                            pattern: 'patches',
-                            selected: species == 'Dog',
-                            onTap: () => onSelect('Dog'),
-                            compact: compact,
+                      SizedBox(height: compact ? 20 : 28),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _GhostButton(label: 'BACK', onTap: onBack),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _PetChoice(
-                            label: 'CAT',
-                            species: 'Cat',
-                            color: _AuthOnboardingScreenState._catColor,
-                            pattern: 'none',
-                            selected: species == 'Cat',
-                            onTap: () => onSelect('Cat'),
-                            compact: compact,
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _ReferenceButton(
+                              label: 'NEXT',
+                              icon: Icons.arrow_forward_rounded,
+                              onTap: onNext,
+                              quiet: true,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: compact ? 18 : 28),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _GhostButton(label: 'BACK', onTap: onBack),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _ReferenceButton(
-                            label: 'NEXT',
-                            icon: Icons.arrow_forward_rounded,
-                            onTap: onNext,
-                            quiet: true,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -1699,8 +1854,8 @@ class _PetThoughtBubble extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           Container(
-            constraints: const BoxConstraints(maxWidth: 94),
-            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+            constraints: const BoxConstraints(minWidth: 112, maxWidth: 128),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(18),
@@ -1725,18 +1880,20 @@ class _PetThoughtBubble extends StatelessWidget {
                 ),
               ],
             ),
-            child: Text(
-              text,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontFamily: AppTheme.sansFontFamily,
-                color: _AuthOnboardingScreenState._red,
-                fontSize: 10.5,
-                height: 1.1,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.1,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                text,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                style: const TextStyle(
+                  fontFamily: AppTheme.sansFontFamily,
+                  color: _AuthOnboardingScreenState._red,
+                  fontSize: 12,
+                  height: 1.1,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.2,
+                ),
               ),
             ),
           ),

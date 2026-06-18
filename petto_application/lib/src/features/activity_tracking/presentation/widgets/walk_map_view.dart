@@ -107,11 +107,7 @@ class _WalkMapViewState extends State<WalkMapView> {
             ],
           ),
           // Recenter button (in case the user panned away).
-          Positioned(
-            right: 12,
-            bottom: 12,
-            child: _recenterButton(current),
-          ),
+          Positioned(right: 12, bottom: 12, child: _recenterButton(current)),
         ],
       ),
     );

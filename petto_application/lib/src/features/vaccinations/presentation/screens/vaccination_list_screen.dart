@@ -37,7 +37,9 @@ class _VaccinationListScreenState extends State<VaccinationListScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              context.read<VaccinationController>().loadVaccinations(widget.petId);
+              context.read<VaccinationController>().loadVaccinations(
+                widget.petId,
+              );
             },
           ),
         ],
@@ -55,7 +57,11 @@ class _VaccinationListScreenState extends State<VaccinationListScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                    const Icon(
+                      Icons.error_outline,
+                      size: 48,
+                      color: Colors.red,
+                    ),
                     const SizedBox(height: 16),
                     Text(controller.errorMessage ?? 'An error occurred'),
                     const SizedBox(height: 16),

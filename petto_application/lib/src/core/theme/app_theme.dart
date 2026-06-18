@@ -228,6 +228,31 @@ class AppTheme {
           ),
         ),
       ),
+      scrollbarTheme: ScrollbarThemeData(
+        thumbVisibility: const WidgetStatePropertyAll(false),
+        trackVisibility: const WidgetStatePropertyAll(false),
+        radius: const Radius.circular(999),
+        thickness: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.dragged)) return 5;
+          if (states.contains(WidgetState.hovered)) return 4;
+          return 3;
+        }),
+        minThumbLength: 42,
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          final alpha = states.contains(WidgetState.dragged)
+              ? 0.34
+              : states.contains(WidgetState.hovered)
+              ? 0.26
+              : 0.18;
+          return primaryColor.withValues(alpha: alpha);
+        }),
+        trackColor: WidgetStatePropertyAll(
+          warmSurfaceColor.withValues(alpha: 0.18),
+        ),
+        trackBorderColor: const WidgetStatePropertyAll(Colors.transparent),
+        crossAxisMargin: 3,
+        mainAxisMargin: 12,
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surfaceColor.withValues(alpha: 0.96),

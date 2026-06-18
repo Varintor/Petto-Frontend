@@ -39,17 +39,17 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(
-                height: 58,
+                height: 72,
                 child: ListView.separated(
+                  clipBehavior: Clip.none,
+                  padding: const EdgeInsets.symmetric(vertical: 6),
                   scrollDirection: Axis.horizontal,
                   itemCount: _pets.length + 1,
                   separatorBuilder: (context, index) =>
                       const SizedBox(width: 12),
                   itemBuilder: (context, index) {
                     if (index == _pets.length) {
-                      return _AddPetChip(
-                        onTap: _addPet,
-                      );
+                      return _AddPetChip(onTap: _addPet);
                     }
                     final pet = _pets[index];
                     final appearance =
@@ -252,8 +252,10 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
                 decoration: BoxDecoration(
                   color: AppTheme.primaryColor,
                   borderRadius: BorderRadius.circular(32),
-                  border:
-                      Border.all(color: AppTheme.blushSurfaceColor, width: 2),
+                  border: Border.all(
+                    color: AppTheme.blushSurfaceColor,
+                    width: 2,
+                  ),
                   boxShadow: AppTheme.cardShadow,
                 ),
                 child: Column(
@@ -282,9 +284,7 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
                             children: [
                               Text(
                                 'Daily Mission',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleLarge
+                                style: Theme.of(context).textTheme.titleLarge
                                     ?.copyWith(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w900,
@@ -293,12 +293,11 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
                               const SizedBox(height: 4),
                               Text(
                                 'Small care goals for ${_activePet.name}',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
+                                style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(
-                                      color:
-                                          Colors.white.withValues(alpha: 0.78),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.78,
+                                      ),
                                     ),
                               ),
                             ],
@@ -323,9 +322,7 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
                           ),
                           child: Text(
                             '$completedCount/$totalCount',
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelMedium
+                            style: Theme.of(context).textTheme.labelMedium
                                 ?.copyWith(
                                   color: AppTheme.primaryColor,
                                   fontWeight: FontWeight.w900,
@@ -345,8 +342,9 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
                           return LinearProgressIndicator(
                             value: value,
                             minHeight: 8,
-                            backgroundColor:
-                                Colors.white.withValues(alpha: 0.20),
+                            backgroundColor: Colors.white.withValues(
+                              alpha: 0.20,
+                            ),
                             valueColor: const AlwaysStoppedAnimation<Color>(
                               AppTheme.blushSurfaceColor,
                             ),
