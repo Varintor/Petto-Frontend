@@ -96,6 +96,7 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
     }
 
     final controller = context.read<HealthAssessmentController>();
+    final selectedPet = _currentSelectedPetOption();
     await controller.submitAssessment(
       petName: _petNameController.text,
       petType: _selectedPetType,
@@ -103,7 +104,14 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
           ? null
           : _symptomsController.text,
       imageData: _selectedImage,
+      petId: selectedPet?.petId,
     );
+
+    // Refresh this pet's history so the new result appears and the list shows
+    // only this pet's assessments (never the shared/seed pile).
+    if (selectedPet != null && controller.isSuccess) {
+      await controller.loadPetHistory(selectedPet.petId);
+    }
   }
 
   HealthAssessmentPetOption? _currentSelectedPetOption() {
@@ -734,6 +742,7 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
 class HealthAssessmentPetOption {
   const HealthAssessmentPetOption({
     required this.id,
+    required this.petId,
     required this.name,
     required this.species,
     required this.breed,
@@ -745,6 +754,10 @@ class HealthAssessmentPetOption {
   });
 
   final String id;
+
+  /// Real backend pet id (`pet_profiles.id`). Used to scope assessment
+  /// submit + history to this pet so users never read/write another pet's data.
+  final int petId;
   final String name;
   final String species;
   final String breed;

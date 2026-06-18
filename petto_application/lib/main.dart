@@ -13,6 +13,7 @@ import 'src/features/vaccinations/presentation/controllers/vaccination_controlle
 import 'src/features/vaccinations/data/repositories/vaccination_repository.dart';
 import 'src/features/missions/presentation/controllers/missions_controller.dart';
 import 'src/features/missions/data/repositories/missions_repository.dart';
+import 'src/core/services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,6 +24,12 @@ void main() async {
     publishableKey:
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1Zm9iYmVueGtncHBocnBsemRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5NTkwMDQsImV4cCI6MjA5MzUzNTAwNH0.DCjYyx3koOvXy0gUZSAga7hmpzPfP8M6D7V9_ocalf0',
   );
+
+  // Prepare OS-level notifications (no-op on web). Failures are swallowed so a
+  // missing channel or denied permission can't block the app from starting.
+  try {
+    await NotificationService.instance.init();
+  } catch (_) {}
 
   runApp(const PettoApp());
 }

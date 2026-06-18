@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../controllers/activity_tracking_controller.dart';
 import '../../../missions/presentation/controllers/missions_controller.dart';
 import 'live_walk_screen.dart';
@@ -25,21 +26,24 @@ class _WellnessTrackingViewState extends State<WellnessTrackingView> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ActivityTrackingController>().loadStats();
+      final petId = context.read<AuthController>().petId;
+      context.read<ActivityTrackingController>().loadStats(petId: petId);
     });
   }
 
   void _startWalk() {
     final activityController = context.read<ActivityTrackingController>();
     final missionsController = context.read<MissionsController>();
+    final petId = context.read<AuthController>().petId;
     Navigator.of(context)
         .push(MaterialPageRoute(
           builder: (_) => LiveWalkScreen(petName: widget.petName),
         ))
         .then((_) {
-      // Refresh both activity stats and missions after walk completes
-      activityController.loadStats();
-      missionsController.loadAll();
+      // Refresh activity stats + missions for THIS pet after the walk so the
+      // backend's auto-completed walk mission shows up (not the seed pet's).
+      activityController.loadStats(petId: petId);
+      missionsController.loadAll(petId: petId);
     });
   }
 

@@ -1,6 +1,15 @@
 part of 'home_screen.dart';
 
+bool _sameDay(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
+
 extension _HomeCalendarScreenPart on _HomeScreenState {
+  bool _eventOnDay(_CalendarEventData event, int year, int month, int day) {
+    return event.date.year == year &&
+        event.date.month == month &&
+        event.date.day == day;
+  }
+
   Widget _buildHomeCalendarSection(BuildContext context) {
     final monthDays = DateUtils.getDaysInMonth(
       _focusedMonth.year,
@@ -16,11 +25,12 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
       (index) => startDay + index,
     );
     final selectedEvents = _calendarEvents
-        .where((event) => event.day == _selectedDate.day)
+        .where((event) => _sameDay(event.date, _selectedDate))
         .toList();
+    final now = DateTime.now();
     final upcomingEvents =
-        (_calendarEvents.where((event) => event.day >= selectedDay).toList()
-              ..sort((a, b) => a.day.compareTo(b.day)))
+        (_calendarEvents.where((event) => !event.date.isBefore(now)).toList()
+              ..sort((a, b) => a.date.compareTo(b.date)))
             .take(2)
             .toList();
     final visibleEvents = selectedEvents.isNotEmpty
@@ -169,7 +179,12 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
                               _selectedDate.month == _focusedMonth.month &&
                               _selectedDate.day == day,
                           hasEvent: _calendarEvents.any(
-                            (event) => event.day == day,
+                            (event) => _eventOnDay(
+                              event,
+                              _focusedMonth.year,
+                              _focusedMonth.month,
+                              day,
+                            ),
                           ),
                           onTap: () {
                             _update(() {
@@ -249,12 +264,7 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
     });
 
     final selectedEvents = _calendarEvents
-        .where(
-          (event) =>
-              event.day == _selectedDate.day &&
-              _selectedDate.month == _focusedMonth.month &&
-              _selectedDate.year == _focusedMonth.year,
-        )
+        .where((event) => _sameDay(event.date, _selectedDate))
         .toList();
 
     return SingleChildScrollView(
@@ -339,7 +349,12 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
                     now.month == _focusedMonth.month &&
                     now.day == day;
                 final hasEvent = _calendarEvents.any(
-                  (event) => event.day == day,
+                  (event) => _eventOnDay(
+                    event,
+                    _focusedMonth.year,
+                    _focusedMonth.month,
+                    day,
+                  ),
                 );
 
                 return InkWell(
@@ -475,7 +490,10 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
               onAdd: _showAddCalendarPlanSheet,
             ),
           for (final event in selectedEvents) ...[
-            _CalendarEventCard(event: event),
+            _CalendarEventCard(
+              event: event,
+              onDelete: () => _deleteCalendarEvent(event),
+            ),
             const SizedBox(height: 12),
           ],
         ],
@@ -486,6 +504,35 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
   Future<void> _showAddCalendarPlanSheet() async {
     final titleController = TextEditingController();
     var selectedType = 'care';
+    var selectedDate = _selectedDate;
+    TimeOfDay? selectedTime;
+
+    String timeButtonLabel() {
+      final t = selectedTime;
+      if (t == null) return 'All day';
+      final h = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
+      final m = t.minute.toString().padLeft(2, '0');
+      final ampm = t.period == DayPeriod.am ? 'AM' : 'PM';
+      return '$h:$m $ampm';
+    }
+
+    String dateButtonLabel(DateTime d) {
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+      return '${d.day} ${months[d.month - 1]} ${d.year}';
+    }
 
     final created = await showModalBottomSheet<_CalendarEventData>(
       context: context,
@@ -566,7 +613,7 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
                                   ),
                                   const SizedBox(height: 3),
                                   Text(
-                                    _formattedSelectedDate(),
+                                    dateButtonLabel(selectedDate),
                                     style: Theme.of(context)
                                         .textTheme
                                         .bodyMedium
@@ -590,6 +637,50 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
                             hintText: 'Plan name',
                             prefixIcon: Icon(Icons.edit_note_rounded),
                           ),
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () async {
+                                  final picked = await showDatePicker(
+                                    context: context,
+                                    initialDate: selectedDate,
+                                    firstDate: DateTime.now().subtract(
+                                      const Duration(days: 365),
+                                    ),
+                                    lastDate: DateTime.now().add(
+                                      const Duration(days: 365 * 3),
+                                    ),
+                                  );
+                                  if (picked != null) {
+                                    setSheetState(() => selectedDate = picked);
+                                  }
+                                },
+                                icon: const Icon(Icons.calendar_today_rounded),
+                                label: Text(dateButtonLabel(selectedDate)),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () async {
+                                  final picked = await showTimePicker(
+                                    context: context,
+                                    initialTime:
+                                        selectedTime ??
+                                        const TimeOfDay(hour: 9, minute: 0),
+                                  );
+                                  if (picked != null) {
+                                    setSheetState(() => selectedTime = picked);
+                                  }
+                                },
+                                icon: const Icon(Icons.access_time_rounded),
+                                label: Text(timeButtonLabel()),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 14),
                         Wrap(
@@ -623,16 +714,26 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
                             onPressed: () {
                               final style = _calendarPlanStyle(selectedType);
                               final typedTitle = titleController.text.trim();
+                              final startsAt = selectedTime == null
+                                  ? null
+                                  : DateTime(
+                                      selectedDate.year,
+                                      selectedDate.month,
+                                      selectedDate.day,
+                                      selectedTime!.hour,
+                                      selectedTime!.minute,
+                                    );
                               Navigator.of(context).pop(
                                 _CalendarEventData(
                                   id: 'custom_${DateTime.now().microsecondsSinceEpoch}',
                                   title: typedTitle.isEmpty
                                       ? style.defaultTitle
                                       : typedTitle,
-                                  timeLabel: 'All day',
+                                  timeLabel: timeButtonLabel(),
                                   type: selectedType,
                                   completed: false,
-                                  day: _selectedDate.day,
+                                  date: selectedDate,
+                                  startsAt: startsAt,
                                   color: style.color,
                                   icon: style.icon,
                                 ),
@@ -658,8 +759,36 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
 
     _update(() {
       _calendarEvents.add(created);
+      // Jump the user to the day they just scheduled so the new entry is
+      // visible immediately.
+      _selectedDate = created.date;
+      _focusedMonth = DateTime(created.date.year, created.date.month);
     });
-    showTopAlert(context, 'Care plan added.');
+    await _persistCalendar();
+    if (created.startsAt != null) {
+      await NotificationService.instance.scheduleEventReminder(
+        eventId: created.id,
+        when: created.startsAt!,
+        title: created.title,
+        body: 'Upcoming for ${_pets.isEmpty ? 'your pet' : _activePet.name}',
+      );
+    }
+    if (!mounted) return;
+    showTopAlert(
+      context,
+      created.startsAt != null
+          ? 'Plan saved — reminder set 30 min before.'
+          : 'Plan saved.',
+      icon: Icons.event_available_rounded,
+    );
+  }
+
+  Future<void> _deleteCalendarEvent(_CalendarEventData event) async {
+    _update(() => _calendarEvents.removeWhere((e) => e.id == event.id));
+    await _persistCalendar();
+    await NotificationService.instance.cancelEventReminder(event.id);
+    if (!mounted) return;
+    showTopAlert(context, 'Plan removed.', icon: Icons.delete_outline_rounded);
   }
 
   _CalendarPlanStyle _calendarPlanStyle(String type) {

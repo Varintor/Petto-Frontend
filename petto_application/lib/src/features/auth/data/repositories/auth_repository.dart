@@ -46,6 +46,7 @@ abstract class AuthRepository {
   Future<AuthResult> register(String email, String password, String name);
   Future<AuthResult> login(String email, String password);
   Future<AuthUser> getMe(String token);
+  Future<bool> checkEmailAvailability(String email);
 }
 
 /// Talks to the FastAPI backend (`/api/v1/auth/*`). The backend wraps Supabase
@@ -100,6 +101,21 @@ class AuthRepositoryImpl implements AuthRepository {
       return AuthUser.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw Exception(_describeDioError(e));
+    }
+  }
+
+  @override
+  Future<bool> checkEmailAvailability(String email) async {
+    try {
+      final response = await dio.get(
+        AppConfig.checkEmailEndpoint,
+        queryParameters: {'email': email},
+      );
+      final data = response.data as Map<String, dynamic>;
+      return data['available'] as bool? ?? true;
+    } on DioException catch (e) {
+      // On error, assume available (don't block registration)
+      return true;
     }
   }
 

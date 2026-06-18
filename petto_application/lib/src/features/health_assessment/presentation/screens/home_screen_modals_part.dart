@@ -46,6 +46,7 @@ extension _HomeScreenModalsPart on _HomeScreenState {
                         _defaultAppearanceForSpecies(pet.species);
                     return HealthAssessmentPetOption(
                       id: '${pet.name}_${pet.species}'.toLowerCase(),
+                      petId: pet.id,
                       name: pet.name,
                       species: pet.species,
                       breed: pet.breed,

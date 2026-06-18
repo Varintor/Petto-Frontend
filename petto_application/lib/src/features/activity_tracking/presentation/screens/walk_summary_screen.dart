@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/top_alert.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../controllers/activity_tracking_controller.dart';
 import '../widgets/route_trace_view.dart';
 
@@ -12,7 +13,10 @@ class WalkSummaryScreen extends StatelessWidget {
   const WalkSummaryScreen({super.key});
 
   Future<void> _save(BuildContext context, ActivityTrackingController c) async {
-    final ok = await c.save();
+    // Save against the user's real pet so the backend auto-completes THAT pet's
+    // walk mission (not the seed pet's).
+    final petId = context.read<AuthController>().petId;
+    final ok = await c.save(petId: petId);
     if (!context.mounted) return;
     if (ok) {
       showTopAlert(context, 'Walk saved successfully.');

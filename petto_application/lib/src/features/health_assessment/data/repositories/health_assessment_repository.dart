@@ -12,6 +12,7 @@ abstract class HealthAssessmentRepository {
     required String petType,
     String? symptoms,
     dynamic imageData, // File for mobile, Uint8List for web
+    int? petId,
   });
 
   Future<List<AssessmentEntity>> getAssessmentHistory();
@@ -49,6 +50,7 @@ class HealthAssessmentRepositoryImpl implements HealthAssessmentRepository {
     required String petType,
     String? symptoms,
     dynamic imageData,
+    int? petId,
   }) async {
     // The backend requires an image (image: UploadFile = File(...)). Fail fast
     // with a friendly message instead of letting it 400 server-side.
@@ -58,8 +60,11 @@ class HealthAssessmentRepositoryImpl implements HealthAssessmentRepository {
 
     try {
       final formData = FormData.fromMap({
-        // Backend Form fields: pet_id (int), symptom_description (str)
-        'pet_id': AppConfig.defaultPetId,
+        // Backend Form fields: pet_id (int), symptom_description (str).
+        // Use the caller's real pet id; fall back to the seed pet only when
+        // none was provided (guest/mock mode) so we never silently write a
+        // real user's assessment onto the seed pet (Milo).
+        'pet_id': petId ?? AppConfig.defaultPetId,
         'symptom_description': (symptoms == null || symptoms.trim().isEmpty)
             ? 'No additional symptoms described'
             : symptoms.trim(),

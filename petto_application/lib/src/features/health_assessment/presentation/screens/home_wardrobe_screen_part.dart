@@ -7,6 +7,10 @@ extension _HomeWardrobeScreenPart on _HomeScreenState {
   }
 
   void _loadDraftForPet(int index) {
+    // Authenticated users start with _pets empty until /users/{id}/pets returns.
+    // Touching _pets[index] before then crashes with RangeError; bail out and
+    // let the next pet selection re-load the draft once data arrives.
+    if (index < 0 || index >= _pets.length) return;
     final appearance =
         _savedAppearances[index] ??
         _defaultAppearanceForSpecies(_pets[index].species);
@@ -260,8 +264,9 @@ extension _HomeWardrobeScreenPart on _HomeScreenState {
                 for (final accessory in _HomeScreenState._accessories)
                   _AccessoryCard(
                     accessory: accessory,
+                    unlocked: _isAccessoryUnlocked(accessory),
                     equipped: _draftEquippedAccessoryIds.contains(accessory.id),
-                    onTap: accessory.unlocked
+                    onTap: _isAccessoryUnlocked(accessory)
                         ? () {
                             _update(() {
                               if (_draftEquippedAccessoryIds.contains(

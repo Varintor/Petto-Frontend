@@ -1553,12 +1553,18 @@ class _MissionCard extends StatelessWidget {
     required this.completed,
     required this.bursting,
     required this.onTap,
+    this.rewardAccessory,
   });
 
   final _MissionData mission;
   final bool completed;
   final bool bursting;
   final ValueChanged<Offset> onTap;
+
+  /// Cosmetic granted when this mission is completed. Shown as the reward
+  /// chip; falls back to the legacy "+X treats XP" badge when null (mission
+  /// type isn't mapped to an accessory yet).
+  final _AccessoryData? rewardAccessory;
 
   @override
   Widget build(BuildContext context) {
@@ -1618,15 +1624,27 @@ class _MissionCard extends StatelessWidget {
                               ),
                         borderRadius: BorderRadius.circular(999),
                       ),
-                      child: Text(
-                        '+${mission.reward} treats XP',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: completed
-                              ? AppTheme.primaryColor
-                              : AppTheme.primaryColor,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.2,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (rewardAccessory != null) ...[
+                            Text(
+                              rewardAccessory!.emoji,
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                            const SizedBox(width: 4),
+                          ],
+                          Text(
+                            rewardAccessory != null
+                                ? rewardAccessory!.name
+                                : '+${mission.reward} treats XP',
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: AppTheme.primaryColor,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -2121,9 +2139,13 @@ class _HomeCalendarEventTile extends StatelessWidget {
 }
 
 class _CalendarEventCard extends StatelessWidget {
-  const _CalendarEventCard({required this.event});
+  const _CalendarEventCard({required this.event, this.onDelete});
 
   final _CalendarEventData event;
+
+  /// When provided, a small trash icon is rendered and tapping it invokes the
+  /// callback. Used by [_buildCalendarView] so users can remove plans.
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -2206,6 +2228,18 @@ class _CalendarEventCard extends StatelessWidget {
               size: event.completed ? 19 : 18,
             ),
           ),
+          if (onDelete != null) ...[
+            const SizedBox(width: 6),
+            IconButton(
+              tooltip: 'Remove plan',
+              onPressed: onDelete,
+              icon: Icon(
+                Icons.delete_outline_rounded,
+                color: AppTheme.mutedText,
+                size: 20,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -4542,11 +4576,16 @@ class _MiniSelectionCard extends StatelessWidget {
 class _AccessoryCard extends StatelessWidget {
   const _AccessoryCard({
     required this.accessory,
+    required this.unlocked,
     required this.equipped,
     required this.onTap,
   });
 
   final _AccessoryData accessory;
+
+  /// Runtime unlocked state (read from [_HomeScreenState._unlockedAccessoryIds]
+  /// so wardrobe items earned via missions show as unlocked).
+  final bool unlocked;
   final bool equipped;
   final VoidCallback? onTap;
 
@@ -4556,7 +4595,7 @@ class _AccessoryCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(24),
       child: Opacity(
-        opacity: accessory.unlocked ? 1 : 0.32,
+        opacity: unlocked ? 1 : 0.32,
         child: Container(
           width: 156,
           decoration: AppTheme.glassCardDecoration(
@@ -4568,7 +4607,7 @@ class _AccessoryCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Stack(
             children: [
-              if (!accessory.unlocked)
+              if (!unlocked)
                 const Positioned(
                   right: 0,
                   top: 0,
