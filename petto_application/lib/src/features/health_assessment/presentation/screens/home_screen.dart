@@ -37,7 +37,9 @@ part 'home_wardrobe_screen_part.dart';
 part 'home_wellness_screen_part.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.initialPet});
+
+  final Pet? initialPet;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -414,7 +416,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // so the dashboard isn't empty.
       if (auth.isGuest || auth.userId == null) {
         setState(() {
-          _pets = _mockPets;
+          _pets = List<_PetData>.of(_mockPets);
           _savedAppearances.addAll({
             for (var i = 0; i < _pets.length; i++)
               i: _defaultAppearanceForSpecies(_pets[i].species),
@@ -451,9 +453,12 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final pets = await PetRepository().getUserPets(userId);
       if (!mounted) return;
+      final resolvedPets = pets.isEmpty && widget.initialPet != null
+          ? [widget.initialPet!]
+          : pets;
 
       setState(() {
-        _pets = pets.map(_petDataFromBackend).toList();
+        _pets = resolvedPets.map(_petDataFromBackend).toList();
         if (_activePetIndex >= _pets.length) _activePetIndex = 0;
         _savedAppearances
           ..clear()
@@ -483,10 +488,15 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       debugPrint('Failed to load pets: $e');
       if (mounted) {
+        final fallbackPet = widget.initialPet;
         setState(() {
-          _pets = [];
+          _pets = fallbackPet == null ? [] : [_petDataFromBackend(fallbackPet)];
           _petsLoading = false;
         });
+        if (fallbackPet != null) {
+          _seedVetConversationsIfNeeded();
+          _loadDraftForPet(_activePetIndex);
+        }
       }
     }
   }
@@ -495,12 +505,97 @@ class _HomeScreenState extends State<HomeScreen> {
     return _PetData(
       id: pet.id,
       name: pet.name,
-      species: pet.species ?? 'Cat',
+      species: _displaySpecies(pet.species),
       breed: (pet.breed == null || pet.breed!.isEmpty) ? 'Unknown' : pet.breed!,
       ageLabel: _ageLabelFromDob(pet.dateOfBirth),
       weightLabel: pet.weightKg == null ? '—' : '${pet.weightKg}kg',
       status: 'Currently Resting',
+      gender: pet.gender,
+      dateOfBirth: pet.dateOfBirth,
+      weightKg: pet.weightKg,
+      bloodType: pet.bloodType,
+      avatarUri: pet.avatarUri,
     );
+  }
+
+  _PetData _petDataFromEntity(PetEntity pet) {
+    final species = _displaySpecies(pet.species ?? _activePet.species);
+    return _PetData(
+      id: pet.id ?? _activePet.id,
+      name: pet.name,
+      species: species,
+      breed: (pet.breed == null || pet.breed!.isEmpty) ? 'Unknown' : pet.breed!,
+      ageLabel: _ageLabelFromDob(pet.dateOfBirth),
+      weightLabel: pet.weightKg == null ? '—' : '${pet.weightKg}kg',
+      status: _activePet.status,
+      gender: pet.gender,
+      dateOfBirth: pet.dateOfBirth,
+      weightKg: pet.weightKg,
+      bloodType: pet.bloodType,
+      avatarUri: pet.avatarUri,
+    );
+  }
+
+  PetEntity _petEntityFromData(_PetData pet) {
+    return PetEntity(
+      id: pet.id,
+      name: pet.name,
+      species: pet.species.toLowerCase(),
+      breed: pet.breed == 'Unknown' ? null : pet.breed,
+      gender: pet.gender,
+      dateOfBirth: pet.dateOfBirth,
+      weightKg: pet.weightKg,
+      bloodType: pet.bloodType,
+      avatarUri: pet.avatarUri,
+    );
+  }
+
+  String _displaySpecies(String? species) {
+    return species?.toLowerCase() == 'dog' ? 'Dog' : 'Cat';
+  }
+
+  Future<void> _editActivePet() async {
+    final index = _activePetIndex;
+    final initial = _petEntityFromData(_activePet);
+    final result = await Navigator.of(context).push<PetEntity>(
+      MaterialPageRoute(builder: (_) => PetFormScreen(initial: initial)),
+    );
+    if (result == null || !mounted) return;
+
+    _update(() {
+      _pets[index] = _petDataFromEntity(result);
+      _savedAppearances[index] = _defaultAppearanceForSpecies(
+        result.species ?? _pets[index].species,
+      );
+    });
+
+    final token = context.read<AuthController>().token;
+    if (token == null || result.id == null) return;
+
+    try {
+      final updated = await PetRepository().updatePet(
+        token: token,
+        petId: result.id!,
+        name: result.name,
+        species: result.species,
+        breed: result.breed,
+        gender: result.gender,
+        dateOfBirth: result.dateOfBirth,
+        weightKg: result.weightKg,
+        bloodType: result.bloodType,
+      );
+      if (!mounted) return;
+      _update(() {
+        _pets[index] = _petDataFromBackend(updated);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      showTopAlert(
+        context,
+        'Profile updated on this device. Server sync failed.',
+        icon: Icons.info_outline_rounded,
+      );
+    }
   }
 
   String _ageLabelFromDob(DateTime? dob) {

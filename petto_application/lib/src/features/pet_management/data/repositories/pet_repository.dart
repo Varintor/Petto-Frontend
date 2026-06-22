@@ -96,6 +96,39 @@ class PetRepository {
     }
   }
 
+  /// PUT /api/v1/pets/{petId} — update an existing pet profile.
+  Future<Pet> updatePet({
+    required String token,
+    required int petId,
+    required String name,
+    String? species,
+    String? breed,
+    String? gender,
+    DateTime? dateOfBirth,
+    double? weightKg,
+    String? bloodType,
+  }) async {
+    try {
+      final response = await dio.put(
+        AppConfig.petEndpoint(petId),
+        data: {
+          'name': name,
+          'species': species,
+          'breed': breed,
+          'gender': gender,
+          'date_of_birth': dateOfBirth?.toIso8601String().split('T').first,
+          'weight_kg': weightKg,
+          if (bloodType != null && bloodType.isNotEmpty)
+            'blood_type': bloodType,
+        },
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      return Pet.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw Exception(_describeDioError(e));
+    }
+  }
+
   /// GET /api/v1/users/{userId}/pets
   Future<List<Pet>> getUserPets(int userId) async {
     try {

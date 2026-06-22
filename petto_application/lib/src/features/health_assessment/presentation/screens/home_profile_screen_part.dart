@@ -112,26 +112,12 @@ extension _HomeProfileScreenPart on _HomeScreenState {
             ),
           ),
           const SizedBox(height: 22),
-          Row(
-            children: [
-              Expanded(
-                child: _StatTile(
-                  icon: Icons.scale_rounded,
-                  iconColor: AppTheme.primaryColor,
-                  value: _activePet.weightLabel,
-                  label: 'Current Weight',
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _StatTile(
-                  icon: Icons.emoji_events_rounded,
-                  iconColor: AppTheme.accentColor,
-                  value: 'LVL 12',
-                  label: 'Total Rank',
-                ),
-              ),
-            ],
+          _PetProfileDetailsCard(
+            pet: _activePet,
+            birthday: _profileBirthdayLabel(_activePet.dateOfBirth),
+            gender: _profileValue(_activePet.gender),
+            bloodType: _profileValue(_activePet.bloodType),
+            onEdit: _editActivePet,
           ),
           const SizedBox(height: 18),
           _ProfileLinkCard(
@@ -157,13 +143,6 @@ extension _HomeProfileScreenPart on _HomeScreenState {
           ),
           const SizedBox(height: 18),
           _ProfileActionButton(
-            label: 'Edit Bio',
-            icon: Icons.edit_rounded,
-            tint: AppTheme.secondaryColor,
-            onTap: () => _showPreviewSnackBar('Edit Bio'),
-          ),
-          const SizedBox(height: 12),
-          _ProfileActionButton(
             label: 'Logout',
             icon: Icons.logout_rounded,
             tint: AppTheme.primaryColor,
@@ -172,6 +151,31 @@ extension _HomeProfileScreenPart on _HomeScreenState {
         ],
       ),
     );
+  }
+
+  String _profileValue(String? value) {
+    final clean = value?.trim();
+    if (clean == null || clean.isEmpty) return 'Not set';
+    return clean[0].toUpperCase() + clean.substring(1);
+  }
+
+  String _profileBirthdayLabel(DateTime? date) {
+    if (date == null) return 'Not set';
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
   Future<void> _handleLogout(BuildContext context) async {
@@ -438,6 +442,260 @@ extension _HomeProfileScreenPart on _HomeScreenState {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _PetProfileDetailsCard extends StatelessWidget {
+  const _PetProfileDetailsCard({
+    required this.pet,
+    required this.birthday,
+    required this.gender,
+    required this.bloodType,
+    required this.onEdit,
+  });
+
+  final _PetData pet;
+  final String birthday;
+  final String gender;
+  final String bloodType;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor.withValues(alpha: 0.98),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(
+          color: AppTheme.primaryColor.withValues(alpha: 0.14),
+          width: 1.3,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryColor.withValues(alpha: 0.055),
+            blurRadius: 22,
+            spreadRadius: -8,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.badge_rounded,
+                  color: Colors.white,
+                  size: 21,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pet Profile',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: AppTheme.secondaryText,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Details from onboarding',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppTheme.mutedText,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              InkWell(
+                onTap: onEdit,
+                borderRadius: BorderRadius.circular(999),
+                child: Ink(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.14),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.edit_rounded,
+                        color: AppTheme.primaryColor,
+                        size: 17,
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        'Edit',
+                        style: TextStyle(
+                          fontFamily: AppTheme.sansFontFamily,
+                          color: AppTheme.primaryColor,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _ProfileDetailTile(
+                  icon: Icons.pets_rounded,
+                  label: 'Type',
+                  value: pet.species,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ProfileDetailTile(
+                  icon: Icons.favorite_rounded,
+                  label: 'Gender',
+                  value: gender,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _ProfileDetailTile(
+                  icon: Icons.category_rounded,
+                  label: 'Breed',
+                  value: pet.breed,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ProfileDetailTile(
+                  icon: Icons.bloodtype_rounded,
+                  label: 'Blood',
+                  value: bloodType,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _ProfileDetailTile(
+                  icon: Icons.cake_rounded,
+                  label: 'Birthday',
+                  value: birthday,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ProfileDetailTile(
+                  icon: Icons.scale_rounded,
+                  label: 'Weight',
+                  value: pet.weightLabel,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileDetailTile extends StatelessWidget {
+  const _ProfileDetailTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 76,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryColor.withValues(alpha: 0.045),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: AppTheme.primaryColor.withValues(alpha: 0.10),
+          width: 1.1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceColor.withValues(alpha: 0.94),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: AppTheme.primaryColor, size: 18),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label.toUpperCase(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: AppTheme.sansFontFamily,
+                    color: AppTheme.mutedText.withValues(alpha: 0.84),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.9,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: AppTheme.displayFontFamily,
+                    color: AppTheme.secondaryText,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

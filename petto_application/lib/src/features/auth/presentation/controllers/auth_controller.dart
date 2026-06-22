@@ -21,7 +21,7 @@ class AuthController extends ChangeNotifier {
   String? _error;
 
   AuthController({required this.repository, TokenStorage? storage})
-      : storage = storage ?? TokenStorage();
+    : storage = storage ?? TokenStorage();
 
   AuthStatus get status => _status;
   String? get token => _token;
@@ -104,6 +104,20 @@ class AuthController extends ChangeNotifier {
     await storage.saveToken(_token ?? '');
     await storage.saveUserId(_userId ?? 0);
     _petId = await storage.getPetId();
+    _status = AuthStatus.authenticated;
+    notifyListeners();
+  }
+
+  Future<void> applyCompletedRegistration(
+    AuthResult result, {
+    required int petId,
+  }) async {
+    _token = result.accessToken;
+    _userId = result.user.id;
+    _petId = petId;
+    await storage.saveToken(_token ?? '');
+    await storage.saveUserId(_userId ?? 0);
+    await storage.savePetId(petId);
     _status = AuthStatus.authenticated;
     notifyListeners();
   }

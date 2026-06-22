@@ -89,9 +89,11 @@ class AppConfig {
   /// Create pet (authenticated) -> POST /api/v1/pets
   static const String petsEndpoint = '$apiPrefix/pets';
 
+  /// Single pet profile -> /api/v1/pets/{petId}
+  static String petEndpoint(int petId) => '$apiPrefix/pets/$petId';
+
   /// My pets -> GET /api/v1/users/{userId}/pets
-  static String userPetsEndpoint(int userId) =>
-      '$apiPrefix/users/$userId/pets';
+  static String userPetsEndpoint(int userId) => '$apiPrefix/users/$userId/pets';
 
   /// Vaccinations -> /api/v1/vaccinations
   static const String vaccinationsEndpoint = '$apiPrefix/vaccinations';

@@ -4102,48 +4102,6 @@ class _HistoryDetailCard extends StatelessWidget {
   }
 }
 
-class _StatTile extends StatelessWidget {
-  const _StatTile({
-    required this.icon,
-    required this.iconColor,
-    required this.value,
-    required this.label,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final String value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: AppTheme.glassCardDecoration(
-        color: Colors.white,
-        borderColor: iconColor.withValues(alpha: 0.16),
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: iconColor,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(icon, color: Colors.white, size: 22),
-          ),
-          const SizedBox(height: 12),
-          Text(value, style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 4),
-          Text(label, style: Theme.of(context).textTheme.labelSmall),
-        ],
-      ),
-    );
-  }
-}
-
 class _ProfileLinkCard extends StatelessWidget {
   const _ProfileLinkCard({
     required this.icon,

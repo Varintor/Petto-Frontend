@@ -69,11 +69,8 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
-  /// Eagerly-kicked register + createPet started when the user reaches the
-  /// summary screen. By the time they confirm, this is usually already done so
-  /// Home opens with the pet ready (no "no pet" empty-state flash).
-  Future<void>? _creationFuture;
   String? _eagerError;
+  Pet? _registeredPet;
 
   /// Set when the eager register fails with HTTP 409 (email already in use).
   /// Drives a friendlier "go back and use another email / log in instead" UX
@@ -145,11 +142,11 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     });
   }
 
-  void _openHome() {
+  void _openHome({Pet? initialPet}) {
     FocusManager.instance.primaryFocus?.unfocus();
-    Navigator.of(
-      context,
-    ).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => HomeScreen(initialPet: initialPet)),
+    );
   }
 
   Future<void> _handleLogin() async {
@@ -188,21 +185,18 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     _openHome();
   }
 
-  /// Runs the actual register + createPet sequence against the backend.
-  /// Captured into [_creationFuture] so the summary screen can pre-fire it.
-  Future<void> _runEagerCreation() async {
+  /// Runs register + createPet as one flow. The auth session is only applied
+  /// after the pet exists, so AuthGate cannot jump to Home's empty pet state.
+  Future<void> _runRegistrationAndCreatePet() async {
     final auth = context.read<AuthController>();
     try {
-      final ok = await auth.register(
+      final result = await auth.repository.register(
         _email.text.trim(),
         _password.text,
         _ownerName.text.trim(),
       );
-      if (!ok) {
-        throw Exception(auth.error ?? 'Registration failed');
-      }
-      final token = auth.token;
-      if (token == null || token.isEmpty) {
+      final token = result.accessToken;
+      if (token.isEmpty) {
         throw Exception('Missing auth token after registration');
       }
       final dob = DateTime(_birthYear, _birthMonth, _birthDay);
@@ -218,8 +212,8 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
             ? null
             : _bloodType.text.trim(),
       );
-      // Cache the new pet id so feature endpoints can scope to it immediately.
-      await auth.setPetId(newPet.id);
+      _registeredPet = newPet;
+      await auth.applyCompletedRegistration(result, petId: newPet.id);
     } catch (e) {
       final raw = e.toString().replaceFirst('Exception: ', '');
       // Backend returns 409 + detail "Email already registered" for duplicate
@@ -245,17 +239,12 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     });
 
     try {
-      // Await the eager creation kicked off in _openSummary. If it already
-      // finished while the user was reviewing, this completes instantly and
-      // Home opens with the pet ready (no empty-state flash).
-      await (_creationFuture ?? _runEagerCreation());
+      await _runRegistrationAndCreatePet();
       if (!mounted) return;
-      _openHome();
+      _openHome(initialPet: _registeredPet);
     } catch (_) {
       if (!mounted) return;
       final message = _eagerError ?? 'Could not complete sign-up.';
-      // Drop the cached future so the next Continue tap retries from scratch.
-      _creationFuture = null;
 
       if (_emailTaken) {
         // Bounce the user back to the credentials step so they can pick a
@@ -425,7 +414,7 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     FocusManager.instance.primaryFocus?.unfocus();
     final index = _RegisterStep.values.indexOf(_step);
     if (index == _RegisterStep.values.length - 1) {
-      _openHome();
+      _openSummary();
       return;
     }
     setState(() {
@@ -440,15 +429,6 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
       _transitionDirection = 1;
       _screen = _AuthScreen.summary;
     });
-    // Kick off register + createPet in the background while the user reviews
-    // their info. Pre-attach a silent error listener so the runtime doesn't
-    // log "Unhandled Exception" if it errors before Continue is tapped — the
-    // real handling happens in _handleRegisterAndCreatePet when we await it.
-    if (_creationFuture == null) {
-      final f = _runEagerCreation();
-      _creationFuture = f;
-      f.then<void>((_) {}, onError: (Object _) {});
-    }
   }
 
   @override
@@ -723,10 +703,8 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
               setState(() => _errorMessage = 'Passwords do not match');
               return;
             }
-            // The user just (re)entered credentials. Drop any cached eager
-            // creation so the new email/password takes effect on the next
-            // summary visit (otherwise we'd retry the old failing request).
-            _creationFuture = null;
+            // The user just (re)entered credentials, so clear any stale error
+            // before continuing to the pet steps.
             _eagerError = null;
             _emailTaken = false;
             setState(() => _errorMessage = null);

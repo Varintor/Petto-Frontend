@@ -23,6 +23,11 @@ class _PetData {
     required this.ageLabel,
     required this.weightLabel,
     required this.status,
+    this.gender,
+    this.dateOfBirth,
+    this.weightKg,
+    this.bloodType,
+    this.avatarUri,
   });
 
   final int id;
@@ -32,6 +37,11 @@ class _PetData {
   final String ageLabel;
   final String weightLabel;
   final String status;
+  final String? gender;
+  final DateTime? dateOfBirth;
+  final double? weightKg;
+  final String? bloodType;
+  final String? avatarUri;
 }
 
 class _PetAppearanceData {
@@ -141,20 +151,21 @@ class _CalendarEventData {
   int get day => date.day;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'time_label': timeLabel,
-        'type': type,
-        'completed': completed,
-        'date': date.toIso8601String(),
-        'starts_at': startsAt?.toIso8601String(),
-        'color': color.toARGB32(),
-        'icon': icon.codePoint,
-        'icon_family': icon.fontFamily,
-      };
+    'id': id,
+    'title': title,
+    'time_label': timeLabel,
+    'type': type,
+    'completed': completed,
+    'date': date.toIso8601String(),
+    'starts_at': startsAt?.toIso8601String(),
+    'color': color.toARGB32(),
+    'icon': icon.codePoint,
+    'icon_family': icon.fontFamily,
+  };
 
   static _CalendarEventData fromJson(Map<String, dynamic> json) {
-    final iconCodePoint = json['icon'] as int? ?? Icons.event_available_rounded.codePoint;
+    final iconCodePoint =
+        json['icon'] as int? ?? Icons.event_available_rounded.codePoint;
     final iconFamily = json['icon_family'] as String? ?? 'MaterialIcons';
     return _CalendarEventData(
       id: json['id'] as String,
