@@ -30,7 +30,11 @@ enum _RegisterStep {
 }
 
 class AuthOnboardingScreen extends StatefulWidget {
-  const AuthOnboardingScreen({super.key});
+  const AuthOnboardingScreen({super.key, this.startAtLogin = false});
+
+  /// When true, skip the marketing intro and open directly on the login
+  /// form. Used by [AuthGate] right after a logout.
+  final bool startAtLogin;
 
   @override
   State<AuthOnboardingScreen> createState() => _AuthOnboardingScreenState();
@@ -45,7 +49,8 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
   static const _paleRose = Color(0xFFE7D4D9);
   static const _cream = Color(0xFFF6F4F1);
 
-  _AuthScreen _screen = _AuthScreen.intro;
+  late _AuthScreen _screen =
+      widget.startAtLogin ? _AuthScreen.gateway : _AuthScreen.intro;
   _RegisterStep _step = _RegisterStep.owner;
   int _transitionDirection = 1;
   String _species = 'Cat';

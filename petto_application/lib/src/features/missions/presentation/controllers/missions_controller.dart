@@ -83,6 +83,18 @@ class MissionsController extends ChangeNotifier {
       loadDashboardStats(petId: petId),
     ]);
   }
+
+  /// Wipe per-account state on logout so the next signed-in user doesn't
+  /// transiently see the previous account's missions/dashboard before their
+  /// own data finishes loading.
+  void clearForAccount() {
+    _missions = [];
+    _dashboardStats = DashboardStatsModel.empty();
+    _missionsLoading = false;
+    _dashboardLoading = false;
+    _error = null;
+    notifyListeners();
+  }
 }
 
 extension _IterableCount<T> on Iterable<T> {

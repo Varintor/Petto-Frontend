@@ -14,8 +14,18 @@ class WalkSummaryScreen extends StatelessWidget {
 
   Future<void> _save(BuildContext context, ActivityTrackingController c) async {
     // Save against the user's real pet so the backend auto-completes THAT pet's
-    // walk mission (not the seed pet's).
-    final petId = context.read<AuthController>().petId;
+    // walk mission (not the seed pet's). Guests still use the seed pet because
+    // that's the only pet they have.
+    final auth = context.read<AuthController>();
+    final petId = auth.isGuest ? auth.petId : auth.rawPetId;
+    if (petId == null) {
+      showTopAlert(
+        context,
+        'Add a pet before saving walks.',
+        icon: Icons.info_outline_rounded,
+      );
+      return;
+    }
     final ok = await c.save(petId: petId);
     if (!context.mounted) return;
     if (ok) {

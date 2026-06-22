@@ -19,6 +19,7 @@ import '../../../activity_tracking/presentation/controllers/activity_tracking_co
 import '../../../activity_tracking/presentation/screens/live_walk_screen.dart';
 import '../../../missions/presentation/controllers/missions_controller.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
+import '../../../auth/presentation/screens/auth_gate.dart';
 import '../../../pet_management/data/repositories/pet_repository.dart';
 import '../../../pet_management/domain/entities/pet_entity.dart';
 import '../../../pet_management/presentation/screens/pet_form_screen.dart';
@@ -1377,7 +1378,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 16),
                   TextButton.icon(
-                    onPressed: () => context.read<AuthController>().logout(),
+                    onPressed: () async {
+                      final navigator = Navigator.of(
+                        context,
+                        rootNavigator: true,
+                      );
+                      await context.read<AuthController>().logout();
+                      navigator.pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (_) => const AuthGate()),
+                        (route) => false,
+                      );
+                    },
                     icon: const Icon(Icons.logout_rounded),
                     label: const Text('Log out'),
                   ),

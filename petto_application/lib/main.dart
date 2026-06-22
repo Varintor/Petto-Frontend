@@ -51,17 +51,36 @@ class PettoApp extends StatelessWidget {
             repository: HealthAssessmentRepositoryImpl(),
           ),
         ),
-        ChangeNotifierProvider(
+        // ActivityTracking + Missions register a logout handler on the
+        // AuthController so signing out wipes the previous account's cached
+        // stats — otherwise the next user briefly sees stale numbers.
+        ChangeNotifierProxyProvider<AuthController, ActivityTrackingController>(
           create: (_) =>
               ActivityTrackingController(repository: ActivityRepositoryImpl()),
+          update: (_, auth, controller) {
+            final c =
+                controller ??
+                ActivityTrackingController(
+                  repository: ActivityRepositoryImpl(),
+                );
+            auth.addLogoutHandler(c.clearForAccount);
+            return c;
+          },
         ),
         ChangeNotifierProvider(
           create: (_) =>
               VaccinationController(repository: VaccinationRepositoryImpl()),
         ),
-        ChangeNotifierProvider(
+        ChangeNotifierProxyProvider<AuthController, MissionsController>(
           create: (_) =>
               MissionsController(repository: MissionsRepositoryImpl()),
+          update: (_, auth, controller) {
+            final c =
+                controller ??
+                MissionsController(repository: MissionsRepositoryImpl());
+            auth.addLogoutHandler(c.clearForAccount);
+            return c;
+          },
         ),
       ],
       child: MaterialApp(

@@ -292,9 +292,16 @@ extension _HomeProfileScreenPart on _HomeScreenState {
     );
 
     if (confirmed == true && context.mounted) {
+      final navigator = Navigator.of(context, rootNavigator: true);
       final auth = context.read<AuthController>();
       await auth.logout();
-      // AuthGate will automatically redirect to login screen
+      // The auth onboarding flow pushReplacement'd HomeScreen on top of the
+      // root AuthGate, so the gate is no longer in the stack to react to
+      // status changes. Force-reset the stack back to a fresh AuthGate.
+      navigator.pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const AuthGate()),
+        (route) => false,
+      );
     }
   }
 

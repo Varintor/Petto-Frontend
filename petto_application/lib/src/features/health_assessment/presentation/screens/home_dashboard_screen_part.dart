@@ -458,15 +458,27 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
   }
 
   Widget _buildMissionActivityPanel(BuildContext context) {
+    int? activePetId() {
+      final auth = context.read<AuthController>();
+      // Guests use the seed pet (their only pet); signed-in users must have
+      // their own real pet — never fall back to the seed pet, or stats from
+      // pet #1 leak into every empty account.
+      return auth.isGuest ? auth.petId : auth.rawPetId;
+    }
+
     void startWalk() {
       final controller = context.read<ActivityTrackingController>();
+      final petId = activePetId();
       Navigator.of(context)
           .push(
             MaterialPageRoute(
               builder: (_) => LiveWalkScreen(petName: _activePet.name),
             ),
           )
-          .then((_) => controller.loadStats());
+          .then((_) {
+        if (petId == null) return;
+        controller.loadStats(petId: petId);
+      });
     }
 
     return Consumer<ActivityTrackingController>(
@@ -498,7 +510,11 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
                 InkWell(
                   onTap: controller.statsLoading
                       ? null
-                      : () => controller.loadStats(),
+                      : () {
+                          final petId = activePetId();
+                          if (petId == null) return;
+                          controller.loadStats(petId: petId);
+                        },
                   borderRadius: BorderRadius.circular(999),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 180),

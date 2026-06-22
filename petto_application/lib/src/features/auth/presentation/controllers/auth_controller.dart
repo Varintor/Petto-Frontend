@@ -19,6 +19,12 @@ class AuthController extends ChangeNotifier {
   int? _userId;
   int? _petId;
   String? _error;
+  bool _justLoggedOut = false;
+
+  /// Handlers invoked when [logout] runs, so other controllers can clear
+  /// per-account in-memory state (stats, missions) before the new account
+  /// loads. Registered from [main.dart] at provider wiring time.
+  final List<VoidCallback> _logoutHandlers = [];
 
   AuthController({required this.repository, TokenStorage? storage})
     : storage = storage ?? TokenStorage();
@@ -27,13 +33,32 @@ class AuthController extends ChangeNotifier {
   String? get token => _token;
   int? get userId => _userId;
 
-  /// Falls back to the seed pet so feature endpoints keyed by pet id still work
-  /// before the user has created their own pet.
-  int? get petId => _petId ?? AppConfig.defaultPetId;
+  /// Falls back to the seed pet ONLY for authenticated users who haven't
+  /// created a pet yet. Never returns the mock pet for unauthenticated/guest
+  /// sessions — after logout, this returns null and tracking controllers
+  /// must wait for a real pet before loading stats.
+  int? get petId => _status == AuthStatus.authenticated
+      ? (_petId ?? AppConfig.defaultPetId)
+      : null;
   int? get rawPetId => _petId;
   String? get error => _error;
   bool get isAuthenticated => _status == AuthStatus.authenticated;
   bool get isGuest => _status == AuthStatus.unauthenticated && _token == null;
+
+  /// True after the user explicitly hits "Log out". Cleared once they log
+  /// back in or the consumer (AuthGate) acknowledges it. Lets the onboarding
+  /// screen open straight at the login form instead of the marketing intro.
+  bool get justLoggedOut => _justLoggedOut;
+
+  /// Idempotent — safe to call from [ChangeNotifierProxyProvider.update],
+  /// which fires every time this controller notifies.
+  void addLogoutHandler(VoidCallback handler) {
+    if (_logoutHandlers.contains(handler)) return;
+    _logoutHandlers.add(handler);
+  }
+
+  void removeLogoutHandler(VoidCallback handler) =>
+      _logoutHandlers.remove(handler);
 
   Future<void> tryAutoLogin() async {
     _status = AuthStatus.loading;
@@ -104,6 +129,7 @@ class AuthController extends ChangeNotifier {
     await storage.saveToken(_token ?? '');
     await storage.saveUserId(_userId ?? 0);
     _petId = await storage.getPetId();
+    _justLoggedOut = false;
     _status = AuthStatus.authenticated;
     notifyListeners();
   }
@@ -118,6 +144,7 @@ class AuthController extends ChangeNotifier {
     await storage.saveToken(_token ?? '');
     await storage.saveUserId(_userId ?? 0);
     await storage.savePetId(petId);
+    _justLoggedOut = false;
     _status = AuthStatus.authenticated;
     notifyListeners();
   }
@@ -142,8 +169,24 @@ class AuthController extends ChangeNotifier {
     _userId = null;
     _petId = null;
     _error = null;
+    _justLoggedOut = true;
+    // Wipe per-account state in sibling controllers (activity, missions, ...)
+    // so the next account that signs in doesn't inherit the previous account's
+    // cached stats. Each handler is best-effort.
+    for (final handler in List<VoidCallback>.from(_logoutHandlers)) {
+      try {
+        handler();
+      } catch (_) {}
+    }
     _status = AuthStatus.unauthenticated;
     notifyListeners();
+  }
+
+  /// Called by [AuthGate] once it has navigated to the login form so the
+  /// flag doesn't keep forcing the login screen on subsequent rebuilds.
+  void acknowledgeLogout() {
+    if (!_justLoggedOut) return;
+    _justLoggedOut = false;
   }
 
   String _parseError(dynamic e) {

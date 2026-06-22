@@ -246,6 +246,16 @@ class ActivityTrackingController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Drop every per-account piece of state — the active walk AND the cached
+  /// dashboard stats — so the next user that signs in doesn't see the
+  /// previous account's totals while their own data is still loading.
+  void clearForAccount() {
+    reset();
+    _stats = ActivityStatsModel.empty();
+    _statsLoading = false;
+    notifyListeners();
+  }
+
   String _readinessMessage(LocationReadiness r) {
     switch (r) {
       case LocationReadiness.serviceDisabled:

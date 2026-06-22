@@ -16,11 +16,15 @@ class AppConfig {
   static const String _railwayUrl =
       'https://petto-backend-production.up.railway.app';
 
-  /// LAN URL - Local Development
+  /// LAN URL - Local Development (Android device on same Wi-Fi, etc.)
   static const String _lanUrl = 'http://192.168.1.22:8000';
 
+  /// Local URL - same-machine development. Works for Flutter web in Chrome
+  /// and iOS simulator. Android emulator must use http://10.0.2.2:8000.
+  static const String _localUrl = 'http://localhost:8000';
+
   /// Root URL of the backend (no trailing slash, no path).
-  /// Production: Railway (stable HTTPS, always-on — no ngrok/dev machine).
+  /// Currently: Railway production FastAPI.
   static const String apiBaseUrl = _railwayUrl;
 
   /// Shared API version prefix.

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../domain/assessment_analysis.dart';
 import '../../domain/entities/assessment_entity.dart';
 
 class ResultDisplayWidget extends StatelessWidget {
@@ -147,8 +148,6 @@ class ResultDisplayWidget extends StatelessWidget {
           const SizedBox(height: 16),
           _ResultAiAnalysisPanel(
             riskColor: risk.color,
-            riskLabel: risk.label,
-            symptoms: symptomText,
             response: assessment.aiResponse,
           ),
           const SizedBox(height: 16),
@@ -331,26 +330,35 @@ class ResultDisplayWidget extends StatelessWidget {
 class _ResultAiAnalysisPanel extends StatelessWidget {
   const _ResultAiAnalysisPanel({
     required this.riskColor,
-    required this.riskLabel,
-    required this.symptoms,
     required this.response,
   });
 
   final Color riskColor;
-  final String riskLabel;
-  final String symptoms;
   final String response;
 
   @override
   Widget build(BuildContext context) {
-    final observations = _pointsFrom(
-      response,
-      fallback: [
-        'Review visible signs together with the reported symptoms.',
-        'Track appetite, breathing, activity, comfort, and behavior changes.',
-      ],
-    );
-    final highRisk = riskLabel.toLowerCase().contains('high');
+    final analysis = AssessmentAnalysis.parse(response);
+    final hasAnyContent = response.trim().isNotEmpty;
+
+    final actionItems = <String>[];
+    final actionIcons = <IconData>[];
+    final actionColors = <Color>[];
+    if (analysis.doAction != null) {
+      actionItems.add('Do: ${analysis.doAction}');
+      actionIcons.add(Icons.check_circle_rounded);
+      actionColors.add(AppTheme.successColor);
+    }
+    if (analysis.doNotAction != null) {
+      actionItems.add('Do not: ${analysis.doNotAction}');
+      actionIcons.add(Icons.cancel_rounded);
+      actionColors.add(AppTheme.primaryColor);
+    }
+    if (analysis.urgency != null) {
+      actionItems.add('Urgency: ${analysis.urgency}');
+      actionIcons.add(Icons.notifications_active_rounded);
+      actionColors.add(AppTheme.accentColor);
+    }
 
     return Container(
       width: double.infinity,
@@ -398,71 +406,92 @@ class _ResultAiAnalysisPanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          _ResultAnalysisSection(
-            icon: Icons.visibility_rounded,
-            title: 'Observations',
-            color: AppTheme.primaryColor,
-            items: observations.take(2).toList(),
-          ),
-          const SizedBox(height: 10),
-          _ResultAnalysisSection(
-            icon: Icons.health_and_safety_rounded,
-            title: 'Potential concerns',
-            color: riskColor,
-            items: highRisk
-                ? [
-                    'Symptoms may require prompt professional review.',
-                    'Watch for worsening breathing, weakness, collapse, or pain.',
-                  ]
-                : [
-                    'Symptoms may be mild but should still be monitored.',
-                    'Follow up if there is no improvement.',
-                  ],
-          ),
-          const SizedBox(height: 10),
-          _ResultAnalysisSection(
-            icon: Icons.lightbulb_rounded,
-            title: 'Recommended actions',
-            color: AppTheme.accentColor,
-            items: [
-              'Do: Keep ${_shortSymptom(symptoms)} under close observation.',
-              'Do not: Ignore sudden behavior or breathing changes.',
-              'Urgency: Contact your care team if symptoms persist.',
+          if (!hasAnyContent)
+            _emptyState(context)
+          else ...[
+            if (analysis.observations.isNotEmpty) ...[
+              _ResultAnalysisSection(
+                icon: Icons.visibility_rounded,
+                title: 'Observations',
+                color: AppTheme.primaryColor,
+                items: analysis.observations,
+              ),
+              const SizedBox(height: 10),
             ],
-            itemIcons: const [
-              Icons.check_circle_rounded,
-              Icons.cancel_rounded,
-              Icons.notifications_active_rounded,
+            if (analysis.concerns.isNotEmpty) ...[
+              _ResultAnalysisSection(
+                icon: Icons.health_and_safety_rounded,
+                title: 'Potential concerns',
+                color: riskColor,
+                items: analysis.concerns,
+              ),
+              const SizedBox(height: 10),
             ],
-            itemColors: [
-              AppTheme.successColor,
-              AppTheme.primaryColor,
-              AppTheme.accentColor,
+            if (actionItems.isNotEmpty) ...[
+              _ResultAnalysisSection(
+                icon: Icons.lightbulb_rounded,
+                title: 'Recommended actions',
+                color: AppTheme.accentColor,
+                items: actionItems,
+                itemIcons: actionIcons,
+                itemColors: actionColors,
+              ),
+              const SizedBox(height: 10),
             ],
-          ),
+            // If Gemini diverged from the expected template and the parser
+            // couldn't structure anything, fall back to showing the raw text
+            // so the user still sees the real AI output (not a canned mock).
+            if (!analysis.structured &&
+                analysis.observations.isEmpty &&
+                analysis.concerns.isEmpty &&
+                actionItems.isEmpty)
+              _rawFallback(context, response),
+          ],
         ],
       ),
     );
   }
 
-  List<String> _pointsFrom(String value, {required List<String> fallback}) {
-    final cleaned = value.trim();
-    if (cleaned.isEmpty) return fallback;
-    final pieces = cleaned
-        .split(RegExp(r'(?<=[.!?])\s+|\n+|•'))
-        .map((line) => line.trim())
-        .where((line) => line.length > 8)
-        .toList();
-    if (pieces.isEmpty) return fallback;
-    return pieces.take(3).toList();
+  Widget _emptyState(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.mutedText.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppTheme.mutedText.withValues(alpha: 0.10)),
+      ),
+      child: Text(
+        'The AI service did not return an analysis for this scan.',
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: AppTheme.mutedText,
+          height: 1.42,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
   }
 
-  String _shortSymptom(String value) {
-    final trimmed = value.trim();
-    if (trimmed.isEmpty || trimmed == 'No symptom description') {
-      return 'your pet';
-    }
-    return trimmed.length > 34 ? '${trimmed.substring(0, 34)}...' : trimmed;
+  Widget _rawFallback(BuildContext context, String raw) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryColor.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: AppTheme.primaryColor.withValues(alpha: 0.10),
+        ),
+      ),
+      child: Text(
+        raw.trim(),
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: AppTheme.secondaryText.withValues(alpha: 0.86),
+          height: 1.46,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
   }
 }
 

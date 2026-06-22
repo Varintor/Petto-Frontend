@@ -60,7 +60,17 @@ class _AuthGateState extends State<AuthGate> {
         return const HomeScreen();
       case AuthStatus.unauthenticated:
       case AuthStatus.error:
-        return const AuthOnboardingScreen();
+        // After an explicit logout, drop the user on the login form rather
+        // than the marketing intro page — they already know the app.
+        final startAtLogin = auth.justLoggedOut;
+        if (startAtLogin) {
+          // Consume the flag once we've handed it off so a later rebuild
+          // (e.g. the user tapping "back" to the intro) isn't overridden.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            auth.acknowledgeLogout();
+          });
+        }
+        return AuthOnboardingScreen(startAtLogin: startAtLogin);
     }
   }
 }

@@ -26,7 +26,14 @@ class _WellnessTrackingViewState extends State<WellnessTrackingView> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final petId = context.read<AuthController>().petId;
+      // Use rawPetId so an authenticated user without a pet doesn't fall
+      // back to the seed pet (Milo) and see his mock walking stats.
+      final auth = context.read<AuthController>();
+      final petId = auth.isGuest ? auth.petId : auth.rawPetId;
+      if (petId == null) {
+        context.read<ActivityTrackingController>().clearForAccount();
+        return;
+      }
       context.read<ActivityTrackingController>().loadStats(petId: petId);
     });
   }
@@ -34,7 +41,8 @@ class _WellnessTrackingViewState extends State<WellnessTrackingView> {
   void _startWalk() {
     final activityController = context.read<ActivityTrackingController>();
     final missionsController = context.read<MissionsController>();
-    final petId = context.read<AuthController>().petId;
+    final auth = context.read<AuthController>();
+    final petId = auth.isGuest ? auth.petId : auth.rawPetId;
     Navigator.of(context)
         .push(MaterialPageRoute(
           builder: (_) => LiveWalkScreen(petName: widget.petName),
@@ -42,6 +50,7 @@ class _WellnessTrackingViewState extends State<WellnessTrackingView> {
         .then((_) {
       // Refresh activity stats + missions for THIS pet after the walk so the
       // backend's auto-completed walk mission shows up (not the seed pet's).
+      if (petId == null) return;
       activityController.loadStats(petId: petId);
       missionsController.loadAll(petId: petId);
     });
