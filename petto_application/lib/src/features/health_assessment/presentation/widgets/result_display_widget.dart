@@ -24,6 +24,12 @@ class ResultDisplayWidget extends StatelessWidget {
 
   ({Color color, IconData icon, String label}) get _risk {
     switch (assessment.riskBucket) {
+      case 'failed':
+        return (
+          color: AppTheme.dangerColor,
+          icon: Icons.refresh_rounded,
+          label: 'Analysis failed',
+        );
       case 'high':
         return (
           color: AppTheme.dangerColor,
@@ -40,13 +46,19 @@ class ResultDisplayWidget extends StatelessWidget {
               ? 'Low Risk'
               : assessment.riskLevel,
         );
-      default:
+      case 'moderate':
         return (
           color: AppTheme.accentColor,
           icon: Icons.warning_amber_rounded,
           label: assessment.riskLevel.isEmpty
               ? 'Moderate Risk'
               : assessment.riskLevel,
+        );
+      default:
+        return (
+          color: AppTheme.mutedText,
+          icon: Icons.help_rounded,
+          label: 'Risk unavailable',
         );
     }
   }
@@ -95,7 +107,9 @@ class ResultDisplayWidget extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Assessment Complete',
+                        assessment.isFailed
+                            ? 'Assessment not completed'
+                            : 'Assessment Complete',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           color: AppTheme.secondaryText,
                           fontWeight: FontWeight.w900,
@@ -146,10 +160,13 @@ class ResultDisplayWidget extends StatelessWidget {
             const SizedBox(height: 12),
           _buildSymptomCard(context, symptomText),
           const SizedBox(height: 16),
-          _ResultAiAnalysisPanel(
-            riskColor: risk.color,
-            response: assessment.aiResponse,
-          ),
+          if (assessment.isFailed)
+            _AssessmentFailurePanel(errorCode: assessment.errorCode)
+          else
+            _ResultAiAnalysisPanel(
+              riskColor: risk.color,
+              response: assessment.aiResponse,
+            ),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(14),
@@ -189,10 +206,11 @@ class ResultDisplayWidget extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: onReset ?? defaultBack,
-                    child: const Text('New Scan'),
+                    child: Text(assessment.isFailed ? 'Try Again' : 'New Scan'),
                   ),
                 ),
-                if (onTalkToVet != null || onBackToDashboard != null) ...[
+                if (!assessment.isFailed &&
+                    (onTalkToVet != null || onBackToDashboard != null)) ...[
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
@@ -214,7 +232,9 @@ class ResultDisplayWidget extends StatelessWidget {
             if (onReset != null)
               ElevatedButton(
                 onPressed: onReset,
-                child: const Text('Analyze Another Case'),
+                child: Text(
+                  assessment.isFailed ? 'Try Again' : 'Analyze Another Case',
+                ),
               ),
             const SizedBox(height: 12),
             OutlinedButton(
@@ -321,6 +341,55 @@ class ResultDisplayWidget extends StatelessWidget {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AssessmentFailurePanel extends StatelessWidget {
+  const _AssessmentFailurePanel({this.errorCode});
+
+  final String? errorCode;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppTheme.dangerColor.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppTheme.dangerColor.withValues(alpha: 0.16)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'The AI analysis could not be completed.',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: AppTheme.secondaryText,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Please wait a moment and try again. No risk level was assigned.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: AppTheme.mutedText,
+              height: 1.4,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (errorCode != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Reference: $errorCode',
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: AppTheme.mutedText),
+            ),
+          ],
         ],
       ),
     );

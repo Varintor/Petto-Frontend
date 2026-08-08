@@ -9,8 +9,10 @@ import '../../domain/entities/assessment_entity.dart';
 ///   "pet_id": 1,
 ///   "symptom_description": "....",
 ///   "image_uri": "https://....",
-///   "risk_level": "Low Risk",        // enum value
+///   "risk_level": "Low Risk",        // null when status=failed
 ///   "ai_raw_response": "....",
+///   "status": "completed",
+///   "error_code": null,
 ///   "created_at": "2026-05-24T..."
 /// }
 class AssessmentModel {
@@ -18,8 +20,10 @@ class AssessmentModel {
   final int petId;
   final String? symptomDescription;
   final String? imageUri;
-  final String riskLevel;
+  final String? riskLevel;
   final String? aiRawResponse;
+  final String status;
+  final String? errorCode;
   final DateTime createdAt;
 
   AssessmentModel({
@@ -27,8 +31,10 @@ class AssessmentModel {
     required this.petId,
     this.symptomDescription,
     this.imageUri,
-    required this.riskLevel,
+    this.riskLevel,
     this.aiRawResponse,
+    required this.status,
+    this.errorCode,
     required this.createdAt,
   });
 
@@ -38,8 +44,12 @@ class AssessmentModel {
       petId: json['pet_id'] as int,
       symptomDescription: json['symptom_description'] as String?,
       imageUri: json['image_uri'] as String?,
-      riskLevel: (json['risk_level'] ?? 'Moderate Risk').toString(),
+      riskLevel: json['risk_level']?.toString(),
       aiRawResponse: json['ai_raw_response'] as String?,
+      status:
+          json['status'] as String? ??
+          (json['risk_level'] == null ? 'failed' : 'completed'),
+      errorCode: json['error_code'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
@@ -54,8 +64,10 @@ class AssessmentModel {
       petType: petType,
       symptoms: symptomDescription,
       imageUri: imageUri,
-      riskLevel: riskLevel,
+      riskLevel: riskLevel ?? '',
       aiResponse: aiRawResponse ?? '',
+      status: status,
+      errorCode: errorCode,
       createdAt: createdAt,
     );
   }

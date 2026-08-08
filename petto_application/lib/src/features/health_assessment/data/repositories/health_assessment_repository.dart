@@ -1,10 +1,37 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:dio/dio.dart';
+import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart';
 import '../../../../core/config/app_config.dart';
+import '../../../../core/network/api_client.dart';
 import '../../domain/entities/assessment_entity.dart';
 import '../models/assessment_model.dart';
+
+const int _maxAssessmentImageBytes = 10 * 1024 * 1024;
+const Set<String> _supportedImageTypes = {
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+};
+
+String _extensionForMime(String mimeType) => switch (mimeType) {
+  'image/png' => '.png',
+  'image/webp' => '.webp',
+  _ => '.jpg',
+};
+
+String _validatedMimeType(String? path, List<int> headerBytes) {
+  final mimeType = lookupMimeType(
+    path ?? 'assessment',
+    headerBytes: headerBytes,
+  );
+  if (mimeType == null || !_supportedImageTypes.contains(mimeType)) {
+    throw Exception('Please choose a valid JPEG, PNG, or WebP image.');
+  }
+  return mimeType;
+}
 
 abstract class HealthAssessmentRepository {
   Future<AssessmentEntity> submitAssessment({
@@ -23,26 +50,10 @@ abstract class HealthAssessmentRepository {
 class HealthAssessmentRepositoryImpl implements HealthAssessmentRepository {
   final Dio dio;
 
-  HealthAssessmentRepositoryImpl({Dio? dio})
-      : dio = dio ??
-            Dio(BaseOptions(
-              baseUrl: AppConfig.apiBaseUrl,
-              connectTimeout: AppConfig.connectionTimeout,
-              receiveTimeout: AppConfig.receiveTimeout,
-              sendTimeout: AppConfig.sendTimeout,
-              // NOTE: do NOT hard-code a multipart Content-Type here. Dio sets
-              // the correct multipart boundary automatically for FormData, and
-              // forcing it would corrupt both uploads and plain GET requests.
-              headers: {'Accept': 'application/json'},
-            ))
-          ..interceptors.add(LogInterceptor(
-            request: true,
-            requestHeader: true,
-            requestBody: true,
-            responseHeader: false,
-            responseBody: true,
-            error: true,
-          ));
+  // NOTE: ApiClient.dio attaches the Bearer token and never hard-codes a
+  // multipart Content-Type — Dio sets the correct multipart boundary
+  // automatically for FormData.
+  HealthAssessmentRepositoryImpl({Dio? dio}) : dio = dio ?? ApiClient.dio;
 
   @override
   Future<AssessmentEntity> submitAssessment({
@@ -57,37 +68,66 @@ class HealthAssessmentRepositoryImpl implements HealthAssessmentRepository {
     if (imageData == null) {
       throw Exception('Please add a pet photo before starting the analysis');
     }
+    // No seed-pet fallback (SRS-F2-018): an assessment must always be written
+    // against the caller's real pet, never a shared default.
+    if (petId == null) {
+      throw Exception(
+        'Please sign in and add a pet before running an AI check.',
+      );
+    }
 
     try {
       final formData = FormData.fromMap({
         // Backend Form fields: pet_id (int), symptom_description (str).
-        // Use the caller's real pet id; fall back to the seed pet only when
-        // none was provided (guest/mock mode) so we never silently write a
-        // real user's assessment onto the seed pet (Milo).
-        'pet_id': petId ?? AppConfig.defaultPetId,
+        'pet_id': petId,
         'symptom_description': (symptoms == null || symptoms.trim().isEmpty)
             ? 'No additional symptoms described'
             : symptoms.trim(),
       });
 
-      final filename = 'pet_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      if (kIsWeb) {
-        if (imageData is Uint8List) {
-          formData.files.add(MapEntry(
-            'image',
-            MultipartFile.fromBytes(imageData, filename: filename),
-          ));
-        } else if (imageData is List<int>) {
-          formData.files.add(MapEntry(
-            'image',
-            MultipartFile.fromBytes(imageData, filename: filename),
-          ));
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      if (imageData is Uint8List || imageData is List<int>) {
+        final bytes = imageData is Uint8List
+            ? imageData
+            : Uint8List.fromList(imageData as List<int>);
+        if (bytes.length > _maxAssessmentImageBytes) {
+          throw Exception('The image must be 10 MB or smaller.');
         }
+        final mimeType = _validatedMimeType(
+          null,
+          bytes.take(math.min(16, bytes.length)).toList(),
+        );
+        formData.files.add(
+          MapEntry(
+            'image',
+            MultipartFile.fromBytes(
+              bytes,
+              filename: 'pet_$timestamp${_extensionForMime(mimeType)}',
+              contentType: MediaType.parse(mimeType),
+            ),
+          ),
+        );
       } else if (imageData is File) {
-        formData.files.add(MapEntry(
-          'image',
-          await MultipartFile.fromFile(imageData.path, filename: filename),
-        ));
+        final length = await imageData.length();
+        if (length > _maxAssessmentImageBytes) {
+          throw Exception('The image must be 10 MB or smaller.');
+        }
+        final header = await imageData
+            .openRead(0, math.min(16, length))
+            .fold<List<int>>(<int>[], (bytes, chunk) => bytes..addAll(chunk));
+        final mimeType = _validatedMimeType(imageData.path, header);
+        formData.files.add(
+          MapEntry(
+            'image',
+            await MultipartFile.fromFile(
+              imageData.path,
+              filename: 'pet_$timestamp${_extensionForMime(mimeType)}',
+              contentType: MediaType.parse(mimeType),
+            ),
+          ),
+        );
+      } else {
+        throw Exception('The selected image could not be read.');
       }
 
       final response = await dio.post(
@@ -96,8 +136,9 @@ class HealthAssessmentRepositoryImpl implements HealthAssessmentRepository {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return AssessmentModel.fromJson(response.data)
-            .toEntity(petName: petName, petType: petType);
+        return AssessmentModel.fromJson(
+          response.data,
+        ).toEntity(petName: petName, petType: petType);
       }
       throw Exception('Failed to submit assessment: ${response.statusCode}');
     } on DioException catch (e) {
@@ -115,8 +156,11 @@ class HealthAssessmentRepositoryImpl implements HealthAssessmentRepository {
       if (response.statusCode == 200) {
         final List<dynamic> jsonData = response.data;
         return jsonData
-            .map((json) =>
-                AssessmentModel.fromJson(json as Map<String, dynamic>).toEntity())
+            .map(
+              (json) => AssessmentModel.fromJson(
+                json as Map<String, dynamic>,
+              ).toEntity(),
+            )
             .toList();
       }
       throw Exception('Failed to fetch history: ${response.statusCode}');
@@ -135,8 +179,11 @@ class HealthAssessmentRepositoryImpl implements HealthAssessmentRepository {
       if (response.statusCode == 200) {
         final List<dynamic> jsonData = response.data;
         return jsonData
-            .map((json) =>
-                AssessmentModel.fromJson(json as Map<String, dynamic>).toEntity())
+            .map(
+              (json) => AssessmentModel.fromJson(
+                json as Map<String, dynamic>,
+              ).toEntity(),
+            )
             .toList();
       }
       throw Exception('Failed to fetch pet history: ${response.statusCode}');

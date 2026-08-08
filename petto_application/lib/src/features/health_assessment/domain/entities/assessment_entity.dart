@@ -23,6 +23,12 @@ class AssessmentEntity {
   /// Backend `ai_raw_response` - the full triage text from Gemini.
   final String aiResponse;
 
+  /// Backend processing outcome: `completed` or `failed`.
+  final String status;
+
+  /// Stable retry/diagnostic category. Never contains a raw upstream error.
+  final String? errorCode;
+
   final DateTime createdAt;
 
   const AssessmentEntity({
@@ -34,16 +40,22 @@ class AssessmentEntity {
     this.imageUri,
     required this.riskLevel,
     required this.aiResponse,
+    this.status = 'completed',
+    this.errorCode,
     required this.createdAt,
   });
 
   /// Normalised risk bucket: "low" | "moderate" | "high".
   String get riskBucket {
+    if (status == 'failed') return 'failed';
     final value = riskLevel.toLowerCase();
     if (value.contains('high')) return 'high';
     if (value.contains('low')) return 'low';
-    return 'moderate';
+    if (value.contains('moderate')) return 'moderate';
+    return 'unknown';
   }
+
+  bool get isFailed => status == 'failed';
 
   AssessmentEntity copyWith({
     int? id,
@@ -54,6 +66,8 @@ class AssessmentEntity {
     String? imageUri,
     String? riskLevel,
     String? aiResponse,
+    String? status,
+    String? errorCode,
     DateTime? createdAt,
   }) {
     return AssessmentEntity(
@@ -65,6 +79,8 @@ class AssessmentEntity {
       imageUri: imageUri ?? this.imageUri,
       riskLevel: riskLevel ?? this.riskLevel,
       aiResponse: aiResponse ?? this.aiResponse,
+      status: status ?? this.status,
+      errorCode: errorCode ?? this.errorCode,
       createdAt: createdAt ?? this.createdAt,
     );
   }
