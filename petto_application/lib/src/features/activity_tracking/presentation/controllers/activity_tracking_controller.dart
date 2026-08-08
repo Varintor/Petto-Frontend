@@ -1,12 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:geolocator/geolocator.dart';
 
-import '../../../../core/config/app_config.dart';
 import '../../../../core/services/location_service.dart';
 import '../../data/models/activity_model.dart';
 import '../../data/repositories/activity_repository.dart';
+import '../../domain/tracking_source.dart';
 
 /// A single GPS sample reduced to the lat/lng we need for the route trace.
 @immutable
@@ -33,12 +32,16 @@ enum WalkState {
 /// [ActivityRepository].
 class ActivityTrackingController extends ChangeNotifier {
   final ActivityRepository repository;
-  final LocationService locationService;
+
+  /// Hardware feeding this session. Defaults to the phone's GPS (Mode A);
+  /// a paired BLE collar swaps in a [BleCollarTrackingSource] (Mode B) without
+  /// touching the walk state machine (SRS-F4-035/036).
+  final TrackingSource trackingSource;
 
   ActivityTrackingController({
     required this.repository,
-    LocationService? locationService,
-  }) : locationService = locationService ?? LocationService();
+    TrackingSource? trackingSource,
+  }) : trackingSource = trackingSource ?? PhoneGpsTrackingSource();
 
   // ---- session state ----
   WalkState _state = WalkState.idle;
@@ -49,12 +52,16 @@ class ActivityTrackingController extends ChangeNotifier {
   String? _error;
 
   Timer? _timer;
-  StreamSubscription<Position>? _sub;
-  Position? _last;
+  StreamSubscription<TrackingSample>? _sub;
+  TrackingSample? _last;
 
   // ---- summary/dashboard stats ----
   ActivityStatsModel _stats = ActivityStatsModel.empty();
   bool _statsLoading = false;
+
+  /// Pet the stats belong to. Null until a real pet id arrives — no seed-pet
+  /// fallback (SRS-F2-018); loads are skipped until the caller supplies one.
+  int? _petId;
 
   // ---- getters ----
   WalkState get state => _state;
@@ -101,10 +108,10 @@ class ActivityTrackingController extends ChangeNotifier {
 
   Future<void> start() async {
     _error = null;
-    final readiness = await locationService.ensureReady();
-    if (readiness != LocationReadiness.ready) {
+    final notReady = await trackingSource.prepare();
+    if (notReady != null) {
       _state = WalkState.error;
-      _error = _readinessMessage(readiness);
+      _error = notReady;
       notifyListeners();
       return;
     }
@@ -121,10 +128,10 @@ class ActivityTrackingController extends ChangeNotifier {
 
     // Center the map immediately on the current location instead of waiting for
     // the stream's first movement-based update (so it shows the moment you start).
-    final initial = await locationService.currentPosition();
+    final initial = await trackingSource.current();
     if (_state == WalkState.tracking && initial != null) {
       _last = initial;
-      _points.add(GeoPoint(initial.latitude, initial.longitude));
+      _points.add(GeoPoint(initial.lat, initial.lng));
       notifyListeners();
     }
 
@@ -134,8 +141,8 @@ class ActivityTrackingController extends ChangeNotifier {
         notifyListeners();
       }
     });
-    _sub = locationService.positionStream().listen(
-      _onPosition,
+    _sub = trackingSource.samples().listen(
+      _onSample,
       onError: (Object e) {
         _error = 'GPS error: $e';
         notifyListeners();
@@ -144,17 +151,17 @@ class ActivityTrackingController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _onPosition(Position p) {
+  void _onSample(TrackingSample sample) {
     if (_state != WalkState.tracking) return;
 
-    _currentSpeedMps = p.speed.isFinite && p.speed > 0 ? p.speed : 0;
+    _currentSpeedMps = sample.speedMps;
 
     if (_last != null) {
       final d = LocationService.distanceBetween(
-        _last!.latitude,
-        _last!.longitude,
-        p.latitude,
-        p.longitude,
+        _last!.lat,
+        _last!.lng,
+        sample.lat,
+        sample.lng,
       );
       // Ignore implausible jumps (GPS glitches) and noise while standing still.
       if (d.isFinite && d > 1 && d < 200) {
@@ -162,8 +169,8 @@ class ActivityTrackingController extends ChangeNotifier {
       }
     }
 
-    _last = p;
-    _points.add(GeoPoint(p.latitude, p.longitude));
+    _last = sample;
+    _points.add(GeoPoint(sample.lat, sample.lng));
     notifyListeners();
   }
 
@@ -193,16 +200,25 @@ class ActivityTrackingController extends ChangeNotifier {
 
   /// Persist the finished walk as an aggregate activity.
   Future<bool> save({int? petId}) async {
+    final id = petId ?? _petId;
+    if (id == null) {
+      // Guest session / no pet yet — nothing to attach the walk to.
+      _state = WalkState.error;
+      _error = 'Sign in and add a pet before saving a walk.';
+      notifyListeners();
+      return false;
+    }
     _state = WalkState.saving;
     _error = null;
     notifyListeners();
     try {
       await repository.createActivity(
-        petId: petId ?? AppConfig.defaultPetId,
+        petId: id,
         activityType: inferredActivityType,
         durationMinutes: _elapsed.inSeconds / 60.0,
         distanceMeters: _distanceMeters,
         isMissionCompleted: missionCompleted,
+        source: trackingSource.sourceType,
       );
       _state = WalkState.saved;
       notifyListeners();
@@ -218,10 +234,13 @@ class ActivityTrackingController extends ChangeNotifier {
   }
 
   Future<void> loadStats({int? petId}) async {
+    final id = petId ?? _petId;
+    if (id == null) return;
+    _petId = id;
     _statsLoading = true;
     notifyListeners();
     try {
-      _stats = await repository.getStats(petId ?? AppConfig.defaultPetId);
+      _stats = await repository.getStats(id);
     } catch (_) {
       // Keep the previous/empty stats on failure; not fatal for the UI.
     } finally {
@@ -251,22 +270,10 @@ class ActivityTrackingController extends ChangeNotifier {
   /// previous account's totals while their own data is still loading.
   void clearForAccount() {
     reset();
+    _petId = null;
     _stats = ActivityStatsModel.empty();
     _statsLoading = false;
     notifyListeners();
-  }
-
-  String _readinessMessage(LocationReadiness r) {
-    switch (r) {
-      case LocationReadiness.serviceDisabled:
-        return 'Please turn on Location/GPS before starting a walk.';
-      case LocationReadiness.denied:
-        return 'Location permission is required to record your walk.';
-      case LocationReadiness.deniedForever:
-        return 'Location access is disabled. Please enable it in app settings.';
-      case LocationReadiness.ready:
-        return '';
-    }
   }
 
   @override

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class MissionModel {
   final int id;
   final int petId;
-  final String missionDate;
+  final DateTime missionDate;
   final String title;
   final String missionType;
   final double? targetValue;
@@ -31,7 +31,7 @@ class MissionModel {
     return MissionModel(
       id: json['id'] as int,
       petId: json['pet_id'] as int,
-      missionDate: json['mission_date'] as String,
+      missionDate: DateTime.parse(json['mission_date'] as String),
       title: json['title'] as String,
       missionType: json['mission_type'] as String,
       targetValue: (json['target_value'] as num?)?.toDouble(),
@@ -128,14 +128,14 @@ class DashboardStatsModel {
   }
 
   static DashboardStatsModel empty() => DashboardStatsModel(
-        healthScore: 0,
-        activitiesThisMonth: 0,
-        totalDurationMinutes: 0,
-        totalDistanceMeters: 0,
-        vaccinationStatus: 'no_records',
-        missionsCompletedThisWeek: 0,
-        missionStreak: 0,
-      );
+    healthScore: 0,
+    activitiesThisMonth: 0,
+    totalDurationMinutes: 0,
+    totalDistanceMeters: 0,
+    vaccinationStatus: 'no_records',
+    missionsCompletedThisWeek: 0,
+    missionStreak: 0,
+  );
 
   int get happinessPercent => healthScore.clamp(0, 100);
 

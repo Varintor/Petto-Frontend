@@ -33,6 +33,8 @@ dependencies:
   
   # อุปกรณ์หลักที่เราใช้เชื่อมหลังบ้านและจัดการไฟล์
   dio: ^5.4.1                # ใช้ยิง API คุยกับ FastAPI (รองรับ Multipart/Form-data)
+  http_parser: ^4.1.2        # Explicit multipart image content types
+  mime: ^2.0.0               # Detect image type from file headers
   image_picker: ^1.0.7       # ใช้ดึงรูปภาพจากกล้องหรือแกลเลอรีในมือถือ
   provider: ^6.1.1           # ตัวจัดการ State Management (สำหรับ ChangeNotifier Controller)
   shared_preferences: ^2.3.0
@@ -56,6 +58,10 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+
+  # Integration Test dependencies
+  mockito: ^5.4.0
+  build_runner: ^2.4.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

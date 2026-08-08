@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../../../../core/config/app_config.dart';
+import '../../../../core/network/api_client.dart';
 import '../models/mission_model.dart';
 
 abstract class MissionsRepository {
@@ -12,15 +13,7 @@ abstract class MissionsRepository {
 class MissionsRepositoryImpl implements MissionsRepository {
   final Dio dio;
 
-  MissionsRepositoryImpl({Dio? dio})
-      : dio = dio ??
-            Dio(BaseOptions(
-              baseUrl: AppConfig.apiBaseUrl,
-              connectTimeout: AppConfig.connectionTimeout,
-              receiveTimeout: AppConfig.receiveTimeout,
-              sendTimeout: AppConfig.sendTimeout,
-              headers: {'Accept': 'application/json'},
-            ));
+  MissionsRepositoryImpl({Dio? dio}) : dio = dio ?? ApiClient.dio;
 
   @override
   Future<List<MissionModel>> getTodayMissions(int petId) async {

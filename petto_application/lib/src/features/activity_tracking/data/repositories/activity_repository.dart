@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../../../../core/config/app_config.dart';
+import '../../../../core/network/api_client.dart';
 import '../../domain/entities/activity_entity.dart';
 import '../models/activity_model.dart';
 
@@ -11,6 +12,7 @@ abstract class ActivityRepository {
     required double durationMinutes,
     required double distanceMeters,
     bool isMissionCompleted,
+    String source,
   });
 
   Future<List<ActivityEntity>> getPetActivities(int petId);
@@ -20,15 +22,7 @@ abstract class ActivityRepository {
 class ActivityRepositoryImpl implements ActivityRepository {
   final Dio dio;
 
-  ActivityRepositoryImpl({Dio? dio})
-      : dio = dio ??
-            Dio(BaseOptions(
-              baseUrl: AppConfig.apiBaseUrl,
-              connectTimeout: AppConfig.connectionTimeout,
-              receiveTimeout: AppConfig.receiveTimeout,
-              sendTimeout: AppConfig.sendTimeout,
-              headers: {'Accept': 'application/json'},
-            ));
+  ActivityRepositoryImpl({Dio? dio}) : dio = dio ?? ApiClient.dio;
 
   @override
   Future<ActivityEntity> createActivity({
@@ -37,6 +31,7 @@ class ActivityRepositoryImpl implements ActivityRepository {
     required double durationMinutes,
     required double distanceMeters,
     bool isMissionCompleted = false,
+    String source = 'phone',
   }) async {
     try {
       // Backend POST /api/v1/activities expects a JSON body (ActivityCreate).
@@ -48,6 +43,7 @@ class ActivityRepositoryImpl implements ActivityRepository {
           'duration_minutes': durationMinutes,
           'distance_meters': distanceMeters,
           'is_mission_completed': isMissionCompleted,
+        'source': source,
         },
       );
 

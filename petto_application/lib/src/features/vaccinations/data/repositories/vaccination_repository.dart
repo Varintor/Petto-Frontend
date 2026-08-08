@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 
 import '../../../../core/config/app_config.dart';
+import '../../../../core/network/api_client.dart';
 import '../../domain/entities/vaccination_entity.dart';
 import '../models/vaccination_model.dart';
 
@@ -23,23 +24,7 @@ abstract class VaccinationRepository {
 class VaccinationRepositoryImpl implements VaccinationRepository {
   final Dio dio;
 
-  VaccinationRepositoryImpl({Dio? dio})
-      : dio = dio ??
-            Dio(BaseOptions(
-              baseUrl: AppConfig.apiBaseUrl,
-              connectTimeout: AppConfig.connectionTimeout,
-              receiveTimeout: AppConfig.receiveTimeout,
-              sendTimeout: AppConfig.sendTimeout,
-              headers: {'Accept': 'application/json', 'Content-Type': 'application/json'},
-            ))
-          ..interceptors.add(LogInterceptor(
-            request: true,
-            requestHeader: true,
-            requestBody: true,
-            responseHeader: false,
-            responseBody: true,
-            error: true,
-          ));
+  VaccinationRepositoryImpl({Dio? dio}) : dio = dio ?? ApiClient.dio;
 
   @override
   Future<VaccinationEntity> createVaccination({

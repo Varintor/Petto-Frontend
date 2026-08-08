@@ -27,23 +27,34 @@ class AuthUser {
 }
 
 /// Result of authentication (register/login): a Supabase JWT issued by the
-/// backend plus the resolved backend user.
+/// backend plus the resolved backend user. When register was called with a
+/// pet payload, [petJson] carries the pet the backend created in the same
+/// DB transaction (null on login, or on backends without atomic support).
 class AuthResult {
   final String accessToken;
   final AuthUser user;
+  final Map<String, dynamic>? petJson;
 
-  AuthResult({required this.accessToken, required this.user});
+  AuthResult({required this.accessToken, required this.user, this.petJson});
 
   factory AuthResult.fromJson(Map<String, dynamic> json) {
     return AuthResult(
       accessToken: json['access_token'] as String? ?? '',
       user: AuthUser.fromJson(json['user'] as Map<String, dynamic>),
+      petJson: json['pet'] as Map<String, dynamic>?,
     );
   }
 }
 
 abstract class AuthRepository {
-  Future<AuthResult> register(String email, String password, String name);
+  /// [pet] (backend PetCreate JSON) makes the backend create user + pet in a
+  /// single transaction, so a pet-side failure can't leave an orphan account.
+  Future<AuthResult> register(
+    String email,
+    String password,
+    String name, {
+    Map<String, dynamic>? pet,
+  });
   Future<AuthResult> login(String email, String password);
   Future<AuthUser> getMe(String token);
   Future<bool> checkEmailAvailability(String email);
@@ -66,11 +77,21 @@ class AuthRepositoryImpl implements AuthRepository {
             ));
 
   @override
-  Future<AuthResult> register(String email, String password, String name) async {
+  Future<AuthResult> register(
+    String email,
+    String password,
+    String name, {
+    Map<String, dynamic>? pet,
+  }) async {
     try {
       final response = await dio.post(
         AppConfig.registerEndpoint,
-        data: {'email': email, 'password': password, 'name': name},
+        data: {
+          'email': email,
+          'password': password,
+          'name': name,
+          if (pet != null) 'pet': pet,
+        },
       );
       return AuthResult.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {

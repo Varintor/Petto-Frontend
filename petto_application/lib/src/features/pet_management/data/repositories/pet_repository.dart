@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../../../../core/config/app_config.dart';
+import '../../../../core/network/api_client.dart';
 
 /// Pet as returned by the FastAPI backend (`pet_profiles`, bigint ids).
 class Pet {
@@ -51,18 +52,7 @@ class Pet {
 class PetRepository {
   final Dio dio;
 
-  PetRepository({Dio? dio})
-    : dio =
-          dio ??
-          Dio(
-            BaseOptions(
-              baseUrl: AppConfig.apiBaseUrl,
-              connectTimeout: AppConfig.connectionTimeout,
-              receiveTimeout: AppConfig.receiveTimeout,
-              sendTimeout: AppConfig.sendTimeout,
-              headers: {'Accept': 'application/json'},
-            ),
-          );
+  PetRepository({Dio? dio}) : dio = dio ?? ApiClient.dio;
 
   /// POST /api/v1/pets — owner taken from the Bearer token by the backend.
   Future<Pet> createPet({
@@ -83,7 +73,8 @@ class PetRepository {
           'species': species,
           'breed': breed,
           'gender': gender,
-          'date_of_birth': dateOfBirth?.toIso8601String().split('T').first,
+          if (dateOfBirth != null)
+            'date_of_birth': dateOfBirth.toIso8601String().split('T').first,
           'weight_kg': weightKg,
           if (bloodType != null && bloodType.isNotEmpty)
             'blood_type': bloodType,
@@ -116,7 +107,8 @@ class PetRepository {
           'species': species,
           'breed': breed,
           'gender': gender,
-          'date_of_birth': dateOfBirth?.toIso8601String().split('T').first,
+          if (dateOfBirth != null)
+            'date_of_birth': dateOfBirth.toIso8601String().split('T').first,
           'weight_kg': weightKg,
           if (bloodType != null && bloodType.isNotEmpty)
             'blood_type': bloodType,
@@ -146,7 +138,9 @@ class PetRepository {
     if (e.type == DioExceptionType.badResponse) {
       final data = e.response?.data;
       final detail = data is Map ? data['detail'] : null;
-      if (detail is String && detail.isNotEmpty) return detail;
+      if (detail is String && detail.isNotEmpty) {
+        return 'Server error ${e.response?.statusCode}: $detail';
+      }
       return 'Server error ${e.response?.statusCode}.';
     }
     switch (e.type) {

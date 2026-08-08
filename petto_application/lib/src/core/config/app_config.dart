@@ -107,15 +107,6 @@ class AppConfig {
       '$apiPrefix/pets/$petId/vaccinations';
 
   // ============================================================
-  // Defaults
-  // ============================================================
-
-  /// Until real pet management exists, both the assessment and the activity
-  /// features submit against this pet id (the mock pet created by the backend's
-  /// /api/v1/setup-mock-data endpoint).
-  static const int defaultPetId = 1;
-
-  // ============================================================
   // Timeouts (AI processing can take 10-15s, keep these generous)
   // ============================================================
 

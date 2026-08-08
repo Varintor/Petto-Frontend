@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 
-import '../../../../core/config/app_config.dart';
 import '../../../../core/services/token_storage.dart';
 import '../../data/repositories/auth_repository.dart';
 
@@ -33,13 +32,12 @@ class AuthController extends ChangeNotifier {
   String? get token => _token;
   int? get userId => _userId;
 
-  /// Falls back to the seed pet ONLY for authenticated users who haven't
-  /// created a pet yet. Never returns the mock pet for unauthenticated/guest
-  /// sessions — after logout, this returns null and tracking controllers
-  /// must wait for a real pet before loading stats.
-  int? get petId => _status == AuthStatus.authenticated
-      ? (_petId ?? AppConfig.defaultPetId)
-      : null;
+  /// The signed-in user's active pet id, or null when there is none yet
+  /// (guest session, fresh account before the first pet). No seed-pet
+  /// fallback: SRS-F2-018 forbids keying any feature off a default pet id —
+  /// that fallback is exactly what once leaked one user's data to everyone.
+  /// Callers must skip loading until a real pet id exists.
+  int? get petId => _status == AuthStatus.authenticated ? _petId : null;
   int? get rawPetId => _petId;
   String? get error => _error;
   bool get isAuthenticated => _status == AuthStatus.authenticated;
@@ -107,18 +105,21 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<bool> login(String email, String password) async {
-    _status = AuthStatus.loading;
+    // Do NOT broadcast a `loading`/`error` status here. The login form is
+    // rendered by AuthGate for the `unauthenticated` state, so flipping the
+    // status mid-attempt makes AuthGate rebuild — tearing the form down (a brief
+    // splash, then the intro/"welcome" screen) and dropping the typed
+    // credentials and the inline error. Stay unauthenticated throughout; only a
+    // successful sign-in changes the status (via _applySession -> authenticated).
+    // The caller surfaces failures inline from the returned bool + [error].
     _error = null;
-    notifyListeners();
 
     try {
       final result = await repository.login(email, password);
       await _applySession(result);
       return true;
     } catch (e) {
-      _status = AuthStatus.error;
       _error = _parseError(e);
-      notifyListeners();
       return false;
     }
   }
