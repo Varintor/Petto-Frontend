@@ -74,6 +74,12 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  /// Per-field login errors, so each field can turn red and show its own hint
+  /// (e.g. "Email is required", "Password is required", "Wrong password").
+  /// Cleared when the user edits that field or starts a new attempt.
+  String? _loginEmailError;
+  String? _loginPasswordError;
+
   String? _eagerError;
   Pet? _registeredPet;
 
@@ -158,13 +164,21 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     FocusManager.instance.primaryFocus?.unfocus();
     final email = _loginEmail.text.trim();
     final password = _loginPassword.text;
-    if (email.isEmpty || password.isEmpty) {
-      setState(() => _errorMessage = 'Please enter email and password');
+    final emailEmpty = email.isEmpty;
+    final passwordEmpty = password.isEmpty;
+    if (emailEmpty || passwordEmpty) {
+      // Flag each empty field individually so both required-field messages show.
+      setState(() {
+        _loginEmailError = emailEmpty ? 'Email is required' : null;
+        _loginPasswordError = passwordEmpty ? 'Password is required' : null;
+      });
       return;
     }
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _loginEmailError = null;
+      _loginPasswordError = null;
     });
     final auth = context.read<AuthController>();
     final success = await auth.login(email, password);
@@ -172,7 +186,12 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     if (success) {
       _openHome();
     } else {
-      setState(() => _isLoading = false);
+      // Highlight the password field in red with an inline hint, and keep the
+      // banner carrying the backend's message ("Invalid email or password").
+      setState(() {
+        _isLoading = false;
+        _loginPasswordError = 'Wrong password';
+      });
       if (mounted) {
         showTopAlert(
           context,
@@ -190,33 +209,48 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     _openHome();
   }
 
-  /// Runs register + createPet as one flow. The auth session is only applied
-  /// after the pet exists, so AuthGate cannot jump to Home's empty pet state.
+  /// Registers user + pet in ONE backend call (single DB transaction), so a
+  /// pet-side failure can't leave an orphan "registered but no pet" account.
+  /// The auth session is only applied after the pet exists, so AuthGate
+  /// cannot jump to Home's empty pet state.
   Future<void> _runRegistrationAndCreatePet() async {
     final auth = context.read<AuthController>();
     try {
+      final dob = DateTime(_birthYear, _birthMonth, _birthDay);
+      final breed = _breed.text.trim();
+      final bloodType = _bloodType.text.trim();
       final result = await auth.repository.register(
         _email.text.trim(),
         _password.text,
         _ownerName.text.trim(),
+        pet: {
+          'name': _petNameOrDefault,
+          'species': _species,
+          if (breed.isNotEmpty) 'breed': breed,
+          'gender': _gender,
+          'date_of_birth': dob.toIso8601String().split('T').first,
+          'weight_kg': double.tryParse(_weight.text.trim()),
+          if (bloodType.isNotEmpty) 'blood_type': bloodType,
+        },
       );
       final token = result.accessToken;
       if (token.isEmpty) {
         throw Exception('Missing auth token after registration');
       }
-      final dob = DateTime(_birthYear, _birthMonth, _birthDay);
-      final newPet = await PetRepository().createPet(
-        token: token,
-        name: _petNameOrDefault,
-        species: _species,
-        breed: _breed.text.trim().isEmpty ? null : _breed.text.trim(),
-        gender: _gender,
-        dateOfBirth: dob,
-        weightKg: double.tryParse(_weight.text.trim()),
-        bloodType: _bloodType.text.trim().isEmpty
-            ? null
-            : _bloodType.text.trim(),
-      );
+      // Backends without atomic register+pet (older deploys) ignore the pet
+      // payload and return no pet — fall back to the two-step createPet.
+      final newPet = result.petJson != null
+          ? Pet.fromJson(result.petJson!)
+          : await PetRepository().createPet(
+              token: token,
+              name: _petNameOrDefault,
+              species: _species,
+              breed: breed.isEmpty ? null : breed,
+              gender: _gender,
+              dateOfBirth: dob,
+              weightKg: double.tryParse(_weight.text.trim()),
+              bloodType: bloodType.isEmpty ? null : bloodType,
+            );
       _registeredPet = newPet;
       await auth.applyCompletedRegistration(result, petId: newPet.id);
     } catch (e) {
@@ -298,6 +332,17 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
       showTopAlert(
         context,
         'Please fill in email and password.',
+        icon: Icons.info_outline_rounded,
+      );
+      return;
+    }
+    // Enforce the password-strength rule promised by the on-screen hint before
+    // letting the user leave this screen — a weak password must block here, not
+    // silently pass through to the later steps.
+    if (password.length < 6) {
+      showTopAlert(
+        context,
+        'Password must be at least 6 characters',
         icon: Icons.info_outline_rounded,
       );
       return;
@@ -428,6 +473,22 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     });
   }
 
+  /// Owner step (step 1) submit. The display name is required — advancing with
+  /// an empty name would leave the profile with no owner label, so block the
+  /// step and nudge the user instead of silently continuing.
+  void _submitOwnerName() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    if (_ownerName.text.trim().isEmpty) {
+      showTopAlert(
+        context,
+        'Enter a display name',
+        icon: Icons.info_outline_rounded,
+      );
+      return;
+    }
+    _nextStep();
+  }
+
   void _openSummary() {
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
@@ -480,6 +541,18 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
           child: _GatewayPage(
             emailController: _loginEmail,
             passwordController: _loginPassword,
+            emailError: _loginEmailError,
+            passwordError: _loginPasswordError,
+            onEmailChanged: (_) {
+              if (_loginEmailError != null) {
+                setState(() => _loginEmailError = null);
+              }
+            },
+            onPasswordChanged: (_) {
+              if (_loginPasswordError != null) {
+                setState(() => _loginPasswordError = null);
+              }
+            },
             onBack: _back,
             onLogin: _handleLogin,
             onGoogle: () {},
@@ -639,7 +712,7 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
             onChanged: (_) => setState(() {}),
           ),
           primaryLabel: 'NEXT',
-          onPrimary: _nextStep,
+          onPrimary: _submitOwnerName,
         );
       case _RegisterStep.credentials:
         return _StepPage(
@@ -1044,10 +1117,49 @@ class _IntroFeatureChip extends StatelessWidget {
   }
 }
 
+/// Inline validation message shown beneath a login field (red icon + text).
+class _FieldError extends StatelessWidget {
+  const _FieldError(this.message);
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.error_outline_rounded,
+            size: 16,
+            color: AppTheme.dangerColor,
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                fontFamily: AppTheme.sansFontFamily,
+                color: AppTheme.dangerColor,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _GatewayPage extends StatelessWidget {
   const _GatewayPage({
     required this.emailController,
     required this.passwordController,
+    required this.emailError,
+    required this.passwordError,
+    required this.onEmailChanged,
+    required this.onPasswordChanged,
     required this.onBack,
     required this.onLogin,
     required this.onGoogle,
@@ -1058,6 +1170,13 @@ class _GatewayPage extends StatelessWidget {
 
   final TextEditingController emailController;
   final TextEditingController passwordController;
+
+  /// When non-null, the matching field is shown in its error state and this
+  /// message is rendered beneath it (e.g. "Email is required", "Wrong password").
+  final String? emailError;
+  final String? passwordError;
+  final ValueChanged<String> onEmailChanged;
+  final ValueChanged<String> onPasswordChanged;
   final VoidCallback onBack;
   final VoidCallback onLogin;
   final VoidCallback onGoogle;
@@ -1098,7 +1217,10 @@ class _GatewayPage extends StatelessWidget {
                     icon: Icons.mail_rounded,
                     keyboardType: TextInputType.emailAddress,
                     textInputAction: TextInputAction.next,
+                    hasError: emailError != null,
+                    onChanged: onEmailChanged,
                   ),
+                  if (emailError != null) _FieldError(emailError!),
                   const SizedBox(height: 12),
                   _GatewayAuthField(
                     controller: passwordController,
@@ -1106,8 +1228,11 @@ class _GatewayPage extends StatelessWidget {
                     icon: Icons.lock_rounded,
                     obscureText: true,
                     textInputAction: TextInputAction.done,
+                    hasError: passwordError != null,
+                    onChanged: onPasswordChanged,
                     onSubmitted: (_) => onLogin(),
                   ),
+                  if (passwordError != null) _FieldError(passwordError!),
                   const SizedBox(height: 8),
                   Align(
                     alignment: Alignment.centerRight,
@@ -4447,6 +4572,8 @@ class _GatewayAuthField extends StatefulWidget {
     this.textInputAction,
     this.obscureText = false,
     this.onSubmitted,
+    this.onChanged,
+    this.hasError = false,
   });
 
   final TextEditingController controller;
@@ -4456,6 +4583,8 @@ class _GatewayAuthField extends StatefulWidget {
   final TextInputAction? textInputAction;
   final bool obscureText;
   final ValueChanged<String>? onSubmitted;
+  final ValueChanged<String>? onChanged;
+  final bool hasError;
 
   @override
   State<_GatewayAuthField> createState() => _GatewayAuthFieldState();
@@ -4480,6 +4609,7 @@ class _GatewayAuthFieldState extends State<_GatewayAuthField> {
         textInputAction: widget.textInputAction,
         obscureText: _obscured,
         onSubmitted: widget.onSubmitted,
+        onChanged: widget.onChanged,
         scrollPadding: EdgeInsets.only(
           bottom: MediaQuery.viewInsetsOf(context).bottom + 140,
         ),
@@ -4566,16 +4696,20 @@ class _GatewayAuthFieldState extends State<_GatewayAuthField> {
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(24),
             borderSide: BorderSide(
-              color: _AuthOnboardingScreenState._paleRose.withValues(
-                alpha: 0.62,
-              ),
-              width: 1.4,
+              color: widget.hasError
+                  ? AppTheme.dangerColor
+                  : _AuthOnboardingScreenState._paleRose.withValues(
+                      alpha: 0.62,
+                    ),
+              width: widget.hasError ? 1.7 : 1.4,
             ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(24),
             borderSide: BorderSide(
-              color: _AuthOnboardingScreenState._red.withValues(alpha: 0.34),
+              color: widget.hasError
+                  ? AppTheme.dangerColor
+                  : _AuthOnboardingScreenState._red.withValues(alpha: 0.34),
               width: 1.7,
             ),
           ),

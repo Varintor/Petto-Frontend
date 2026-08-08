@@ -71,14 +71,16 @@ class _PetFormScreenState extends State<PetFormScreen> {
     FocusManager.instance.primaryFocus?.unfocus();
     final name = _name.text.trim();
     if (name.isEmpty) {
-      _showHint('Please enter your pet name.');
+      _showHint('Name is required');
       return;
     }
 
     final weightText = _weight.text.trim();
     final weight = weightText.isEmpty ? null : double.tryParse(weightText);
-    if (weightText.isNotEmpty && weight == null) {
-      _showHint('Weight should be a valid number.');
+    // Weight is optional, but if provided it must parse to a positive number —
+    // reject blanks-that-aren't-numbers, zero, and negatives like "-3".
+    if (weightText.isNotEmpty && (weight == null || weight <= 0)) {
+      _showHint('Invalid weight');
       return;
     }
 
