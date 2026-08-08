@@ -1,5 +1,12 @@
 ### IDE
 .idea/
+.claude/
+.cursor/
+
+### Generated documentation and scratch tests
+/md_out/
+/generate_integration_test_docx.py
+/test_integration_example/
 
 ### Windows
 # Windows thumbnail cache files
