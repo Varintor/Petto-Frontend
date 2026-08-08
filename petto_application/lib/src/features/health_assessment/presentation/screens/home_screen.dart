@@ -7,9 +7,6 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
-import '../../../../core/config/app_config.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/assessment_entity.dart';
@@ -24,6 +21,9 @@ import '../../../pet_management/data/repositories/pet_repository.dart';
 import '../../../pet_management/domain/entities/pet_entity.dart';
 import '../../../pet_management/presentation/screens/pet_form_screen.dart';
 import '../../../activity_tracking/presentation/screens/wellness_tracking_view.dart';
+import '../../../calendar/domain/calendar_event.dart';
+import '../../../calendar/presentation/controllers/calendar_controller.dart';
+import '../../../wardrobe/presentation/controllers/wardrobe_controller.dart';
 import 'health_assessment_screen.dart';
 import '../widgets/pet_avatar_widget.dart';
 part 'home_calendar_screen_part.dart';
@@ -75,7 +75,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final Set<String> _draftEquippedAccessoryIds = {'acc_collar'};
   late final Map<int, _PetAppearanceData> _savedAppearances;
   late final Map<String, List<_VetChatMessageData>> _vetConversations;
-  late final List<_CalendarEventData> _calendarEvents;
+  late final CalendarController _calendarController;
+  late final WardrobeController _wardrobeController;
   final Map<int, Object?> _petProfileImages = {};
 
   static const List<_PetData> _mockPets = [
@@ -139,7 +140,7 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Seed events for the current month — shown until the user (a) loads their
   /// own persisted plans from SharedPreferences or (b) adds their first event.
   /// Built lazily because DateTime can't appear in a `const` expression.
-  static List<_CalendarEventData> _defaultCalendarEvents() {
+  static List<CalendarEventData> _defaultCalendarEvents() {
     final now = DateTime.now();
     DateTime offsetFrom(int day, int hour, int minute) {
       // Anchor the demo events at "today + offset days" so they're always
@@ -149,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return [
-      _CalendarEventData(
+      CalendarEventData(
         id: 'seed_med',
         title: 'Morning medication',
         timeLabel: '08:00 AM',
@@ -160,7 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
         color: AppTheme.accentColor,
         icon: Icons.medication_rounded,
       ),
-      _CalendarEventData(
+      CalendarEventData(
         id: 'seed_vet',
         title: 'Vet follow-up',
         timeLabel: '03:30 PM',
@@ -171,7 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
         color: AppTheme.primaryColor,
         icon: Icons.medical_services_rounded,
       ),
-      _CalendarEventData(
+      CalendarEventData(
         id: 'seed_groom',
         title: 'Grooming',
         timeLabel: '11:00 AM',
@@ -182,7 +183,7 @@ class _HomeScreenState extends State<HomeScreen> {
         color: AppTheme.secondaryColor,
         icon: Icons.content_cut_rounded,
       ),
-      _CalendarEventData(
+      CalendarEventData(
         id: 'seed_walk',
         title: 'Outdoor walk',
         timeLabel: '06:00 PM',
@@ -372,7 +373,7 @@ class _HomeScreenState extends State<HomeScreen> {
   /// collar; missions add to this when completed.
   // TODO(persistence): hoist to backend/local storage so unlocks survive a
   // restart. For now they reset per session — fine for the MVP/demo flow.
-  final Set<String> _unlockedAccessoryIds = {'acc_collar'};
+  List<CalendarEventData> get _calendarEvents => _calendarController.events;
 
   /// Resolves the cosmetic reward for a backend mission type. Returns null
   /// when the mission type isn't mapped (caller falls back to the legacy
@@ -388,7 +389,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// True if the user has earned (or starts with) this accessory.
   bool _isAccessoryUnlocked(_AccessoryData accessory) {
-    return accessory.unlocked || _unlockedAccessoryIds.contains(accessory.id);
+    return accessory.unlocked || _wardrobeController.isUnlocked(accessory.id);
   }
 
   _PetData get _activePet => _pets[_activePetIndex];
@@ -399,14 +400,16 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _calendarController = CalendarController(
+      seedEvents: _defaultCalendarEvents(),
+    )..addListener(_onFeatureControllerChanged);
+    _wardrobeController = WardrobeController()
+      ..addListener(_onFeatureControllerChanged);
     _savedAppearances = {};
     // Vet conversations are seeded lazily in [_seedVetConversationsIfNeeded]
     // once pets have arrived — the seed text references _activePet.name and
     // would RangeError if built against the initially-empty _pets list.
     _vetConversations = {};
-    _calendarEvents = _defaultCalendarEvents();
-    // Replace defaults with whatever the user persisted last session (async).
-    _restorePersistedCalendar();
     // Make sure tomorrow's morning + tonight's evening mission reminders are
     // armed. Idempotent — overwrites existing schedules with the same id.
     NotificationService.instance.scheduleDailyMissionReminders();
@@ -426,8 +429,10 @@ class _HomeScreenState extends State<HomeScreen> {
         });
         _seedVetConversationsIfNeeded();
         _loadDraftForPet(_activePetIndex);
-        context.read<ActivityTrackingController>().loadStats();
-        context.read<MissionsController>().loadAll();
+        _loadScopedHomeFeatureState();
+        // Guest mode is local-only: the mission/stats endpoints now require a
+        // Bearer token, so skip the backend loads — the controllers keep
+        // their empty state and the demo pets stay purely cosmetic.
         return;
       }
       // Authenticated: wait for the real pet list before showing anything.
@@ -476,10 +481,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
       _seedVetConversationsIfNeeded();
       _loadDraftForPet(_activePetIndex);
+      await _loadScopedHomeFeatureState();
+      if (!mounted) return;
 
-      // Re-key every pet-scoped feature to the user's REAL active pet. Until
-      // this runs they default to AppConfig.defaultPetId (the seed pet, Milo),
-      // which is what leaked one user's missions/assessments to everyone.
+      // Re-key every pet-scoped feature to the user's REAL active pet. The
+      // controllers skip loading until this runs — there is no seed-pet
+      // fallback anymore (it used to leak one user's data to everyone).
       final activeId = _pets[_activePetIndex].id;
       await context.read<AuthController>().setPetId(activeId);
       if (!mounted) return;
@@ -649,6 +656,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    _calendarController
+      ..removeListener(_onFeatureControllerChanged)
+      ..dispose();
+    _wardrobeController
+      ..removeListener(_onFeatureControllerChanged)
+      ..dispose();
     _chatMessageController.dispose();
     _notesController.dispose();
     super.dispose();
@@ -656,57 +669,29 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _update(VoidCallback action) => setState(action);
 
-  // ============================================================
-  // Calendar persistence + reminders
-  // ============================================================
-
-  static const String _calendarPrefsKey = 'petto.calendar.events.v1';
-
-  Future<void> _restorePersistedCalendar() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_calendarPrefsKey);
-      if (raw == null || raw.isEmpty || !mounted) return;
-      final decoded = jsonDecode(raw);
-      if (decoded is! List) return;
-      final restored = decoded
-          .whereType<Map<String, dynamic>>()
-          .map(_CalendarEventData.fromJson)
-          .toList();
-      if (restored.isEmpty || !mounted) return;
-      setState(() {
-        // User-saved list replaces the demo seeds. New users without persisted
-        // data keep the seeds (the early return above protects that case).
-        _calendarEvents
-          ..clear()
-          ..addAll(restored);
-      });
-      // Re-arm OS notifications for any future events (cancelled by reboot).
-      for (final ev in restored) {
-        if (ev.startsAt != null && ev.startsAt!.isAfter(DateTime.now())) {
-          NotificationService.instance.scheduleEventReminder(
-            eventId: ev.id,
-            when: ev.startsAt!,
-            title: ev.title,
-            body:
-                'Upcoming for ${_pets.isEmpty ? 'your pet' : _activePet.name}',
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint('Failed to restore calendar: $e');
-    }
+  void _onFeatureControllerChanged() {
+    if (mounted) setState(() {});
   }
 
-  Future<void> _persistCalendar() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final encoded = jsonEncode(
-        _calendarEvents.map((e) => e.toJson()).toList(),
-      );
-      await prefs.setString(_calendarPrefsKey, encoded);
-    } catch (e) {
-      debugPrint('Failed to persist calendar: $e');
+  Future<void> _loadScopedHomeFeatureState() async {
+    if (_pets.isEmpty) return;
+    final auth = context.read<AuthController>();
+    final petId = _activePet.id;
+    await Future.wait([
+      _calendarController.load(userId: auth.userId, petId: petId),
+      _wardrobeController.load(userId: auth.userId, petId: petId),
+    ]);
+    if (!mounted) return;
+
+    for (final event in _calendarEvents) {
+      if (event.startsAt != null && event.startsAt!.isAfter(DateTime.now())) {
+        NotificationService.instance.scheduleEventReminder(
+          eventId: event.id,
+          when: event.startsAt!,
+          title: event.title,
+          body: 'Upcoming for ${_activePet.name}',
+        );
+      }
     }
   }
 

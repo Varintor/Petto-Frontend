@@ -148,10 +148,11 @@ extension _HomeConsultScreenPart on _HomeScreenState {
   }
 
   void _loadAssessmentHistory() {
-    final controller = context.read<HealthAssessmentController>();
-    final petId =
-        context.read<AuthController>().petId ?? AppConfig.defaultPetId;
-    controller.loadPetHistory(petId);
+    // No pet yet (guest / fresh account) — leave the history empty rather
+    // than fetching a shared default pet's data.
+    final petId = context.read<AuthController>().petId;
+    if (petId == null) return;
+    context.read<HealthAssessmentController>().loadPetHistory(petId);
   }
 
   void _showAssessmentDetail(AssessmentEntity assessment) {

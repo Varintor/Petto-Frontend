@@ -2076,7 +2076,7 @@ class _HomeCalendarDayChip extends StatelessWidget {
 class _HomeCalendarEventTile extends StatelessWidget {
   const _HomeCalendarEventTile({required this.event});
 
-  final _CalendarEventData event;
+  final CalendarEventData event;
 
   @override
   Widget build(BuildContext context) {
@@ -2145,7 +2145,7 @@ class _HomeCalendarEventTile extends StatelessWidget {
 class _CalendarEventCard extends StatelessWidget {
   const _CalendarEventCard({required this.event, this.onDelete});
 
-  final _CalendarEventData event;
+  final CalendarEventData event;
 
   /// When provided, a small trash icon is rendered and tapping it invokes the
   /// callback. Used by [_buildCalendarView] so users can remove plans.

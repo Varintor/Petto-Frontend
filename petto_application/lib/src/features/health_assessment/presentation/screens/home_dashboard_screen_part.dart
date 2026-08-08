@@ -1,7 +1,7 @@
 part of 'home_screen.dart';
 
 extension _HomeDashboardScreenPart on _HomeScreenState {
-  void _triggerMission(int missionId, Offset origin) {
+  Future<void> _triggerMission(int missionId, Offset origin) async {
     final controller = context.read<MissionsController>();
     if (controller.isMissionCompleted(missionId)) return;
     // Look up the mission so we know which cosmetic to unlock.
@@ -15,19 +15,6 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
       _confettiSeed++;
       _burstMissionId = missionId.toString();
     });
-    controller.completeMission(missionId);
-
-    // Unlock the matching wardrobe item and tell the user.
-    final reward = _HomeScreenState._accessoryForMission(mission.missionType);
-    if (reward != null && !_unlockedAccessoryIds.contains(reward.id)) {
-      _update(() => _unlockedAccessoryIds.add(reward.id));
-      showTopAlert(
-        context,
-        'Unlocked ${reward.emoji} ${reward.name}!',
-        icon: Icons.celebration_rounded,
-      );
-    }
-
     Timer(const Duration(milliseconds: 950), () {
       if (!mounted) return;
       _update(() {
@@ -35,15 +22,34 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
         _burstMissionId = null;
       });
     });
+
+    // Grant the wardrobe reward only after the backend confirms completion —
+    // if the PUT fails the mission stays open and no accessory is unlocked
+    // (UD-09 E1). Persisted so the cosmetic survives app restarts (URS-F4-03).
+    await controller.completeMission(missionId);
+    if (!mounted || !controller.isMissionCompleted(missionId)) return;
+
+    final reward = _HomeScreenState._accessoryForMission(mission.missionType);
+    if (reward != null && await _wardrobeController.unlock(reward.id)) {
+      if (!mounted) return;
+      showTopAlert(
+        context,
+        'Unlocked ${reward.emoji} ${reward.name}!',
+        icon: Icons.celebration_rounded,
+      );
+    }
   }
 
-  void _selectPet(int index) {
+  Future<void> _selectPet(int index) async {
     _activePetIndex = index;
     _loadDraftForPet(index);
 
     // Sync petId with AuthController for other features (health assessment, etc.)
     final selectedPet = _pets[index];
-    context.read<AuthController>().setPetId(selectedPet.id);
+    await context.read<AuthController>().setPetId(selectedPet.id);
+    if (!mounted) return;
+    await _loadScopedHomeFeatureState();
+    if (!mounted) return;
 
     // Reload health assessment history for the newly selected pet
     context.read<HealthAssessmentController>().loadPetHistory(selectedPet.id);
@@ -248,8 +254,9 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
                       reward: mission.rewardDisplay,
                       icon: mission.icon,
                     ),
-                    rewardAccessory:
-                        _HomeScreenState._accessoryForMission(mission.missionType),
+                    rewardAccessory: _HomeScreenState._accessoryForMission(
+                      mission.missionType,
+                    ),
                     completed: mission.isCompleted,
                     bursting: _burstMissionId == mission.id.toString(),
                     onTap: (origin) => _triggerMission(mission.id, origin),
@@ -442,8 +449,9 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
                       reward: mission.rewardDisplay,
                       icon: mission.icon,
                     ),
-                    rewardAccessory:
-                        _HomeScreenState._accessoryForMission(mission.missionType),
+                    rewardAccessory: _HomeScreenState._accessoryForMission(
+                      mission.missionType,
+                    ),
                     completed: mission.isCompleted,
                     bursting: _burstMissionId == mission.id.toString(),
                     onTap: (origin) => _triggerMission(mission.id, origin),
@@ -476,9 +484,9 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
             ),
           )
           .then((_) {
-        if (petId == null) return;
-        controller.loadStats(petId: petId);
-      });
+            if (petId == null) return;
+            controller.loadStats(petId: petId);
+          });
     }
 
     return Consumer<ActivityTrackingController>(

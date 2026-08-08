@@ -4,7 +4,7 @@ bool _sameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
 
 extension _HomeCalendarScreenPart on _HomeScreenState {
-  bool _eventOnDay(_CalendarEventData event, int year, int month, int day) {
+  bool _eventOnDay(CalendarEventData event, int year, int month, int day) {
     return event.date.year == year &&
         event.date.month == month &&
         event.date.day == day;
@@ -534,7 +534,7 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
       return '${d.day} ${months[d.month - 1]} ${d.year}';
     }
 
-    final created = await showModalBottomSheet<_CalendarEventData>(
+    final created = await showModalBottomSheet<CalendarEventData>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -728,7 +728,7 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
                                       selectedTime!.minute,
                                     );
                               Navigator.of(context).pop(
-                                _CalendarEventData(
+                                CalendarEventData(
                                   id: 'custom_${DateTime.now().microsecondsSinceEpoch}',
                                   title: typedTitle.isEmpty
                                       ? style.defaultTitle
@@ -762,13 +762,12 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
     if (created == null || !mounted) return;
 
     _update(() {
-      _calendarEvents.add(created);
       // Jump the user to the day they just scheduled so the new entry is
       // visible immediately.
       _selectedDate = created.date;
       _focusedMonth = DateTime(created.date.year, created.date.month);
     });
-    await _persistCalendar();
+    await _calendarController.add(created);
     if (created.startsAt != null) {
       await NotificationService.instance.scheduleEventReminder(
         eventId: created.id,
@@ -787,9 +786,8 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
     );
   }
 
-  Future<void> _deleteCalendarEvent(_CalendarEventData event) async {
-    _update(() => _calendarEvents.removeWhere((e) => e.id == event.id));
-    await _persistCalendar();
+  Future<void> _deleteCalendarEvent(CalendarEventData event) async {
+    await _calendarController.remove(event.id);
     await NotificationService.instance.cancelEventReminder(event.id);
     if (!mounted) return;
     showTopAlert(context, 'Plan removed.', icon: Icons.delete_outline_rounded);
