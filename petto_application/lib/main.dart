@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'src/core/config/app_config.dart';
 import 'src/core/theme/app_theme.dart';
 import 'src/features/auth/data/repositories/auth_repository.dart';
 import 'src/features/auth/presentation/controllers/auth_controller.dart';
@@ -18,11 +19,11 @@ import 'src/core/services/notification_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Supabase
+  // Staging is the default. Production values must be supplied with
+  // --dart-define when a production build is intentionally created.
   await Supabase.initialize(
-    url: 'https://tufobbenxkgpphrplzds.supabase.co',
-    publishableKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1Zm9iYmVueGtncHBocnBsemRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5NTkwMDQsImV4cCI6MjA5MzUzNTAwNH0.DCjYyx3koOvXy0gUZSAga7hmpzPfP8M6D7V9_ocalf0',
+    url: AppConfig.supabaseUrl,
+    publishableKey: AppConfig.supabasePublishableKey,
   );
 
   // Prepare OS-level notifications (no-op on web). Failures are swallowed so a
@@ -42,9 +43,7 @@ class PettoApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (_) => AuthController(
-            repository: AuthRepositoryImpl(),
-          ),
+          create: (_) => AuthController(repository: AuthRepositoryImpl()),
         ),
         ChangeNotifierProvider(
           create: (_) => HealthAssessmentController(

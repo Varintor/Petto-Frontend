@@ -5,27 +5,39 @@
 /// here are expressed relative to [apiBaseUrl].
 class AppConfig {
   // ============================================================
-  // Base URL
+  // Environment
   // ============================================================
 
-  /// Ngrok URL - Local FastAPI Development (Tunneling)
-  static const String _ngrokUrl =
-      'https://egging-sculptor-operator.ngrok-free.dev';
+  /// Staging is the default environment for development and Progress 2 demos.
+  /// Override these values at build time when targeting another environment:
+  ///
+  /// flutter run \
+  ///   --dart-define=API_BASE_URL=https://api.example.com \
+  ///   --dart-define=SUPABASE_URL=https://project.supabase.co \
+  ///   --dart-define=SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx
+  static const String environment = String.fromEnvironment(
+    'APP_ENV',
+    defaultValue: 'staging',
+  );
 
-  /// Railway Production URL (HTTPS)
-  static const String _railwayUrl =
-      'https://petto-backend-production.up.railway.app';
+  /// Root URL of the FastAPI backend (no trailing slash or API path).
+  static const String apiBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'https://petto-backend-production-da2e.up.railway.app',
+  );
 
-  /// LAN URL - Local Development (Android device on same Wi-Fi, etc.)
-  static const String _lanUrl = 'http://192.168.1.22:8000';
+  /// Supabase project used by Auth, Realtime, and Storage.
+  static const String supabaseUrl = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: 'https://ctffimdivmbempiiztsp.supabase.co',
+  );
 
-  /// Local URL - same-machine development. Works for Flutter web in Chrome
-  /// and iOS simulator. Android emulator must use http://10.0.2.2:8000.
-  static const String _localUrl = 'http://localhost:8000';
-
-  /// Root URL of the backend (no trailing slash, no path).
-  /// Currently: Railway production FastAPI.
-  static const String apiBaseUrl = _railwayUrl;
+  /// Public client key only. Service-role and database credentials must never
+  /// be included in the Flutter application.
+  static const String supabasePublishableKey = String.fromEnvironment(
+    'SUPABASE_PUBLISHABLE_KEY',
+    defaultValue: 'sb_publishable_PbpNNAXjigAzOCF9n3UEUQ_VEeNrABr',
+  );
 
   /// Shared API version prefix.
   static const String apiPrefix = '/api/v1';

@@ -1,17 +1,25 @@
-# petto_application
+# Petto application
 
-A new Flutter project.
+The Flutter client uses the Petto staging environment by default. Production is
+kept isolated until the project passes staging verification.
 
-## Getting Started
+## Environment configuration
 
-This project is a starting point for a Flutter application.
+The default staging endpoints are centralized in
+`lib/src/core/config/app_config.dart`. A different environment can be selected
+without modifying source code:
 
-A few resources to get you started if this is your first Flutter project:
+```powershell
+flutter run `
+  --dart-define=APP_ENV=production `
+  --dart-define=API_BASE_URL=https://api.example.com `
+  --dart-define=SUPABASE_URL=https://project.supabase.co `
+  --dart-define=SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Only a Supabase publishable key may be included in the client. Never pass a
+service-role key, database password, or Gemini key to Flutter.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+For local Android emulator development, override `API_BASE_URL` with
+`http://10.0.2.2:8000`. Use `http://localhost:8000` for Flutter web or an iOS
+simulator running on the same machine.
