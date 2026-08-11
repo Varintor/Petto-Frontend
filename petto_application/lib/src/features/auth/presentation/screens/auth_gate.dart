@@ -5,6 +5,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../controllers/auth_controller.dart';
 import '../../../pet_management/presentation/screens/auth_onboarding_screen.dart';
 import '../../../health_assessment/presentation/screens/home_screen.dart';
+import '../../../vet_portal/presentation/screens/vet_portal_screen.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -57,7 +58,9 @@ class _AuthGateState extends State<AuthGate> {
           ),
         );
       case AuthStatus.authenticated:
-        return const HomeScreen();
+        return auth.isVeterinarian
+            ? const VetPortalScreen()
+            : const HomeScreen();
       case AuthStatus.unauthenticated:
       case AuthStatus.error:
         // After an explicit logout, drop the user on the login form rather

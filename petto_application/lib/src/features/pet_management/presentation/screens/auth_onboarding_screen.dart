@@ -9,6 +9,7 @@ import '../../../../core/widgets/top_alert.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../health_assessment/presentation/screens/home_screen.dart';
 import '../../../health_assessment/presentation/widgets/pet_avatar_widget.dart';
+import '../../../vet_portal/presentation/screens/vet_portal_screen.dart';
 import '../../data/repositories/pet_repository.dart';
 
 enum _AuthScreen {
@@ -49,8 +50,9 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
   static const _paleRose = Color(0xFFE7D4D9);
   static const _cream = Color(0xFFF6F4F1);
 
-  late _AuthScreen _screen =
-      widget.startAtLogin ? _AuthScreen.gateway : _AuthScreen.intro;
+  late _AuthScreen _screen = widget.startAtLogin
+      ? _AuthScreen.gateway
+      : _AuthScreen.intro;
   _RegisterStep _step = _RegisterStep.owner;
   int _transitionDirection = 1;
   String _species = 'Cat';
@@ -155,8 +157,13 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
 
   void _openHome({Pet? initialPet}) {
     FocusManager.instance.primaryFocus?.unfocus();
+    final auth = context.read<AuthController>();
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => HomeScreen(initialPet: initialPet)),
+      MaterialPageRoute(
+        builder: (_) => auth.isVeterinarian
+            ? const VetPortalScreen()
+            : HomeScreen(initialPet: initialPet),
+      ),
     );
   }
 

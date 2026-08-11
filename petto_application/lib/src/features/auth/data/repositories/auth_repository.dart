@@ -2,18 +2,22 @@ import 'package:dio/dio.dart';
 
 import '../../../../core/config/app_config.dart';
 
+enum AccountRole { owner, veterinarian }
+
 /// User returned by the Petto FastAPI backend (`public.users`, bigint id).
 class AuthUser {
   final int id;
   final String email;
   final String? name;
   final String? avatarUri;
+  final AccountRole role;
 
   AuthUser({
     required this.id,
     required this.email,
     this.name,
     this.avatarUri,
+    this.role = AccountRole.owner,
   });
 
   factory AuthUser.fromJson(Map<String, dynamic> json) {
@@ -22,7 +26,39 @@ class AuthUser {
       email: json['email'] as String? ?? '',
       name: json['name'] as String?,
       avatarUri: json['avatar_uri'] as String?,
+      role: _parseRole(json),
     );
+  }
+
+  static AccountRole _parseRole(Map<String, dynamic> json) {
+    final metadata = json['user_metadata'];
+    final metadataRole = metadata is Map ? metadata['role'] : null;
+    final rawRole =
+        json['role'] ??
+        json['user_type'] ??
+        json['account_type'] ??
+        metadataRole;
+    final normalized = rawRole?.toString().trim().toLowerCase();
+    if (const {
+      'vet',
+      'veterinarian',
+      'doctor',
+      'clinician',
+      'staff',
+    }.contains(normalized)) {
+      return AccountRole.veterinarian;
+    }
+
+    // Temporary preview fallback until the backend role field is present.
+    final email = (json['email'] as String? ?? '').trim().toLowerCase();
+    final localPart = email.split('@').first;
+    if (email.endsWith('@vet.petto') ||
+        localPart.startsWith('vet') ||
+        localPart.startsWith('dr.') ||
+        localPart.startsWith('doctor')) {
+      return AccountRole.veterinarian;
+    }
+    return AccountRole.owner;
   }
 }
 
@@ -67,14 +103,17 @@ class AuthRepositoryImpl implements AuthRepository {
   final Dio dio;
 
   AuthRepositoryImpl({Dio? dio})
-      : dio = dio ??
-            Dio(BaseOptions(
+    : dio =
+          dio ??
+          Dio(
+            BaseOptions(
               baseUrl: AppConfig.apiBaseUrl,
               connectTimeout: AppConfig.connectionTimeout,
               receiveTimeout: AppConfig.receiveTimeout,
               sendTimeout: AppConfig.sendTimeout,
               headers: {'Accept': 'application/json'},
-            ));
+            ),
+          );
 
   @override
   Future<AuthResult> register(
@@ -134,7 +173,7 @@ class AuthRepositoryImpl implements AuthRepository {
       );
       final data = response.data as Map<String, dynamic>;
       return data['available'] as bool? ?? true;
-    } on DioException catch (e) {
+    } on DioException {
       // On error, assume available (don't block registration)
       return true;
     }

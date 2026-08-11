@@ -10,6 +10,11 @@ enum AuthStatus { loading, authenticated, unauthenticated, error }
 /// plus the backend's bigint user id. The JWT is sent as a Bearer token on
 /// authenticated calls (e.g. creating a pet).
 class AuthController extends ChangeNotifier {
+  static const mockVetEmail = 'doctor@vet.petto';
+  static const mockVetPassword = 'PettoVet123';
+  static const _mockVetToken = 'mock-vet-session';
+  static const _mockVetUserId = -100;
+
   final AuthRepository repository;
   final TokenStorage storage;
 
@@ -17,6 +22,7 @@ class AuthController extends ChangeNotifier {
   String? _token;
   int? _userId;
   int? _petId;
+  AuthUser? _currentUser;
   String? _error;
   bool _justLoggedOut = false;
 
@@ -31,6 +37,9 @@ class AuthController extends ChangeNotifier {
   AuthStatus get status => _status;
   String? get token => _token;
   int? get userId => _userId;
+  AuthUser? get currentUser => _currentUser;
+  AccountRole get accountRole => _currentUser?.role ?? AccountRole.owner;
+  bool get isVeterinarian => accountRole == AccountRole.veterinarian;
 
   /// The signed-in user's active pet id, or null when there is none yet
   /// (guest session, fresh account before the first pet). No seed-pet
@@ -70,10 +79,21 @@ class AuthController extends ChangeNotifier {
         return;
       }
 
+      if (token == _mockVetToken) {
+        _token = token;
+        _userId = _mockVetUserId;
+        _currentUser = _buildMockVetUser();
+        _petId = null;
+        _status = AuthStatus.authenticated;
+        notifyListeners();
+        return;
+      }
+
       // Validate the stored token against the backend.
       final user = await repository.getMe(token);
       _token = token;
       _userId = user.id;
+      _currentUser = user;
       _petId = await storage.getPetId();
       _status = AuthStatus.authenticated;
       notifyListeners();
@@ -81,6 +101,7 @@ class AuthController extends ChangeNotifier {
       await storage.clear();
       _token = null;
       _userId = null;
+      _currentUser = null;
       _petId = null;
       _status = AuthStatus.unauthenticated;
       notifyListeners();
@@ -113,6 +134,24 @@ class AuthController extends ChangeNotifier {
     // successful sign-in changes the status (via _applySession -> authenticated).
     // The caller surfaces failures inline from the returned bool + [error].
     _error = null;
+    final normalizedEmail = _normalizeMockEmail(email);
+    final normalizedPassword = password.trim();
+
+    if (_isMockVetEmail(normalizedEmail)) {
+      if (normalizedPassword != mockVetPassword) {
+        _status = AuthStatus.unauthenticated;
+        _error = 'Invalid email or password.';
+        notifyListeners();
+        return false;
+      }
+      await _applySession(
+        AuthResult(
+          accessToken: _mockVetToken,
+          user: _buildMockVetUser(normalizedEmail),
+        ),
+      );
+      return true;
+    }
 
     try {
       final result = await repository.login(email, password);
@@ -127,6 +166,7 @@ class AuthController extends ChangeNotifier {
   Future<void> _applySession(AuthResult result) async {
     _token = result.accessToken;
     _userId = result.user.id;
+    _currentUser = result.user;
     await storage.saveToken(_token ?? '');
     await storage.saveUserId(_userId ?? 0);
     _petId = await storage.getPetId();
@@ -141,6 +181,7 @@ class AuthController extends ChangeNotifier {
   }) async {
     _token = result.accessToken;
     _userId = result.user.id;
+    _currentUser = result.user;
     _petId = petId;
     await storage.saveToken(_token ?? '');
     await storage.saveUserId(_userId ?? 0);
@@ -160,6 +201,7 @@ class AuthController extends ChangeNotifier {
     _status = AuthStatus.unauthenticated;
     _token = null;
     _userId = null;
+    _currentUser = null;
     _petId = null;
     notifyListeners();
   }
@@ -168,6 +210,7 @@ class AuthController extends ChangeNotifier {
     await storage.clear();
     _token = null;
     _userId = null;
+    _currentUser = null;
     _petId = null;
     _error = null;
     _justLoggedOut = true;
@@ -194,5 +237,23 @@ class AuthController extends ChangeNotifier {
     final message = e.toString().replaceFirst('Exception: ', '');
     if (message.isEmpty) return 'Something went wrong. Please try again.';
     return message;
+  }
+
+  static bool _isMockVetEmail(String email) =>
+      email == mockVetEmail || email.endsWith('@vet.petto');
+
+  static String _normalizeMockEmail(String email) {
+    return email
+        .replaceAll(RegExp(r'[\s\u200B-\u200D\uFEFF]+'), '')
+        .toLowerCase();
+  }
+
+  static AuthUser _buildMockVetUser([String? email]) {
+    return AuthUser(
+      id: _mockVetUserId,
+      email: email ?? mockVetEmail,
+      name: 'Dr. Sarah',
+      role: AccountRole.veterinarian,
+    );
   }
 }
