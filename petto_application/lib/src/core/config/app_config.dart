@@ -23,7 +23,7 @@ class AppConfig {
   /// Root URL of the FastAPI backend (no trailing slash or API path).
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://petto-backend-production-da2e.up.railway.app',
+    defaultValue: 'https://petto-backend-staging-staging.up.railway.app',
   );
 
   /// Supabase project used by Auth, Realtime, and Storage.
