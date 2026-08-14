@@ -21,10 +21,23 @@ extension _HomeWardrobeScreenPart on _HomeScreenState {
     _selectedPattern = appearance.pattern;
     _draftEquippedAccessoryIds
       ..clear()
-      ..addAll(appearance.equipped);
+      ..addAll(
+        context.read<AuthController>().userId == null
+            ? appearance.equipped
+            : {
+                if (_wardrobeController.equippedId != null)
+                  _wardrobeController.equippedId!,
+              },
+      );
   }
 
-  void _saveWardrobe() {
+  Future<void> _saveWardrobe() async {
+    if (context.read<AuthController>().userId != null) {
+      await _wardrobeController.setEquipped(
+        _draftEquippedAccessoryIds.firstOrNull,
+      );
+      if (!mounted) return;
+    }
     final appearance = _PetAppearanceData(
       species: _selectedSpecies,
       colorHex: _selectedColor,
@@ -274,6 +287,10 @@ extension _HomeWardrobeScreenPart on _HomeScreenState {
                               )) {
                                 _draftEquippedAccessoryIds.remove(accessory.id);
                               } else {
+                                if (context.read<AuthController>().userId !=
+                                    null) {
+                                  _draftEquippedAccessoryIds.clear();
+                                }
                                 _draftEquippedAccessoryIds.add(accessory.id);
                               }
                             });

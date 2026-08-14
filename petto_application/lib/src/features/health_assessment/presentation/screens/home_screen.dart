@@ -684,6 +684,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _wardrobeController.load(userId: auth.userId, petId: petId),
     ]);
     if (!mounted) return;
+    _loadDraftForPet(_activePetIndex);
 
     for (final event in _calendarEvents) {
       if (event.startsAt != null && event.startsAt!.isAfter(DateTime.now())) {
