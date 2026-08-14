@@ -42,4 +42,18 @@ void main() {
     await restored.load(userId: 7, petId: 11);
     expect(restored.events, isEmpty);
   });
+
+  test('restores a constant icon from the semantic event type', () {
+    final restored = CalendarEventData.fromJson({
+      ...event('legacy').toJson(),
+      // Older records may still contain these fields. They are deliberately
+      // ignored so release builds never construct IconData dynamically.
+      'icon': 12345,
+      'icon_family': 'MaterialIcons',
+    });
+
+    expect(restored.icon, Icons.medical_services_rounded);
+    expect(restored.toJson(), isNot(contains('icon')));
+    expect(restored.toJson(), isNot(contains('icon_family')));
+  });
 }
