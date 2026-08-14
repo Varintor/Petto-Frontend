@@ -73,12 +73,18 @@ class AuthController extends ChangeNotifier {
         return;
       }
 
-      // Validate the stored token against the backend.
-      final user = await repository.getMe(token);
+      // Token validation and the local pet lookup are independent. Start both
+      // together so app restoration takes the duration of the slower task,
+      // rather than the sum of both tasks.
+      final results = await Future.wait<Object?>([
+        Future<AuthUser>.sync(() => repository.getMe(token)),
+        Future<int?>.sync(storage.getPetId),
+      ]);
+      final user = results[0] as AuthUser;
       _token = token;
       _userId = user.id;
       _currentUser = user;
-      _petId = await storage.getPetId();
+      _petId = results[1] as int?;
       _status = AuthStatus.authenticated;
       notifyListeners();
     } catch (_) {
@@ -133,9 +139,12 @@ class AuthController extends ChangeNotifier {
     _token = result.accessToken;
     _userId = result.user.id;
     _currentUser = result.user;
-    await storage.saveToken(_token ?? '');
-    await storage.saveUserId(_userId ?? 0);
-    _petId = await storage.getPetId();
+    final results = await Future.wait<Object?>([
+      storage.saveToken(_token ?? ''),
+      storage.saveUserId(_userId ?? 0),
+      storage.getPetId(),
+    ]);
+    _petId = results[2] as int?;
     _justLoggedOut = false;
     _status = AuthStatus.authenticated;
     notifyListeners();
@@ -149,9 +158,11 @@ class AuthController extends ChangeNotifier {
     _userId = result.user.id;
     _currentUser = result.user;
     _petId = petId;
-    await storage.saveToken(_token ?? '');
-    await storage.saveUserId(_userId ?? 0);
-    await storage.savePetId(petId);
+    await Future.wait<void>([
+      storage.saveToken(_token ?? ''),
+      storage.saveUserId(_userId ?? 0),
+      storage.savePetId(petId),
+    ]);
     _justLoggedOut = false;
     _status = AuthStatus.authenticated;
     notifyListeners();

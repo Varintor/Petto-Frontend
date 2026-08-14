@@ -65,9 +65,22 @@ class ConsultationController extends ChangeNotifier {
 
   Future<void> openConsultation(ConsultationModel consultation) async {
     _active = consultation;
-    await refreshMessages();
+    _messages = [];
+    await _guard(() async {
+      final results = await Future.wait<Object?>([
+        repository.listMessages(consultation.id),
+        _markReadBestEffort(consultation.id),
+      ]);
+      // Ignore a late response if another thread was selected meanwhile.
+      if (_active?.id == consultation.id) {
+        _messages = results[0] as List<ChatMessageModel>;
+      }
+    });
+  }
+
+  Future<void> _markReadBestEffort(int consultationId) async {
     try {
-      await repository.markMessagesRead(consultation.id);
+      await repository.markMessagesRead(consultationId);
     } catch (_) {
       // Read receipts must not block opening a consultation thread.
     }

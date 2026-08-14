@@ -20,39 +20,49 @@ class ApiClient {
   static final Dio dio = _build();
 
   static Dio _build() {
-    final dio = Dio(BaseOptions(
-      baseUrl: AppConfig.apiBaseUrl,
-      connectTimeout: AppConfig.connectionTimeout,
-      receiveTimeout: AppConfig.receiveTimeout,
-      sendTimeout: AppConfig.sendTimeout,
-      headers: {'Accept': 'application/json'},
-    ));
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: AppConfig.apiBaseUrl,
+        connectTimeout: AppConfig.connectionTimeout,
+        receiveTimeout: AppConfig.receiveTimeout,
+        sendTimeout: AppConfig.sendTimeout,
+        headers: {'Accept': 'application/json'},
+      ),
+    );
 
-    dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) async {
-        // Explicit per-call Authorization (e.g. right after register, before
-        // the token is persisted) wins over the stored one.
-        if (!options.headers.containsKey('Authorization')) {
-          final token = await _storage.getToken();
-          if (token != null && token.isNotEmpty) {
-            options.headers['Authorization'] = 'Bearer $token';
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          if (options.path == AppConfig.assessmentsEndpoint &&
+              options.method == 'POST') {
+            options.receiveTimeout = AppConfig.aiReceiveTimeout;
           }
-        }
-        handler.next(options);
-      },
-    ));
+          // Explicit per-call Authorization (e.g. right after register, before
+          // the token is persisted) wins over the stored one.
+          if (!options.headers.containsKey('Authorization')) {
+            final token = await _storage.getToken();
+            if (token != null && token.isNotEmpty) {
+              options.headers['Authorization'] = 'Bearer $token';
+            }
+          }
+          handler.next(options);
+        },
+      ),
+    );
 
     // Verbose wire logging is debug-only: response bodies carry health data
     // and the request header now carries the session token.
     if (kDebugMode) {
-      dio.interceptors.add(LogInterceptor(
-        request: true,
-        requestHeader: false,
-        requestBody: true,
-        responseHeader: false,
-        responseBody: true,
-        error: true,
-      ));
+      dio.interceptors.add(
+        LogInterceptor(
+          request: true,
+          requestHeader: false,
+          requestBody: false,
+          responseHeader: false,
+          responseBody: false,
+          error: true,
+        ),
+      );
     }
 
     return dio;

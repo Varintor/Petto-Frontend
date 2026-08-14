@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -60,11 +62,10 @@ class _VetPortalScreenState extends State<VetPortalScreen> {
     });
   }
 
-  Future<void> _openMessage(int index, bool compact) async {
+  void _openMessage(int index, bool compact) {
     final controller = context.read<ConsultationController>();
     if (index < 0 || index >= controller.consultations.length) return;
-    await controller.openConsultation(controller.consultations[index]);
-    if (!mounted) return;
+    unawaited(controller.openConsultation(controller.consultations[index]));
     if (compact) {
       Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => const _BackendConversationScreen()),
@@ -137,9 +138,8 @@ class _VetPortalScreenState extends State<VetPortalScreen> {
                                   _VetSection.messages => _BackendMessagesView(
                                     selectedIndex: _selectedMessage,
                                     compact: !desktop,
-                                    onSelect: (index) async {
-                                      await _openMessage(index, !desktop);
-                                    },
+                                    onSelect: (index) =>
+                                        _openMessage(index, !desktop),
                                   ),
                                   _VetSection.profile => _ProfileView(
                                     vetName: _vetName,

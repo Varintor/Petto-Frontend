@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:petto_application/src/features/vet_consultation/data/models/consultation_models.dart';
@@ -66,6 +68,25 @@ class _FakeConsultationRepository implements ConsultationRepository {
       throw UnimplementedError();
 }
 
+class _ControlledOpenRepository extends _FakeConsultationRepository {
+  final messagesCompleter = Completer<List<ChatMessageModel>>();
+  final readCompleter = Completer<void>();
+  bool messagesStarted = false;
+  bool readStarted = false;
+
+  @override
+  Future<List<ChatMessageModel>> listMessages(int consultationId) {
+    messagesStarted = true;
+    return messagesCompleter.future;
+  }
+
+  @override
+  Future<void> markMessagesRead(int consultationId) {
+    readStarted = true;
+    return readCompleter.future;
+  }
+}
+
 void main() {
   test(
     'vet loads assigned consultation, opens it, and sends a reply',
@@ -86,4 +107,23 @@ void main() {
       expect(controller.messages.single.content, 'Please send another photo.');
     },
   );
+
+  test('message loading and read receipt start concurrently', () async {
+    final repository = _ControlledOpenRepository();
+    final controller = ConsultationController(repository: repository);
+
+    final opening = controller.openConsultation(repository.consultation);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(repository.messagesStarted, isTrue);
+    expect(repository.readStarted, isTrue);
+    expect(controller.active?.id, repository.consultation.id);
+    expect(controller.loading, isTrue);
+
+    repository.messagesCompleter.complete([]);
+    repository.readCompleter.complete();
+    await opening;
+
+    expect(controller.loading, isFalse);
+  });
 }

@@ -119,10 +119,14 @@ class AppConfig {
       '$apiPrefix/pets/$petId/vaccinations';
 
   // ============================================================
-  // Timeouts (AI processing can take 10-15s, keep these generous)
+  // Timeouts
   // ============================================================
 
-  static const Duration connectionTimeout = Duration(seconds: 60);
-  static const Duration receiveTimeout = Duration(seconds: 60);
-  static const Duration sendTimeout = Duration(seconds: 60);
+  /// Normal API calls should fail quickly enough to provide useful feedback.
+  /// AI assessment overrides only its receive timeout because inference can
+  /// legitimately take longer than ordinary reads and writes.
+  static const Duration connectionTimeout = Duration(seconds: 15);
+  static const Duration receiveTimeout = Duration(seconds: 20);
+  static const Duration sendTimeout = Duration(seconds: 20);
+  static const Duration aiReceiveTimeout = Duration(seconds: 60);
 }

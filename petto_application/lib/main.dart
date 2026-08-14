@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -28,13 +30,19 @@ void main() async {
     publishableKey: AppConfig.supabasePublishableKey,
   );
 
-  // Prepare OS-level notifications (no-op on web). Failures are swallowed so a
-  // missing channel or denied permission can't block the app from starting.
+  runApp(const PettoApp());
+
+  // Notification setup is not required for the first frame. Initialize it in
+  // the background so a slow platform channel cannot delay app startup.
+  unawaited(_initializeNotifications());
+}
+
+Future<void> _initializeNotifications() async {
   try {
     await NotificationService.instance.init();
-  } catch (_) {}
-
-  runApp(const PettoApp());
+  } catch (_) {
+    // A missing channel or denied permission must not stop the app.
+  }
 }
 
 class PettoApp extends StatelessWidget {
