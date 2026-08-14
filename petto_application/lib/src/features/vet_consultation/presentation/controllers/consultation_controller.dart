@@ -10,7 +10,7 @@ class ConsultationController extends ChangeNotifier {
   final ConsultationRepository repository;
 
   ConsultationController({ConsultationRepository? repository})
-      : repository = repository ?? ConsultationRepositoryImpl();
+    : repository = repository ?? ConsultationRepositoryImpl();
 
   List<VetModel> _vets = [];
   List<ConsultationModel> _consultations = [];
@@ -33,6 +33,12 @@ class ConsultationController extends ChangeNotifier {
   Future<void> loadConsultations(int petId) async {
     await _guard(
       () async => _consultations = await repository.listPetConsultations(petId),
+    );
+  }
+
+  Future<void> loadVetConsultations() async {
+    await _guard(
+      () async => _consultations = await repository.listVetConsultations(),
     );
   }
 
@@ -60,6 +66,11 @@ class ConsultationController extends ChangeNotifier {
   Future<void> openConsultation(ConsultationModel consultation) async {
     _active = consultation;
     await refreshMessages();
+    try {
+      await repository.markMessagesRead(consultation.id);
+    } catch (_) {
+      // Read receipts must not block opening a consultation thread.
+    }
   }
 
   Future<void> refreshMessages() async {

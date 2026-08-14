@@ -31,6 +31,17 @@ class AuthFixtures {
     'user': {'id': 1, 'email': validEmail, 'name': validName},
   };
 
+  static Map<String, dynamic> veterinarianLoginResponse() => {
+    'access_token': validToken,
+    'token_type': 'bearer',
+    'user': {
+      'id': 42,
+      'email': 'doctor@petto.test',
+      'name': 'Dr. Petto',
+      'role': 'veterinarian',
+    },
+  };
+
   // Error response (like UTC-01-TC-02, UTC-02-TC-02)
   static Map<String, dynamic> duplicateEmailErrorResponse() => {
     'detail': 'Email already registered',

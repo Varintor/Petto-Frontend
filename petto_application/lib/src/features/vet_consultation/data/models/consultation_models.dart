@@ -17,13 +17,13 @@ class VetModel {
   });
 
   factory VetModel.fromJson(Map<String, dynamic> json) => VetModel(
-        id: json['id'] as int,
-        name: json['name'] as String,
-        clinicName: json['clinic_name'] as String?,
-        specialty: json['specialty'] as String?,
-        avatarUri: json['avatar_uri'] as String?,
-        isOnline: json['is_online'] as bool? ?? false,
-      );
+    id: json['id'] as int,
+    name: json['name'] as String,
+    clinicName: json['clinic_name'] as String?,
+    specialty: json['specialty'] as String?,
+    avatarUri: json['avatar_uri'] as String?,
+    isOnline: json['is_online'] as bool? ?? false,
+  );
 }
 
 class ConsultationModel {
@@ -34,6 +34,7 @@ class ConsultationModel {
   final int? assessmentId;
   final String? notes;
   final DateTime createdAt;
+  final DateTime? updatedAt;
 
   ConsultationModel({
     required this.id,
@@ -43,6 +44,7 @@ class ConsultationModel {
     this.assessmentId,
     this.notes,
     required this.createdAt,
+    this.updatedAt,
   });
 
   factory ConsultationModel.fromJson(Map<String, dynamic> json) =>
@@ -54,6 +56,9 @@ class ConsultationModel {
         assessmentId: json['assessment_id'] as int?,
         notes: json['notes'] as String?,
         createdAt: DateTime.parse(json['created_at'] as String),
+        updatedAt: json['updated_at'] == null
+            ? null
+            : DateTime.parse(json['updated_at'] as String),
       );
 }
 
@@ -64,6 +69,9 @@ class ChatMessageModel {
   final String? content;
   final String? attachmentUri;
   final DateTime createdAt;
+  final bool isRead;
+  final DateTime? deliveredAt;
+  final DateTime? readAt;
 
   ChatMessageModel({
     required this.id,
@@ -72,6 +80,9 @@ class ChatMessageModel {
     this.content,
     this.attachmentUri,
     required this.createdAt,
+    this.isRead = false,
+    this.deliveredAt,
+    this.readAt,
   });
 
   bool get isFromVet => senderType == 'vet';
@@ -85,5 +96,12 @@ class ChatMessageModel {
         content: json['content'] as String?,
         attachmentUri: json['attachment_uri'] as String?,
         createdAt: DateTime.parse(json['created_at'] as String),
+        isRead: json['is_read'] as bool? ?? false,
+        deliveredAt: json['delivered_at'] == null
+            ? null
+            : DateTime.parse(json['delivered_at'] as String),
+        readAt: json['read_at'] == null
+            ? null
+            : DateTime.parse(json['read_at'] as String),
       );
 }

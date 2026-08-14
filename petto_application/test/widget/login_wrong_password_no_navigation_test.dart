@@ -16,6 +16,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:petto_application/src/features/auth/data/repositories/auth_repository.dart';
 import 'package:petto_application/src/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:petto_application/src/features/auth/presentation/screens/auth_gate.dart';
+import 'package:petto_application/src/features/vet_consultation/data/models/consultation_models.dart';
+import 'package:petto_application/src/features/vet_consultation/data/repositories/consultation_repository.dart';
+import 'package:petto_application/src/features/vet_consultation/presentation/controllers/consultation_controller.dart';
 
 /// Rejects login the way the real repository does on a 401 wrong password.
 class _RejectingAuthRepository implements AuthRepository {
@@ -34,8 +37,64 @@ class _RejectingAuthRepository implements AuthRepository {
   Future<AuthUser> getMe(String token) => throw UnimplementedError();
 
   @override
-  Future<AuthResult> register(String email, String password, String name,
-          {Map<String, dynamic>? pet}) =>
+  Future<AuthResult> register(
+    String email,
+    String password,
+    String name, {
+    Map<String, dynamic>? pet,
+  }) => throw UnimplementedError();
+}
+
+class _VeterinarianAuthRepository implements AuthRepository {
+  @override
+  Future<AuthResult> login(String email, String password) async => AuthResult(
+    accessToken: 'vet-token',
+    user: AuthUser(
+      id: 2,
+      email: email,
+      name: 'Dr. Petto Demo',
+      role: AccountRole.veterinarian,
+    ),
+  );
+
+  @override
+  Future<bool> checkEmailAvailability(String email) async => true;
+
+  @override
+  Future<AuthUser> getMe(String token) => throw UnimplementedError();
+
+  @override
+  Future<AuthResult> register(
+    String email,
+    String password,
+    String name, {
+    Map<String, dynamic>? pet,
+  }) => throw UnimplementedError();
+}
+
+class _EmptyConsultationRepository implements ConsultationRepository {
+  @override
+  Future<List<ConsultationModel>> listVetConsultations() async => [];
+  @override
+  Future<void> markMessagesRead(int consultationId) async {}
+  @override
+  Future<List<ChatMessageModel>> listMessages(int consultationId) async => [];
+  @override
+  Future<ChatMessageModel> sendMessage(int consultationId, String content) =>
+      throw UnimplementedError();
+  @override
+  Future<ConsultationModel> createConsultation({
+    required int petId,
+    required int vetId,
+    int? assessmentId,
+    String? notes,
+  }) => throw UnimplementedError();
+  @override
+  Future<List<ConsultationModel>> listPetConsultations(int petId) async => [];
+  @override
+  Future<List<VetModel>> listVets({bool onlineOnly = false}) async => [];
+  @override
+  Future<ChatMessageModel> requestAiSummary(int consultationId) =>
       throw UnimplementedError();
 }
 
@@ -46,6 +105,49 @@ Future<void> _advance(WidgetTester tester, [int frames = 8]) async {
 }
 
 void main() {
+  testWidgets('verified veterinarian login routes to the Vet portal', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    tester.view.physicalSize = const Size(1440, 1100);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final auth = AuthController(repository: _VeterinarianAuthRepository());
+    final consultation = ConsultationController(
+      repository: _EmptyConsultationRepository(),
+    );
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<AuthController>.value(value: auth),
+          ChangeNotifierProvider<ConsultationController>.value(
+            value: consultation,
+          ),
+        ],
+        child: const MaterialApp(home: AuthGate()),
+      ),
+    );
+    await _advance(tester, 12);
+
+    await tester.tap(find.text('GET STARTED'));
+    await _advance(tester);
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Email address'),
+      'staging.vet.demo@petto.test',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Password'),
+      'PettoVet#2026!',
+    );
+    await tester.tap(find.text('LOGIN'));
+    await _advance(tester);
+
+    expect(find.text('Dashboard'), findsWidgets);
+    expect(find.text('No pets yet'), findsNothing);
+  });
+
   testWidgets(
     'wrong password stays on the login screen (does not bounce to welcome)',
     (WidgetTester tester) async {

@@ -2,18 +2,22 @@ import 'package:dio/dio.dart';
 
 import '../../../../core/config/app_config.dart';
 
+enum AccountRole { owner, veterinarian }
+
 /// User returned by the Petto FastAPI backend (`public.users`, bigint id).
 class AuthUser {
   final int id;
   final String email;
   final String? name;
   final String? avatarUri;
+  final AccountRole role;
 
   AuthUser({
     required this.id,
     required this.email,
     this.name,
     this.avatarUri,
+    this.role = AccountRole.owner,
   });
 
   factory AuthUser.fromJson(Map<String, dynamic> json) {
@@ -22,6 +26,9 @@ class AuthUser {
       email: json['email'] as String? ?? '',
       name: json['name'] as String?,
       avatarUri: json['avatar_uri'] as String?,
+      role: json['role'] == 'veterinarian'
+          ? AccountRole.veterinarian
+          : AccountRole.owner,
     );
   }
 }
@@ -67,14 +74,17 @@ class AuthRepositoryImpl implements AuthRepository {
   final Dio dio;
 
   AuthRepositoryImpl({Dio? dio})
-      : dio = dio ??
-            Dio(BaseOptions(
+    : dio =
+          dio ??
+          Dio(
+            BaseOptions(
               baseUrl: AppConfig.apiBaseUrl,
               connectTimeout: AppConfig.connectionTimeout,
               receiveTimeout: AppConfig.receiveTimeout,
               sendTimeout: AppConfig.sendTimeout,
               headers: {'Accept': 'application/json'},
-            ));
+            ),
+          );
 
   @override
   Future<AuthResult> register(
@@ -134,7 +144,7 @@ class AuthRepositoryImpl implements AuthRepository {
       );
       final data = response.data as Map<String, dynamic>;
       return data['available'] as bool? ?? true;
-    } on DioException catch (e) {
+    } on DioException {
       // On error, assume available (don't block registration)
       return true;
     }

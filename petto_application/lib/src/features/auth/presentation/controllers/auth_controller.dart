@@ -17,6 +17,7 @@ class AuthController extends ChangeNotifier {
   String? _token;
   int? _userId;
   int? _petId;
+  AuthUser? _currentUser;
   String? _error;
   bool _justLoggedOut = false;
 
@@ -31,6 +32,8 @@ class AuthController extends ChangeNotifier {
   AuthStatus get status => _status;
   String? get token => _token;
   int? get userId => _userId;
+  AuthUser? get currentUser => _currentUser;
+  bool get isVeterinarian => _currentUser?.role == AccountRole.veterinarian;
 
   /// The signed-in user's active pet id, or null when there is none yet
   /// (guest session, fresh account before the first pet). No seed-pet
@@ -74,6 +77,7 @@ class AuthController extends ChangeNotifier {
       final user = await repository.getMe(token);
       _token = token;
       _userId = user.id;
+      _currentUser = user;
       _petId = await storage.getPetId();
       _status = AuthStatus.authenticated;
       notifyListeners();
@@ -81,6 +85,7 @@ class AuthController extends ChangeNotifier {
       await storage.clear();
       _token = null;
       _userId = null;
+      _currentUser = null;
       _petId = null;
       _status = AuthStatus.unauthenticated;
       notifyListeners();
@@ -127,6 +132,7 @@ class AuthController extends ChangeNotifier {
   Future<void> _applySession(AuthResult result) async {
     _token = result.accessToken;
     _userId = result.user.id;
+    _currentUser = result.user;
     await storage.saveToken(_token ?? '');
     await storage.saveUserId(_userId ?? 0);
     _petId = await storage.getPetId();
@@ -141,6 +147,7 @@ class AuthController extends ChangeNotifier {
   }) async {
     _token = result.accessToken;
     _userId = result.user.id;
+    _currentUser = result.user;
     _petId = petId;
     await storage.saveToken(_token ?? '');
     await storage.saveUserId(_userId ?? 0);
@@ -160,6 +167,7 @@ class AuthController extends ChangeNotifier {
     _status = AuthStatus.unauthenticated;
     _token = null;
     _userId = null;
+    _currentUser = null;
     _petId = null;
     notifyListeners();
   }
@@ -168,6 +176,7 @@ class AuthController extends ChangeNotifier {
     await storage.clear();
     _token = null;
     _userId = null;
+    _currentUser = null;
     _petId = null;
     _error = null;
     _justLoggedOut = true;

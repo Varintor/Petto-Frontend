@@ -18,8 +18,10 @@ abstract class ConsultationRepository {
     String? notes,
   });
   Future<List<ConsultationModel>> listPetConsultations(int petId);
+  Future<List<ConsultationModel>> listVetConsultations();
   Future<List<ChatMessageModel>> listMessages(int consultationId);
   Future<ChatMessageModel> sendMessage(int consultationId, String content);
+  Future<void> markMessagesRead(int consultationId);
 
   /// Posts a server-generated AI briefing (pet profile + latest assessment +
   /// activity totals + vaccination status) into the chat as sender 'ai'.
@@ -50,19 +52,31 @@ class ConsultationRepositoryImpl implements ConsultationRepository {
     int? assessmentId,
     String? notes,
   }) async {
-    final response = await dio.post(_base, data: {
-      'pet_id': petId,
-      'vet_id': vetId,
-      if (assessmentId != null) 'assessment_id': assessmentId,
-      if (notes != null) 'notes': notes,
-    });
+    final response = await dio.post(
+      _base,
+      data: {
+        'pet_id': petId,
+        'vet_id': vetId,
+        if (assessmentId != null) 'assessment_id': assessmentId,
+        if (notes != null) 'notes': notes,
+      },
+    );
     return ConsultationModel.fromJson(response.data as Map<String, dynamic>);
   }
 
   @override
   Future<List<ConsultationModel>> listPetConsultations(int petId) async {
-    final response =
-        await dio.get('${AppConfig.apiPrefix}/pets/$petId/consultations');
+    final response = await dio.get(
+      '${AppConfig.apiPrefix}/pets/$petId/consultations',
+    );
+    return (response.data as List<dynamic>)
+        .map((j) => ConsultationModel.fromJson(j as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
+  Future<List<ConsultationModel>> listVetConsultations() async {
+    final response = await dio.get('${AppConfig.apiPrefix}/vet/consultations');
     return (response.data as List<dynamic>)
         .map((j) => ConsultationModel.fromJson(j as Map<String, dynamic>))
         .toList();
@@ -78,12 +92,19 @@ class ConsultationRepositoryImpl implements ConsultationRepository {
 
   @override
   Future<ChatMessageModel> sendMessage(
-      int consultationId, String content) async {
+    int consultationId,
+    String content,
+  ) async {
     final response = await dio.post(
       '$_base/$consultationId/messages',
-      data: {'sender_type': 'user', 'content': content},
+      data: {'content': content},
     );
     return ChatMessageModel.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  @override
+  Future<void> markMessagesRead(int consultationId) async {
+    await dio.post('$_base/$consultationId/messages/read');
   }
 
   @override

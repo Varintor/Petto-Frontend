@@ -187,6 +187,32 @@ void main() {
         verify(mockTokenStorage.saveUserId(1)).called(1);
       });
 
+      test('ITC-AUTH-03b: Veterinarian login → Vet role restored', () async {
+        when(
+          mockDio.post(
+            argThat(contains('/auth/login')),
+            data: anyNamed('data'),
+            options: anyNamed('options'),
+          ),
+        ).thenAnswer(
+          (_) async => DioMockHelper.successResponse(
+            data: AuthFixtures.veterinarianLoginResponse(),
+          ),
+        );
+        when(mockTokenStorage.getPetId()).thenAnswer((_) async => null);
+        when(mockTokenStorage.saveToken(any)).thenAnswer((_) async {});
+        when(mockTokenStorage.saveUserId(any)).thenAnswer((_) async {});
+
+        final result = await controller.login(
+          'doctor@petto.test',
+          AuthFixtures.validPassword,
+        );
+
+        expect(result, isTrue);
+        expect(controller.isVeterinarian, isTrue);
+        expect(controller.currentUser?.name, 'Dr. Petto');
+      });
+
       test('ITC-AUTH-04: Login wrong password → Error shown', () async {
         // Arrange: Mock 401 Unauthorized response (like UTC-02-TC-02, STC-02-#2)
         when(
