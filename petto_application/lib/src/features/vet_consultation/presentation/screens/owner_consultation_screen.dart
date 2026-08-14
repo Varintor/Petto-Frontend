@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/services/location_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../data/models/consultation_models.dart';
 import '../controllers/consultation_controller.dart';
@@ -35,6 +37,9 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
   bool _sending = false;
   bool _includeLatestAssessment = false;
   int? _respondingAppointmentId;
+  bool _locating = false;
+  String? _locationHint;
+  final LocationService _locationService = LocationService();
 
   @override
   void initState() {
@@ -71,11 +76,118 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
     super.dispose();
   }
 
-  Future<void> _startConsultation(VetModel vet) async {
+  Future<void> _startConsultation(
+    VetModel vet, {
+    VeterinaryProviderModel? provider,
+  }) async {
     await context.read<ConsultationController>().startConsultation(
       petId: widget.petId,
       vetId: vet.id,
+      providerId: provider?.id,
       assessmentId: _includeLatestAssessment ? widget.latestAssessmentId : null,
+    );
+  }
+
+  Future<void> _useCurrentLocation() async {
+    if (_locating) return;
+    setState(() {
+      _locating = true;
+      _locationHint = null;
+    });
+    final readiness = await _locationService.ensureReady();
+    if (!mounted) return;
+    if (readiness != LocationReadiness.ready) {
+      setState(() {
+        _locating = false;
+        _locationHint = switch (readiness) {
+          LocationReadiness.serviceDisabled =>
+            'Turn on Location to sort nearby.',
+          LocationReadiness.denied => 'Location permission was not granted.',
+          LocationReadiness.deniedForever =>
+            'Enable Location for Petto in device settings.',
+          LocationReadiness.ready => null,
+        };
+      });
+      return;
+    }
+    final position = await _locationService.currentPosition();
+    if (!mounted) return;
+    if (position == null) {
+      setState(() {
+        _locating = false;
+        _locationHint = 'Current location is unavailable. Try again.';
+      });
+      return;
+    }
+    await context.read<ConsultationController>().loadProviders(
+      latitude: position.latitude,
+      longitude: position.longitude,
+    );
+    if (!mounted) return;
+    setState(() {
+      _locating = false;
+      _locationHint = 'Sorted by distance from your current location.';
+    });
+  }
+
+  Future<void> _openDirections(VeterinaryProviderModel provider) async {
+    final query = provider.latitude != null && provider.longitude != null
+        ? '${provider.latitude},${provider.longitude}'
+        : provider.address ?? provider.name;
+    final uri = Uri.https('www.google.com', '/maps/search/', {
+      'api': '1',
+      'query': query,
+    });
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  Future<void> _chooseProviderVet(VeterinaryProviderModel provider) async {
+    if (!provider.consultationEnabled) return;
+    final controller = context.read<ConsultationController>();
+    await controller.loadProviderVets(provider.id);
+    if (!mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final vets = controller.providerVets;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  provider.name,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 4),
+                const Text('Choose an available Petto veterinarian'),
+                const SizedBox(height: 14),
+                if (vets.isEmpty)
+                  const _EmptyCard(
+                    message: 'No veterinarian is available for consultation.',
+                  )
+                else
+                  for (final vet in vets)
+                    ListTile(
+                      leading: const CircleAvatar(
+                        child: Icon(Icons.medical_services_rounded),
+                      ),
+                      title: Text(vet.name),
+                      subtitle: Text(vet.specialty ?? 'Veterinarian'),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () {
+                        Navigator.of(sheetContext).pop();
+                        _startConsultation(vet, provider: provider);
+                      },
+                    ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -148,6 +260,29 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
             'Persistent conversations for ${widget.petName}',
             style: const TextStyle(color: AppTheme.mutedText),
           ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: _locating ? null : _useCurrentLocation,
+              icon: _locating
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.my_location_rounded),
+              label: const Text('Use my location'),
+            ),
+          ),
+          if (_locationHint != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                _locationHint!,
+                style: const TextStyle(color: AppTheme.mutedText),
+              ),
+            ),
           if (controller.error != null) ...[
             const SizedBox(height: 12),
             _ErrorCard(message: controller.error!, onRetry: _loadWorkspace),
@@ -180,12 +315,21 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
               ),
           ],
           const SizedBox(height: 22),
-          const _SectionLabel('Available Petto veterinarians'),
+          const _SectionLabel('Nearby hospitals and clinics'),
           const SizedBox(height: 10),
-          if (controller.vets.isEmpty)
+          if (controller.providers.isEmpty && controller.vets.isEmpty)
             const _EmptyCard(
-              message: 'No verified veterinarian is available right now.',
+              message: 'No veterinary provider is listed right now.',
             )
+          else if (controller.providers.isNotEmpty)
+            for (final provider in controller.providers)
+              _ProviderCard(
+                provider: provider,
+                onDirections: () => _openDirections(provider),
+                onConsult: provider.consultationEnabled
+                    ? () => _chooseProviderVet(provider)
+                    : null,
+              )
           else
             for (final vet in controller.vets)
               _VetCard(
@@ -312,6 +456,101 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ProviderCard extends StatelessWidget {
+  const _ProviderCard({
+    required this.provider,
+    required this.onDirections,
+    this.onConsult,
+  });
+
+  final VeterinaryProviderModel provider;
+  final VoidCallback onDirections;
+  final VoidCallback? onConsult;
+
+  @override
+  Widget build(BuildContext context) {
+    final details = <String>[
+      if (provider.distanceKm != null)
+        '${provider.distanceKm!.toStringAsFixed(1)} km',
+      if (provider.phone?.trim().isNotEmpty == true) provider.phone!,
+      if (provider.todayHours != null) 'Today ${provider.todayHours}',
+    ];
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+                  child: const Icon(Icons.local_hospital_rounded),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        provider.name,
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                      Text(
+                        provider.consultationEnabled
+                            ? 'Available on Petto'
+                            : 'Information only',
+                        style: TextStyle(
+                          color: provider.consultationEnabled
+                              ? Colors.green
+                              : AppTheme.mutedText,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (provider.address?.trim().isNotEmpty == true) ...[
+              const SizedBox(height: 10),
+              Text(provider.address!),
+            ],
+            if (details.isNotEmpty) ...[
+              const SizedBox(height: 5),
+              Text(
+                details.join(' • '),
+                style: const TextStyle(color: AppTheme.mutedText),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onDirections,
+                    icon: const Icon(Icons.directions_rounded),
+                    label: const Text('Directions'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: onConsult,
+                    icon: const Icon(Icons.forum_rounded),
+                    label: Text(onConsult == null ? 'Unavailable' : 'Consult'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

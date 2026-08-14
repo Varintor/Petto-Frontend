@@ -110,6 +110,7 @@ class _EmptyConsultationRepository implements ConsultationRepository {
   Future<ConsultationModel> createConsultation({
     required int petId,
     required int vetId,
+    int? providerId,
     int? assessmentId,
     String? notes,
   }) => throw UnimplementedError();
@@ -117,6 +118,13 @@ class _EmptyConsultationRepository implements ConsultationRepository {
   Future<List<ConsultationModel>> listPetConsultations(int petId) async => [];
   @override
   Future<List<VetModel>> listVets({bool onlineOnly = false}) async => [];
+  @override
+  Future<List<VeterinaryProviderModel>> listProviders({
+    double? latitude,
+    double? longitude,
+  }) async => [];
+  @override
+  Future<List<VetModel>> listProviderVets(int providerId) async => [];
   @override
   Future<ChatMessageModel> requestAiSummary(int consultationId) =>
       throw UnimplementedError();

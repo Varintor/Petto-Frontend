@@ -14,6 +14,8 @@ class ConsultationController extends ChangeNotifier {
     : repository = repository ?? ConsultationRepositoryImpl();
 
   List<VetModel> _vets = [];
+  List<VeterinaryProviderModel> _providers = [];
+  List<VetModel> _providerVets = [];
   List<ConsultationModel> _consultations = [];
   ConsultationModel? _active;
   List<ChatMessageModel> _messages = [];
@@ -25,6 +27,8 @@ class ConsultationController extends ChangeNotifier {
   String? _retryClientMessageId;
 
   List<VetModel> get vets => _vets;
+  List<VeterinaryProviderModel> get providers => _providers;
+  List<VetModel> get providerVets => _providerVets;
   List<ConsultationModel> get consultations => _consultations;
   ConsultationModel? get active => _active;
   List<ChatMessageModel> get messages => _messages;
@@ -35,6 +39,21 @@ class ConsultationController extends ChangeNotifier {
 
   Future<void> loadVets() async {
     await _guard(() async => _vets = await repository.listVets());
+  }
+
+  Future<void> loadProviders({double? latitude, double? longitude}) async {
+    await _guard(
+      () async => _providers = await repository.listProviders(
+        latitude: latitude,
+        longitude: longitude,
+      ),
+    );
+  }
+
+  Future<void> loadProviderVets(int providerId) async {
+    await _guard(
+      () async => _providerVets = await repository.listProviderVets(providerId),
+    );
   }
 
   Future<void> loadConsultations(int petId) async {
@@ -54,9 +73,11 @@ class ConsultationController extends ChangeNotifier {
       final results = await Future.wait<Object?>([
         repository.listVets(),
         repository.listPetConsultations(petId),
+        repository.listProviders(),
       ]);
       _vets = results[0] as List<VetModel>;
       _consultations = results[1] as List<ConsultationModel>;
+      _providers = results[2] as List<VeterinaryProviderModel>;
     });
   }
 
@@ -66,12 +87,14 @@ class ConsultationController extends ChangeNotifier {
   Future<void> startConsultation({
     required int petId,
     required int vetId,
+    int? providerId,
     int? assessmentId,
   }) async {
     await _guard(() async {
       _active = await repository.createConsultation(
         petId: petId,
         vetId: vetId,
+        providerId: providerId,
         assessmentId: assessmentId,
       );
       _consultations = [
@@ -261,6 +284,8 @@ class ConsultationController extends ChangeNotifier {
 
   void clearForAccount() {
     _vets = [];
+    _providers = [];
+    _providerVets = [];
     _consultations = [];
     _active = null;
     _messages = [];

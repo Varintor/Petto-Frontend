@@ -26,6 +26,75 @@ class VetModel {
   );
 }
 
+class VeterinaryProviderModel {
+  const VeterinaryProviderModel({
+    required this.id,
+    required this.name,
+    required this.providerType,
+    required this.providerStatus,
+    required this.consultationEnabled,
+    this.address,
+    this.phone,
+    this.latitude,
+    this.longitude,
+    this.operatingHours,
+    this.distanceKm,
+  });
+
+  final int id;
+  final String name;
+  final String providerType;
+  final String? address;
+  final String? phone;
+  final double? latitude;
+  final double? longitude;
+  final Map<String, dynamic>? operatingHours;
+  final String providerStatus;
+  final bool consultationEnabled;
+  final double? distanceKm;
+
+  String? get todayHours {
+    final hours = operatingHours;
+    if (hours == null || hours.isEmpty) return null;
+    const dayNames = [
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+      'sunday',
+    ];
+    final day = dayNames[DateTime.now().weekday - 1];
+    final value = hours[day] ?? hours[day.substring(0, 3)];
+    if (value == null) return null;
+    if (value is String) return value;
+    if (value is Map) {
+      final open = value['open'];
+      final close = value['close'];
+      if (open != null && close != null) return '$open–$close';
+    }
+    return value.toString();
+  }
+
+  factory VeterinaryProviderModel.fromJson(Map<String, dynamic> json) =>
+      VeterinaryProviderModel(
+        id: json['id'] as int,
+        name: json['name'] as String,
+        providerType: json['provider_type'] as String? ?? 'hospital',
+        address: json['address'] as String?,
+        phone: json['phone'] as String?,
+        latitude: (json['latitude'] as num?)?.toDouble(),
+        longitude: (json['longitude'] as num?)?.toDouble(),
+        operatingHours: json['operating_hours'] == null
+            ? null
+            : Map<String, dynamic>.from(json['operating_hours'] as Map),
+        providerStatus: json['provider_status'] as String? ?? 'listed',
+        consultationEnabled: json['consultation_enabled'] as bool? ?? false,
+        distanceKm: (json['distance_km'] as num?)?.toDouble(),
+      );
+}
+
 class ConsultationModel {
   final int id;
   final int petId;

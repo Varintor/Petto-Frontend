@@ -11,9 +11,15 @@ import '../models/consultation_models.dart';
 /// once the UI is rewired (Progress II).
 abstract class ConsultationRepository {
   Future<List<VetModel>> listVets({bool onlineOnly});
+  Future<List<VeterinaryProviderModel>> listProviders({
+    double? latitude,
+    double? longitude,
+  });
+  Future<List<VetModel>> listProviderVets(int providerId);
   Future<ConsultationModel> createConsultation({
     required int petId,
     required int vetId,
+    int? providerId,
     int? assessmentId,
     String? notes,
   });
@@ -65,9 +71,43 @@ class ConsultationRepositoryImpl implements ConsultationRepository {
   }
 
   @override
+  Future<List<VeterinaryProviderModel>> listProviders({
+    double? latitude,
+    double? longitude,
+  }) async {
+    final response = await dio.get(
+      '${AppConfig.apiPrefix}/veterinary-providers',
+      queryParameters: {
+        if (latitude != null) 'latitude': latitude,
+        if (longitude != null) 'longitude': longitude,
+      },
+    );
+    return (response.data as List<dynamic>)
+        .map(
+          (item) => VeterinaryProviderModel.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        )
+        .toList();
+  }
+
+  @override
+  Future<List<VetModel>> listProviderVets(int providerId) async {
+    final response = await dio.get(
+      '${AppConfig.apiPrefix}/veterinary-providers/$providerId/veterinarians',
+    );
+    return (response.data as List<dynamic>)
+        .map(
+          (item) => VetModel.fromJson(Map<String, dynamic>.from(item as Map)),
+        )
+        .toList();
+  }
+
+  @override
   Future<ConsultationModel> createConsultation({
     required int petId,
     required int vetId,
+    int? providerId,
     int? assessmentId,
     String? notes,
   }) async {
@@ -76,6 +116,7 @@ class ConsultationRepositoryImpl implements ConsultationRepository {
       data: {
         'pet_id': petId,
         'vet_id': vetId,
+        if (providerId != null) 'provider_id': providerId,
         if (assessmentId != null) 'assessment_id': assessmentId,
         if (notes != null) 'notes': notes,
       },

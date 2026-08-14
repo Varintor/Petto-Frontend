@@ -16,9 +16,19 @@ class _OwnerMessagingRepository implements ConsultationRepository {
   );
   final messages = <ChatMessageModel>[];
   String? sentClientMessageId;
+  int? createdProviderId;
 
   @override
   Future<List<VetModel>> listVets({bool onlineOnly = false}) async => [vet];
+
+  @override
+  Future<List<VeterinaryProviderModel>> listProviders({
+    double? latitude,
+    double? longitude,
+  }) async => [];
+
+  @override
+  Future<List<VetModel>> listProviderVets(int providerId) async => [vet];
 
   @override
   Future<List<ConsultationModel>> listPetConsultations(int petId) async => [];
@@ -27,18 +37,22 @@ class _OwnerMessagingRepository implements ConsultationRepository {
   Future<ConsultationModel> createConsultation({
     required int petId,
     required int vetId,
+    int? providerId,
     int? assessmentId,
     String? notes,
-  }) async => ConsultationModel(
-    id: 12,
-    petId: petId,
-    vetId: vetId,
-    status: 'ACTIVE',
-    assessmentId: assessmentId,
-    petName: 'Milo',
-    vetName: vet.name,
-    createdAt: DateTime(2026, 8, 14),
-  );
+  }) async {
+    createdProviderId = providerId;
+    return ConsultationModel(
+      id: 12,
+      petId: petId,
+      vetId: vetId,
+      status: 'ACTIVE',
+      assessmentId: assessmentId,
+      petName: 'Milo',
+      vetName: vet.name,
+      createdAt: DateTime(2026, 8, 14),
+    );
+  }
 
   @override
   Future<List<ChatMessageModel>> listMessages(
@@ -105,6 +119,34 @@ class _OwnerMessagingRepository implements ConsultationRepository {
 
   @override
   Future<List<ConsultationModel>> listVetConsultations() async => [];
+}
+
+class _ProviderDiscoveryRepository extends _OwnerMessagingRepository {
+  final availableProvider = VeterinaryProviderModel(
+    id: 21,
+    name: 'Petto Partner Animal Hospital',
+    providerType: 'hospital',
+    address: 'Chiang Mai',
+    phone: '053-000-001',
+    consultationEnabled: true,
+    providerStatus: 'verified',
+    distanceKm: 2.4,
+  );
+  final informationProvider = VeterinaryProviderModel(
+    id: 22,
+    name: 'Nearby Animal Clinic',
+    providerType: 'clinic',
+    address: 'Chiang Mai',
+    consultationEnabled: false,
+    providerStatus: 'listed',
+    distanceKm: 4.8,
+  );
+
+  @override
+  Future<List<VeterinaryProviderModel>> listProviders({
+    double? latitude,
+    double? longitude,
+  }) async => [availableProvider, informationProvider];
 }
 
 class _OwnerAppointmentRepository extends _OwnerMessagingRepository {
@@ -238,6 +280,44 @@ void main() {
     expect(calendarRefreshed, isTrue);
     expect(find.text('ACCEPTED'), findsOneWidget);
     expect(find.textContaining('Added to the pet Calendar'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('provider directory separates Petto consultation availability', (
+    tester,
+  ) async {
+    final repository = _ProviderDiscoveryRepository();
+    final controller = ConsultationController(repository: repository);
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<ConsultationController>.value(
+        value: controller,
+        child: const MaterialApp(
+          home: Scaffold(
+            body: OwnerConsultationScreen(petId: 5, petName: 'Milo'),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('Petto Partner Animal Hospital'), findsOneWidget);
+    expect(find.text('Nearby Animal Clinic'), findsOneWidget);
+    expect(find.text('Available on Petto'), findsOneWidget);
+    expect(find.text('Information only'), findsOneWidget);
+    expect(find.text('Unavailable'), findsOneWidget);
+
+    await tester.tap(find.text('Consult'));
+    await tester.pumpAndSettle();
+    expect(find.text('Choose an available Petto veterinarian'), findsOneWidget);
+    await tester.tap(find.text('Dr. Test'));
+    await tester.pump();
+    await tester.pump();
+
+    expect(repository.createdProviderId, repository.availableProvider.id);
+    expect(find.byType(TextField), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
