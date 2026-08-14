@@ -11,6 +11,14 @@ IconData calendarIconForType(String type) => switch (type) {
   _ => Icons.event_available_rounded,
 };
 
+Color calendarColorForType(String type) => switch (type) {
+  'medication' => const Color(0xFFF2A65A),
+  'vet' => const Color(0xFF7B3034),
+  'grooming' => const Color(0xFF9C6ADE),
+  'walk' || 'exercise' => const Color(0xFF4F8A6B),
+  _ => const Color(0xFF7B3034),
+};
+
 class CalendarEventData {
   const CalendarEventData({
     required this.id,
@@ -60,6 +68,29 @@ class CalendarEventData {
           ? DateTime.parse(json['starts_at'] as String)
           : null,
       color: Color(json['color'] as int? ?? 0xFF7B3034),
+      icon: calendarIconForType(type),
+    );
+  }
+
+  static CalendarEventData fromApiJson(Map<String, dynamic> json) {
+    final type = json['event_type'] as String? ?? 'care';
+    final startsAtRaw = json['starts_at'] as String?;
+    final startsAt = startsAtRaw == null
+        ? null
+        : DateTime.parse(startsAtRaw).toLocal();
+    final date = DateTime.parse(json['event_date'] as String);
+    return CalendarEventData(
+      id: json['id'].toString(),
+      title: json['title'] as String,
+      timeLabel: startsAt == null
+          ? 'All day'
+          : '${startsAt.hour.toString().padLeft(2, '0')}:'
+                '${startsAt.minute.toString().padLeft(2, '0')}',
+      type: type,
+      completed: json['is_completed'] as bool? ?? false,
+      date: date,
+      startsAt: startsAt,
+      color: calendarColorForType(type),
       icon: calendarIconForType(type),
     );
   }

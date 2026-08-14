@@ -767,19 +767,19 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
       _selectedDate = created.date;
       _focusedMonth = DateTime(created.date.year, created.date.month);
     });
-    await _calendarController.add(created);
-    if (created.startsAt != null) {
+    final saved = await _calendarController.add(created);
+    if (saved.startsAt != null) {
       await NotificationService.instance.scheduleEventReminder(
-        eventId: created.id,
-        when: created.startsAt!,
-        title: created.title,
+        eventId: saved.id,
+        when: saved.startsAt!,
+        title: saved.title,
         body: 'Upcoming for ${_pets.isEmpty ? 'your pet' : _activePet.name}',
       );
     }
     if (!mounted) return;
     showTopAlert(
       context,
-      created.startsAt != null
+      saved.startsAt != null
           ? 'Plan saved — reminder set 30 min before.'
           : 'Plan saved.',
       icon: Icons.event_available_rounded,
