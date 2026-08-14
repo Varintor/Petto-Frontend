@@ -383,6 +383,7 @@ extension _HomeConsultScreenPart on _HomeScreenState {
         petId: _activePet.id,
         petName: _activePet.name,
         latestAssessmentId: latestAssessment?.id,
+        onAppointmentAccepted: _loadScopedHomeFeatureState,
       );
     }
     final onlineVetCount = _HomeScreenState._vets

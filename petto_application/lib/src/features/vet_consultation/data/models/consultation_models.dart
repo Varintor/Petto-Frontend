@@ -123,3 +123,56 @@ class ChatMessageModel {
         clientMessageId: json['client_message_id'] as String?,
       );
 }
+
+class AppointmentModel {
+  const AppointmentModel({
+    required this.id,
+    required this.consultationId,
+    required this.petId,
+    required this.proposedByVetId,
+    required this.startsAt,
+    required this.status,
+    required this.createdAt,
+    required this.updatedAt,
+    this.providerId,
+    this.endsAt,
+    this.reason,
+    this.respondedAt,
+  });
+
+  final int id;
+  final int consultationId;
+  final int petId;
+  final int? providerId;
+  final int proposedByVetId;
+  final DateTime startsAt;
+  final DateTime? endsAt;
+  final String? reason;
+  final String status;
+  final DateTime? respondedAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  bool get isPending => status == 'proposed';
+  bool get isAccepted => status == 'accepted';
+
+  factory AppointmentModel.fromJson(Map<String, dynamic> json) =>
+      AppointmentModel(
+        id: json['id'] as int,
+        consultationId: json['consultation_id'] as int,
+        petId: json['pet_id'] as int,
+        providerId: json['provider_id'] as int?,
+        proposedByVetId: json['proposed_by_vet_id'] as int,
+        startsAt: DateTime.parse(json['starts_at'] as String).toLocal(),
+        endsAt: json['ends_at'] == null
+            ? null
+            : DateTime.parse(json['ends_at'] as String).toLocal(),
+        reason: json['reason'] as String?,
+        status: json['status'] as String,
+        respondedAt: json['responded_at'] == null
+            ? null
+            : DateTime.parse(json['responded_at'] as String).toLocal(),
+        createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
+        updatedAt: DateTime.parse(json['updated_at'] as String).toLocal(),
+      );
+}

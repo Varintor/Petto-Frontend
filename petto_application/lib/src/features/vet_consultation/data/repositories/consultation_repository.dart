@@ -30,6 +30,17 @@ abstract class ConsultationRepository {
   });
   Future<void> markMessagesRead(int consultationId);
   Future<void> shareAssessment(int consultationId, int assessmentId);
+  Future<List<AppointmentModel>> listAppointments(int consultationId);
+  Future<AppointmentModel> proposeAppointment(
+    int consultationId, {
+    required DateTime startsAt,
+    DateTime? endsAt,
+    String? reason,
+  });
+  Future<AppointmentModel> decideAppointment(
+    int appointmentId,
+    String decision,
+  );
 
   /// Posts a server-generated AI briefing (pet profile + latest assessment +
   /// activity totals + vaccination status) into the chat as sender 'ai'.
@@ -127,6 +138,51 @@ class ConsultationRepositoryImpl implements ConsultationRepository {
     await dio.post(
       '$_base/$consultationId/shared-assessments',
       data: {'assessment_id': assessmentId},
+    );
+  }
+
+  @override
+  Future<List<AppointmentModel>> listAppointments(int consultationId) async {
+    final response = await dio.get('$_base/$consultationId/appointments');
+    return (response.data as List<dynamic>)
+        .map(
+          (item) =>
+              AppointmentModel.fromJson(Map<String, dynamic>.from(item as Map)),
+        )
+        .toList();
+  }
+
+  @override
+  Future<AppointmentModel> proposeAppointment(
+    int consultationId, {
+    required DateTime startsAt,
+    DateTime? endsAt,
+    String? reason,
+  }) async {
+    final response = await dio.post(
+      '$_base/$consultationId/appointments',
+      data: {
+        'starts_at': startsAt.toUtc().toIso8601String(),
+        if (endsAt != null) 'ends_at': endsAt.toUtc().toIso8601String(),
+        if (reason != null && reason.trim().isNotEmpty) 'reason': reason.trim(),
+      },
+    );
+    return AppointmentModel.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
+  }
+
+  @override
+  Future<AppointmentModel> decideAppointment(
+    int appointmentId,
+    String decision,
+  ) async {
+    final response = await dio.put(
+      '${AppConfig.apiPrefix}/appointments/$appointmentId/decision',
+      data: {'decision': decision},
+    );
+    return AppointmentModel.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
     );
   }
 

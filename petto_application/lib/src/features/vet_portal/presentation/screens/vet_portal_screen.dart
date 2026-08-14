@@ -8,6 +8,7 @@ import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../auth/presentation/screens/auth_gate.dart';
 import '../../../vet_consultation/data/models/consultation_models.dart';
 import '../../../vet_consultation/presentation/controllers/consultation_controller.dart';
+import '../../../vet_consultation/presentation/widgets/appointment_card.dart';
 
 enum _VetSection { dashboard, patients, messages, profile }
 
@@ -934,6 +935,7 @@ class _BackendConversationPanelState extends State<_BackendConversationPanel> {
   final _message = TextEditingController();
   Timer? _refreshTimer;
   bool _sending = false;
+  bool _proposingAppointment = false;
 
   @override
   void initState() {
@@ -960,6 +962,76 @@ class _BackendConversationPanelState extends State<_BackendConversationPanel> {
     if (!mounted) return;
     if (sent) _message.clear();
     setState(() => _sending = false);
+  }
+
+  Future<void> _proposeAppointment() async {
+    if (_proposingAppointment) return;
+    final now = DateTime.now();
+    final date = await showDatePicker(
+      context: context,
+      initialDate: now.add(const Duration(days: 1)),
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: DateTime(now.year + 2),
+    );
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: const TimeOfDay(hour: 9, minute: 0),
+    );
+    if (time == null || !mounted) return;
+
+    final reasonController = TextEditingController();
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Appointment reason'),
+        content: TextField(
+          controller: reasonController,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'e.g. Skin follow-up (optional)',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(reasonController.text.trim()),
+            child: const Text('Propose'),
+          ),
+        ],
+      ),
+    );
+    reasonController.dispose();
+    if (reason == null || !mounted) return;
+
+    final startsAt = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+    if (!startsAt.isAfter(DateTime.now())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Choose an appointment time in the future.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _proposingAppointment = true);
+    await context.read<ConsultationController>().proposeAppointment(
+      startsAt: startsAt,
+      reason: reason,
+    );
+    if (!mounted) return;
+    setState(() => _proposingAppointment = false);
   }
 
   @override
@@ -995,6 +1067,19 @@ class _BackendConversationPanelState extends State<_BackendConversationPanel> {
                     ),
                   ),
                   IconButton(
+                    tooltip: 'Propose appointment',
+                    onPressed: _proposingAppointment
+                        ? null
+                        : _proposeAppointment,
+                    icon: _proposingAppointment
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.event_available_rounded),
+                  ),
+                  IconButton(
                     tooltip: 'Refresh messages',
                     onPressed: controller.loading
                         ? null
@@ -1013,18 +1098,22 @@ class _BackendConversationPanelState extends State<_BackendConversationPanel> {
                 ),
               ),
             Expanded(
-              child: controller.loading && controller.messages.isEmpty
+              child:
+                  controller.loading &&
+                      controller.messages.isEmpty &&
+                      controller.appointments.isEmpty
                   ? const Center(child: CircularProgressIndicator())
-                  : ListView.builder(
+                  : ListView(
                       padding: const EdgeInsets.all(18),
-                      itemCount: controller.messages.length,
-                      itemBuilder: (context, index) {
-                        final message = controller.messages[index];
-                        return _ChatBubble(
-                          text: message.content ?? 'Attachment',
-                          mine: message.isFromVet,
-                        );
-                      },
+                      children: [
+                        for (final appointment in controller.appointments)
+                          ConsultationAppointmentCard(appointment: appointment),
+                        for (final message in controller.messages)
+                          _ChatBubble(
+                            text: message.content ?? 'Attachment',
+                            mine: message.isFromVet,
+                          ),
+                      ],
                     ),
             ),
             Padding(

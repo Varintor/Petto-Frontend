@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../data/models/consultation_models.dart';
 import '../controllers/consultation_controller.dart';
+import '../widgets/appointment_card.dart';
 
 /// Authenticated owner-side Feature 3 workspace. Guest presentation data stays
 /// in the legacy home preview, while every action here uses the backend.
@@ -15,11 +16,13 @@ class OwnerConsultationScreen extends StatefulWidget {
     required this.petId,
     required this.petName,
     this.latestAssessmentId,
+    this.onAppointmentAccepted,
   });
 
   final int petId;
   final String petName;
   final int? latestAssessmentId;
+  final Future<void> Function()? onAppointmentAccepted;
 
   @override
   State<OwnerConsultationScreen> createState() =>
@@ -31,6 +34,7 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
   Timer? _refreshTimer;
   bool _sending = false;
   bool _includeLatestAssessment = false;
+  int? _respondingAppointmentId;
 
   @override
   void initState() {
@@ -83,6 +87,28 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
     if (!mounted) return;
     if (sent) _messageController.clear();
     setState(() => _sending = false);
+  }
+
+  Future<void> _decideAppointment(
+    AppointmentModel appointment,
+    String decision,
+  ) async {
+    if (_respondingAppointmentId != null) return;
+    setState(() => _respondingAppointmentId = appointment.id);
+    final updated = await context
+        .read<ConsultationController>()
+        .decideAppointment(appointment.id, decision);
+    if (!mounted) return;
+    if (updated && decision == 'accepted') {
+      try {
+        await widget.onAppointmentAccepted?.call();
+      } catch (_) {
+        // The decision is already persisted. A transient Calendar refresh
+        // failure will be recovered the next time the Calendar loads.
+      }
+    }
+    if (!mounted) return;
+    setState(() => _respondingAppointmentId = null);
   }
 
   @override
@@ -226,15 +252,30 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
             ),
           ),
         Expanded(
-          child: controller.loading && controller.messages.isEmpty
+          child:
+              controller.loading &&
+                  controller.messages.isEmpty &&
+                  controller.appointments.isEmpty
               ? const Center(child: CircularProgressIndicator())
-              : controller.messages.isEmpty
+              : controller.messages.isEmpty && controller.appointments.isEmpty
               ? const _EmptyCard(message: 'No messages yet. Say hello.')
-              : ListView.builder(
+              : ListView(
                   padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
-                  itemCount: controller.messages.length,
-                  itemBuilder: (context, index) =>
-                      _OwnerMessageBubble(controller.messages[index]),
+                  children: [
+                    for (final appointment in controller.appointments)
+                      ConsultationAppointmentCard(
+                        appointment: appointment,
+                        busy: _respondingAppointmentId == appointment.id,
+                        onAccept: appointment.isPending
+                            ? () => _decideAppointment(appointment, 'accepted')
+                            : null,
+                        onDecline: appointment.isPending
+                            ? () => _decideAppointment(appointment, 'declined')
+                            : null,
+                      ),
+                    for (final message in controller.messages)
+                      _OwnerMessageBubble(message),
+                  ],
                 ),
         ),
         SafeArea(

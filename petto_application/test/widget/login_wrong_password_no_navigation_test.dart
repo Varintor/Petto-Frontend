@@ -92,6 +92,21 @@ class _EmptyConsultationRepository implements ConsultationRepository {
   Future<void> shareAssessment(int consultationId, int assessmentId) =>
       throw UnimplementedError();
   @override
+  Future<List<AppointmentModel>> listAppointments(int consultationId) async =>
+      [];
+  @override
+  Future<AppointmentModel> proposeAppointment(
+    int consultationId, {
+    required DateTime startsAt,
+    DateTime? endsAt,
+    String? reason,
+  }) => throw UnimplementedError();
+  @override
+  Future<AppointmentModel> decideAppointment(
+    int appointmentId,
+    String decision,
+  ) => throw UnimplementedError();
+  @override
   Future<ConsultationModel> createConsultation({
     required int petId,
     required int vetId,

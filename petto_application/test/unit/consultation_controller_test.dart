@@ -18,6 +18,7 @@ class _FakeConsultationRepository implements ConsultationRepository {
   final clientMessageIds = <String>[];
   bool markedRead = false;
   bool failNextSend = false;
+  final appointments = <AppointmentModel>[];
 
   @override
   Future<List<ConsultationModel>> listVetConsultations() async => [
@@ -59,6 +60,60 @@ class _FakeConsultationRepository implements ConsultationRepository {
 
   @override
   Future<void> shareAssessment(int consultationId, int assessmentId) async {}
+
+  @override
+  Future<List<AppointmentModel>> listAppointments(int consultationId) async =>
+      List.of(appointments);
+
+  @override
+  Future<AppointmentModel> proposeAppointment(
+    int consultationId, {
+    required DateTime startsAt,
+    DateTime? endsAt,
+    String? reason,
+  }) async {
+    final appointment = AppointmentModel(
+      id: 50,
+      consultationId: consultationId,
+      petId: consultation.petId,
+      proposedByVetId: consultation.vetId,
+      startsAt: startsAt,
+      endsAt: endsAt,
+      reason: reason,
+      status: 'proposed',
+      createdAt: DateTime(2026, 8, 14),
+      updatedAt: DateTime(2026, 8, 14),
+    );
+    appointments.add(appointment);
+    return appointment;
+  }
+
+  @override
+  Future<AppointmentModel> decideAppointment(
+    int appointmentId,
+    String decision,
+  ) async {
+    final previous = appointments.singleWhere(
+      (item) => item.id == appointmentId,
+    );
+    final updated = AppointmentModel(
+      id: previous.id,
+      consultationId: previous.consultationId,
+      petId: previous.petId,
+      proposedByVetId: previous.proposedByVetId,
+      startsAt: previous.startsAt,
+      endsAt: previous.endsAt,
+      reason: previous.reason,
+      status: decision,
+      respondedAt: DateTime(2026, 8, 14, 11),
+      createdAt: previous.createdAt,
+      updatedAt: DateTime(2026, 8, 14, 11),
+    );
+    appointments
+      ..clear()
+      ..add(updated);
+    return updated;
+  }
 
   @override
   Future<ConsultationModel> createConsultation({
@@ -154,4 +209,24 @@ void main() {
     expect(repository.clientMessageIds, hasLength(2));
     expect(repository.clientMessageIds[1], repository.clientMessageIds[0]);
   });
+
+  test(
+    'appointment proposal and owner decision update conversation state',
+    () async {
+      final repository = _FakeConsultationRepository();
+      final controller = ConsultationController(repository: repository);
+      await controller.openConsultation(repository.consultation);
+
+      final proposed = await controller.proposeAppointment(
+        startsAt: DateTime(2026, 8, 20, 9),
+        reason: 'Skin follow-up',
+      );
+      expect(proposed, isTrue);
+      expect(controller.appointments.single.status, 'proposed');
+
+      final accepted = await controller.decideAppointment(50, 'accepted');
+      expect(accepted, isTrue);
+      expect(controller.appointments.single.status, 'accepted');
+    },
+  );
 }
