@@ -38,6 +38,7 @@ dependencies:
   image_picker: ^1.0.7       # ใช้ดึงรูปภาพจากกล้องหรือแกลเลอรีในมือถือ
   provider: ^6.1.1           # ตัวจัดการ State Management (สำหรับ ChangeNotifier Controller)
   shared_preferences: ^2.3.0
+  flutter_secure_storage: ^10.3.1
   cupertino_icons: ^1.0.8
   geolocator: ^14.0.2
   flutter_map: ^7.0.2          # แผนที่ OSM สำหรับ live walk tracking (ไม่ต้องใช้ API key)
