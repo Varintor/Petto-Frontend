@@ -35,6 +35,9 @@ class _MessagingRepository implements ConsultationRepository {
     vetId: 5,
     status: 'ACTIVE',
     notes: 'Skin follow-up',
+    petName: 'Milo',
+    petSpecies: 'cat',
+    ownerName: 'Warit',
     createdAt: DateTime(2026, 8, 13, 9),
   );
 
@@ -113,9 +116,9 @@ void main() {
 
     await tester.tap(find.text('Messages'));
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Pet #9'), findsOneWidget);
+    expect(find.text('Milo'), findsWidgets);
 
-    await tester.tap(find.text('Pet #9'));
+    await tester.tap(find.widgetWithText(ListTile, 'Milo'));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Milo is still scratching.'), findsOneWidget);
 

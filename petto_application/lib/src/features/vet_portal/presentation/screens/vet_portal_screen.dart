@@ -859,7 +859,7 @@ class _ConsultationRow extends StatelessWidget {
           ),
           leading: const _InitialBadge(initial: 'P'),
           title: Text(
-            'Pet #${consultation.petId}',
+            consultation.petName ?? 'Pet #${consultation.petId}',
             style: const TextStyle(fontWeight: FontWeight.w900),
           ),
           subtitle: Text(
@@ -975,7 +975,7 @@ class _BackendConversationPanelState extends State<_BackendConversationPanel> {
                   ],
                   Expanded(
                     child: Text(
-                      'Pet #${consultation.petId}',
+                      consultation.petName ?? 'Pet #${consultation.petId}',
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w900,

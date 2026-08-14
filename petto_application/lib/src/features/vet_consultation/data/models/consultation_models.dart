@@ -33,6 +33,11 @@ class ConsultationModel {
   final String status; // Pending | Active | Completed | Cancelled
   final int? assessmentId;
   final String? notes;
+  final String? petName;
+  final String? petSpecies;
+  final String? ownerName;
+  final String? vetName;
+  final String? providerName;
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -43,6 +48,11 @@ class ConsultationModel {
     required this.status,
     this.assessmentId,
     this.notes,
+    this.petName,
+    this.petSpecies,
+    this.ownerName,
+    this.vetName,
+    this.providerName,
     required this.createdAt,
     this.updatedAt,
   });
@@ -55,6 +65,11 @@ class ConsultationModel {
         status: json['status'] as String? ?? 'Pending',
         assessmentId: json['assessment_id'] as int?,
         notes: json['notes'] as String?,
+        petName: json['pet_name'] as String?,
+        petSpecies: json['pet_species'] as String?,
+        ownerName: json['owner_name'] as String?,
+        vetName: json['vet_name'] as String?,
+        providerName: json['provider_name'] as String?,
         createdAt: DateTime.parse(json['created_at'] as String),
         updatedAt: json['updated_at'] == null
             ? null
