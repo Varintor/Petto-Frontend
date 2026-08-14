@@ -19,6 +19,7 @@ import 'src/features/missions/data/repositories/missions_repository.dart';
 import 'src/core/services/notification_service.dart';
 import 'src/features/vet_consultation/presentation/controllers/consultation_controller.dart';
 import 'src/features/vet_consultation/data/repositories/consultation_repository.dart';
+import 'src/features/health_history/health_history.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -100,6 +101,14 @@ class PettoApp extends StatelessWidget {
             final c =
                 controller ??
                 MissionsController(repository: MissionsRepositoryImpl());
+            auth.addLogoutHandler(c.clearForAccount);
+            return c;
+          },
+        ),
+        ChangeNotifierProxyProvider<AuthController, HealthHistoryController>(
+          create: (_) => HealthHistoryController(),
+          update: (_, auth, controller) {
+            final c = controller ?? HealthHistoryController();
             auth.addLogoutHandler(c.clearForAccount);
             return c;
           },
