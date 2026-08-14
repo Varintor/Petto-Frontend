@@ -9,6 +9,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../data/models/consultation_models.dart';
 import '../controllers/consultation_controller.dart';
 import '../widgets/appointment_card.dart';
+import '../widgets/provider_map_view.dart';
 
 /// Authenticated owner-side Feature 3 workspace. Guest presentation data stays
 /// in the legacy home preview, while every action here uses the backend.
@@ -19,12 +20,14 @@ class OwnerConsultationScreen extends StatefulWidget {
     required this.petName,
     this.latestAssessmentId,
     this.onAppointmentAccepted,
+    this.loadMapTiles = true,
   });
 
   final int petId;
   final String petName;
   final int? latestAssessmentId;
   final Future<void> Function()? onAppointmentAccepted;
+  final bool loadMapTiles;
 
   @override
   State<OwnerConsultationScreen> createState() =>
@@ -38,6 +41,9 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
   bool _includeLatestAssessment = false;
   int? _respondingAppointmentId;
   bool _locating = false;
+  bool _showMap = false;
+  double? _userLatitude;
+  double? _userLongitude;
   String? _locationHint;
   final LocationService _locationService = LocationService();
 
@@ -126,6 +132,8 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
     if (!mounted) return;
     setState(() {
       _locating = false;
+      _userLatitude = position.latitude;
+      _userLongitude = position.longitude;
       _locationHint = 'Sorted by distance from your current location.';
     });
   }
@@ -188,6 +196,32 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
           ),
         );
       },
+    );
+  }
+
+  Future<void> _showProviderDetails(VeterinaryProviderModel provider) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: _ProviderCard(
+            provider: provider,
+            onDirections: () {
+              Navigator.of(sheetContext).pop();
+              _openDirections(provider);
+            },
+            onConsult: provider.consultationEnabled
+                ? () {
+                    Navigator.of(sheetContext).pop();
+                    _chooseProviderVet(provider);
+                  }
+                : null,
+          ),
+        ),
+      ),
     );
   }
 
@@ -317,9 +351,41 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
           const SizedBox(height: 22),
           const _SectionLabel('Nearby hospitals and clinics'),
           const SizedBox(height: 10),
+          if (controller.providers.isNotEmpty) ...[
+            SegmentedButton<bool>(
+              segments: const [
+                ButtonSegment(
+                  value: false,
+                  icon: Icon(Icons.view_list_rounded),
+                  label: Text('List'),
+                ),
+                ButtonSegment(
+                  value: true,
+                  icon: Icon(Icons.map_rounded),
+                  label: Text('Map'),
+                ),
+              ],
+              selected: {_showMap},
+              onSelectionChanged: (selection) {
+                setState(() => _showMap = selection.first);
+              },
+            ),
+            const SizedBox(height: 12),
+          ],
           if (controller.providers.isEmpty && controller.vets.isEmpty)
             const _EmptyCard(
               message: 'No veterinary provider is listed right now.',
+            )
+          else if (_showMap && controller.providers.isNotEmpty)
+            SizedBox(
+              height: 430,
+              child: ProviderMapView(
+                providers: controller.providers,
+                userLatitude: _userLatitude,
+                userLongitude: _userLongitude,
+                loadTiles: widget.loadMapTiles,
+                onProviderTap: _showProviderDetails,
+              ),
             )
           else if (controller.providers.isNotEmpty)
             for (final provider in controller.providers)

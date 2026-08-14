@@ -128,6 +128,8 @@ class _ProviderDiscoveryRepository extends _OwnerMessagingRepository {
     providerType: 'hospital',
     address: 'Chiang Mai',
     phone: '053-000-001',
+    latitude: 18.796263,
+    longitude: 98.961291,
     consultationEnabled: true,
     providerStatus: 'verified',
     distanceKm: 2.4,
@@ -137,6 +139,8 @@ class _ProviderDiscoveryRepository extends _OwnerMessagingRepository {
     name: 'Nearby Animal Clinic',
     providerType: 'clinic',
     address: 'Chiang Mai',
+    latitude: 18.759012,
+    longitude: 98.939704,
     consultationEnabled: false,
     providerStatus: 'listed',
     distanceKm: 4.8,
@@ -295,7 +299,11 @@ void main() {
         value: controller,
         child: const MaterialApp(
           home: Scaffold(
-            body: OwnerConsultationScreen(petId: 5, petName: 'Milo'),
+            body: OwnerConsultationScreen(
+              petId: 5,
+              petName: 'Milo',
+              loadMapTiles: false,
+            ),
           ),
         ),
       ),
@@ -308,6 +316,23 @@ void main() {
     expect(find.text('Available on Petto'), findsOneWidget);
     expect(find.text('Information only'), findsOneWidget);
     expect(find.text('Unavailable'), findsOneWidget);
+
+    await tester.tap(find.text('Map'));
+    await tester.pump();
+    expect(find.text('© OpenStreetMap contributors'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('Petto Partner Animal Hospital'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.bySemanticsLabel('Petto Partner Animal Hospital'));
+    await tester.pumpAndSettle();
+    expect(find.text('2.4 km • 053-000-001'), findsOneWidget);
+    Navigator.of(tester.element(find.text('Directions'))).pop();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('List'));
+    await tester.pump();
 
     await tester.tap(find.text('Consult'));
     await tester.pumpAndSettle();
