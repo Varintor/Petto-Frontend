@@ -78,9 +78,18 @@ class _EmptyConsultationRepository implements ConsultationRepository {
   @override
   Future<void> markMessagesRead(int consultationId) async {}
   @override
-  Future<List<ChatMessageModel>> listMessages(int consultationId) async => [];
+  Future<List<ChatMessageModel>> listMessages(
+    int consultationId, {
+    int? afterId,
+  }) async => [];
   @override
-  Future<ChatMessageModel> sendMessage(int consultationId, String content) =>
+  Future<ChatMessageModel> sendMessage(
+    int consultationId,
+    String content, {
+    required String clientMessageId,
+  }) => throw UnimplementedError();
+  @override
+  Future<void> shareAssessment(int consultationId, int assessmentId) =>
       throw UnimplementedError();
   @override
   Future<ConsultationModel> createConsultation({

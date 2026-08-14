@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../data/models/consultation_models.dart';
 import '../../data/repositories/consultation_repository.dart';
@@ -17,13 +18,17 @@ class ConsultationController extends ChangeNotifier {
   ConsultationModel? _active;
   List<ChatMessageModel> _messages = [];
   bool _loading = false;
+  bool _refreshingMessages = false;
   String? _error;
+  String? _retryContent;
+  String? _retryClientMessageId;
 
   List<VetModel> get vets => _vets;
   List<ConsultationModel> get consultations => _consultations;
   ConsultationModel? get active => _active;
   List<ChatMessageModel> get messages => _messages;
   bool get loading => _loading;
+  bool get refreshingMessages => _refreshingMessages;
   String? get error => _error;
 
   Future<void> loadVets() async {
@@ -42,6 +47,17 @@ class ConsultationController extends ChangeNotifier {
     );
   }
 
+  Future<void> loadOwnerWorkspace(int petId) async {
+    await _guard(() async {
+      final results = await Future.wait<Object?>([
+        repository.listVets(),
+        repository.listPetConsultations(petId),
+      ]);
+      _vets = results[0] as List<VetModel>;
+      _consultations = results[1] as List<ConsultationModel>;
+    });
+  }
+
   /// Opens (or starts) a consultation, optionally forwarding an AI assessment
   /// (UD-06). A forwarded assessment immediately gets an AI briefing posted
   /// into the chat so the vet has context before the first human message.
@@ -56,8 +72,17 @@ class ConsultationController extends ChangeNotifier {
         vetId: vetId,
         assessmentId: assessmentId,
       );
+      _consultations = [
+        _active!,
+        ..._consultations.where((item) => item.id != _active!.id),
+      ];
       if (assessmentId != null) {
-        await repository.requestAiSummary(_active!.id);
+        try {
+          await repository.requestAiSummary(_active!.id);
+        } catch (_) {
+          // The consultation is already created and the assessment is shared.
+          // A failed AI briefing must not strand the owner outside the chat.
+        }
       }
       _messages = await repository.listMessages(_active!.id);
     });
@@ -94,16 +119,73 @@ class ConsultationController extends ChangeNotifier {
     );
   }
 
+  Future<void> refreshNewMessages() async {
+    final active = _active;
+    if (active == null || _refreshingMessages) return;
+    _refreshingMessages = true;
+    try {
+      final afterId = _messages.isEmpty ? null : _messages.last.id;
+      final incoming = await repository.listMessages(
+        active.id,
+        afterId: afterId,
+      );
+      if (_active?.id != active.id || incoming.isEmpty) return;
+      final knownIds = _messages.map((message) => message.id).toSet();
+      _messages = [
+        ..._messages,
+        ...incoming.where((message) => knownIds.add(message.id)),
+      ];
+      notifyListeners();
+      await _markReadBestEffort(active.id);
+    } catch (_) {
+      // Background refresh is best-effort. The explicit refresh action still
+      // reports errors through [_guard].
+    } finally {
+      _refreshingMessages = false;
+    }
+  }
+
+  Future<bool> shareAssessment(int assessmentId) async {
+    final active = _active;
+    if (active == null) return false;
+    try {
+      await repository.shareAssessment(active.id, assessmentId);
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  void closeActiveConsultation() {
+    _active = null;
+    _messages = [];
+    _error = null;
+    notifyListeners();
+  }
+
   Future<bool> sendMessage(String content) async {
     final active = _active;
     final text = content.trim();
     if (active == null || text.isEmpty) return false;
+    final clientMessageId = _retryContent == text
+        ? _retryClientMessageId ?? const Uuid().v4()
+        : const Uuid().v4();
     try {
-      final sent = await repository.sendMessage(active.id, text);
+      final sent = await repository.sendMessage(
+        active.id,
+        text,
+        clientMessageId: clientMessageId,
+      );
       _messages = [..._messages, sent];
+      _retryContent = null;
+      _retryClientMessageId = null;
       notifyListeners();
       return true;
     } catch (e) {
+      _retryContent = text;
+      _retryClientMessageId = clientMessageId;
       _error = e.toString();
       notifyListeners();
       return false;
@@ -116,7 +198,10 @@ class ConsultationController extends ChangeNotifier {
     _active = null;
     _messages = [];
     _loading = false;
+    _refreshingMessages = false;
     _error = null;
+    _retryContent = null;
+    _retryClientMessageId = null;
     notifyListeners();
   }
 

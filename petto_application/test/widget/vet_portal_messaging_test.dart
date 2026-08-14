@@ -46,7 +46,10 @@ class _MessagingRepository implements ConsultationRepository {
     consultation,
   ];
   @override
-  Future<List<ChatMessageModel>> listMessages(int consultationId) async => [
+  Future<List<ChatMessageModel>> listMessages(
+    int consultationId, {
+    int? afterId,
+  }) async => [
     ChatMessageModel(
       id: 1,
       consultationId: consultationId,
@@ -58,8 +61,9 @@ class _MessagingRepository implements ConsultationRepository {
   @override
   Future<ChatMessageModel> sendMessage(
     int consultationId,
-    String content,
-  ) async => ChatMessageModel(
+    String content, {
+    required String clientMessageId,
+  }) async => ChatMessageModel(
     id: 2,
     consultationId: consultationId,
     senderType: 'vet',
@@ -68,6 +72,8 @@ class _MessagingRepository implements ConsultationRepository {
   );
   @override
   Future<void> markMessagesRead(int consultationId) async {}
+  @override
+  Future<void> shareAssessment(int consultationId, int assessmentId) async {}
   @override
   Future<ConsultationModel> createConsultation({
     required int petId,

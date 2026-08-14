@@ -87,6 +87,7 @@ class ChatMessageModel {
   final bool isRead;
   final DateTime? deliveredAt;
   final DateTime? readAt;
+  final String? clientMessageId;
 
   ChatMessageModel({
     required this.id,
@@ -98,6 +99,7 @@ class ChatMessageModel {
     this.isRead = false,
     this.deliveredAt,
     this.readAt,
+    this.clientMessageId,
   });
 
   bool get isFromVet => senderType == 'vet';
@@ -118,5 +120,6 @@ class ChatMessageModel {
         readAt: json['read_at'] == null
             ? null
             : DateTime.parse(json['read_at'] as String),
+        clientMessageId: json['client_message_id'] as String?,
       );
 }

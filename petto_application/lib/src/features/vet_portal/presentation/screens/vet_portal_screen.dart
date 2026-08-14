@@ -932,10 +932,22 @@ class _BackendConversationPanel extends StatefulWidget {
 
 class _BackendConversationPanelState extends State<_BackendConversationPanel> {
   final _message = TextEditingController();
+  Timer? _refreshTimer;
   bool _sending = false;
 
   @override
+  void initState() {
+    super.initState();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (mounted) {
+        context.read<ConsultationController>().refreshNewMessages();
+      }
+    });
+  }
+
+  @override
   void dispose() {
+    _refreshTimer?.cancel();
     _message.dispose();
     super.dispose();
   }

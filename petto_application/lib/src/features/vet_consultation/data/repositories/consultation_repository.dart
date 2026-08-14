@@ -19,9 +19,17 @@ abstract class ConsultationRepository {
   });
   Future<List<ConsultationModel>> listPetConsultations(int petId);
   Future<List<ConsultationModel>> listVetConsultations();
-  Future<List<ChatMessageModel>> listMessages(int consultationId);
-  Future<ChatMessageModel> sendMessage(int consultationId, String content);
+  Future<List<ChatMessageModel>> listMessages(
+    int consultationId, {
+    int? afterId,
+  });
+  Future<ChatMessageModel> sendMessage(
+    int consultationId,
+    String content, {
+    required String clientMessageId,
+  });
   Future<void> markMessagesRead(int consultationId);
+  Future<void> shareAssessment(int consultationId, int assessmentId);
 
   /// Posts a server-generated AI briefing (pet profile + latest assessment +
   /// activity totals + vaccination status) into the chat as sender 'ai'.
@@ -83,8 +91,14 @@ class ConsultationRepositoryImpl implements ConsultationRepository {
   }
 
   @override
-  Future<List<ChatMessageModel>> listMessages(int consultationId) async {
-    final response = await dio.get('$_base/$consultationId/messages');
+  Future<List<ChatMessageModel>> listMessages(
+    int consultationId, {
+    int? afterId,
+  }) async {
+    final response = await dio.get(
+      '$_base/$consultationId/messages',
+      queryParameters: {if (afterId != null) 'after_id': afterId},
+    );
     return (response.data as List<dynamic>)
         .map((j) => ChatMessageModel.fromJson(j as Map<String, dynamic>))
         .toList();
@@ -93,11 +107,12 @@ class ConsultationRepositoryImpl implements ConsultationRepository {
   @override
   Future<ChatMessageModel> sendMessage(
     int consultationId,
-    String content,
-  ) async {
+    String content, {
+    required String clientMessageId,
+  }) async {
     final response = await dio.post(
       '$_base/$consultationId/messages',
-      data: {'content': content},
+      data: {'content': content, 'client_message_id': clientMessageId},
     );
     return ChatMessageModel.fromJson(response.data as Map<String, dynamic>);
   }
@@ -105,6 +120,14 @@ class ConsultationRepositoryImpl implements ConsultationRepository {
   @override
   Future<void> markMessagesRead(int consultationId) async {
     await dio.post('$_base/$consultationId/messages/read');
+  }
+
+  @override
+  Future<void> shareAssessment(int consultationId, int assessmentId) async {
+    await dio.post(
+      '$_base/$consultationId/shared-assessments',
+      data: {'assessment_id': assessmentId},
+    );
   }
 
   @override

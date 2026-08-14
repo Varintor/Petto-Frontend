@@ -24,6 +24,7 @@ import '../../../activity_tracking/presentation/screens/wellness_tracking_view.d
 import '../../../calendar/domain/calendar_event.dart';
 import '../../../calendar/presentation/controllers/calendar_controller.dart';
 import '../../../wardrobe/presentation/controllers/wardrobe_controller.dart';
+import '../../../vet_consultation/presentation/screens/owner_consultation_screen.dart';
 import 'health_assessment_screen.dart';
 import '../widgets/pet_avatar_widget.dart';
 part 'home_calendar_screen_part.dart';

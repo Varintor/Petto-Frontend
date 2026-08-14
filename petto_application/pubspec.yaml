@@ -47,6 +47,7 @@ dependencies:
   flutter_local_notifications: ^17.2.4   # OS-level reminders (mobile/desktop)
   timezone: ^0.9.4                       # zoned schedules for daily reminders
   flutter_timezone: ^3.0.1                # detect device timezone at runtime
+  uuid: ^4.6.0
 
 dev_dependencies:
   flutter_test:

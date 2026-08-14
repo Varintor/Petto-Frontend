@@ -15,7 +15,9 @@ class _FakeConsultationRepository implements ConsultationRepository {
     createdAt: DateTime(2026, 8, 13, 9),
   );
   final messages = <ChatMessageModel>[];
+  final clientMessageIds = <String>[];
   bool markedRead = false;
+  bool failNextSend = false;
 
   @override
   Future<List<ConsultationModel>> listVetConsultations() async => [
@@ -23,14 +25,22 @@ class _FakeConsultationRepository implements ConsultationRepository {
   ];
 
   @override
-  Future<List<ChatMessageModel>> listMessages(int consultationId) async =>
-      List.of(messages);
+  Future<List<ChatMessageModel>> listMessages(
+    int consultationId, {
+    int? afterId,
+  }) async => List.of(messages);
 
   @override
   Future<ChatMessageModel> sendMessage(
     int consultationId,
-    String content,
-  ) async {
+    String content, {
+    required String clientMessageId,
+  }) async {
+    clientMessageIds.add(clientMessageId);
+    if (failNextSend) {
+      failNextSend = false;
+      throw Exception('connection lost');
+    }
     final message = ChatMessageModel(
       id: messages.length + 1,
       consultationId: consultationId,
@@ -46,6 +56,9 @@ class _FakeConsultationRepository implements ConsultationRepository {
   Future<void> markMessagesRead(int consultationId) async {
     markedRead = true;
   }
+
+  @override
+  Future<void> shareAssessment(int consultationId, int assessmentId) async {}
 
   @override
   Future<ConsultationModel> createConsultation({
@@ -75,7 +88,10 @@ class _ControlledOpenRepository extends _FakeConsultationRepository {
   bool readStarted = false;
 
   @override
-  Future<List<ChatMessageModel>> listMessages(int consultationId) {
+  Future<List<ChatMessageModel>> listMessages(
+    int consultationId, {
+    int? afterId,
+  }) {
     messagesStarted = true;
     return messagesCompleter.future;
   }
@@ -125,5 +141,17 @@ void main() {
     await opening;
 
     expect(controller.loading, isFalse);
+  });
+
+  test('a failed message retry reuses its client message id', () async {
+    final repository = _FakeConsultationRepository()..failNextSend = true;
+    final controller = ConsultationController(repository: repository);
+    await controller.openConsultation(repository.consultation);
+
+    expect(await controller.sendMessage('Please review this.'), isFalse);
+    expect(await controller.sendMessage('Please review this.'), isTrue);
+
+    expect(repository.clientMessageIds, hasLength(2));
+    expect(repository.clientMessageIds[1], repository.clientMessageIds[0]);
   });
 }

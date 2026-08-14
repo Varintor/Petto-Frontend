@@ -373,6 +373,18 @@ extension _HomeConsultScreenPart on _HomeScreenState {
     final assessmentController = context.watch<HealthAssessmentController>();
     final assessments = assessmentController.history;
     final latestAssessment = assessments.isNotEmpty ? assessments.first : null;
+    if (assessments.isEmpty && !assessmentController.isLoading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _loadAssessmentHistory();
+      });
+    }
+    if (!context.read<AuthController>().isGuest) {
+      return OwnerConsultationScreen(
+        petId: _activePet.id,
+        petName: _activePet.name,
+        latestAssessmentId: latestAssessment?.id,
+      );
+    }
     final onlineVetCount = _HomeScreenState._vets
         .where((vet) => vet.online)
         .length;
@@ -380,13 +392,6 @@ extension _HomeConsultScreenPart on _HomeScreenState {
       (vet) => vet.online,
       orElse: () => _HomeScreenState._vets.first,
     );
-
-    // Load assessment history on first build if empty
-    if (assessments.isEmpty && !assessmentController.isLoading) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _loadAssessmentHistory();
-      });
-    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 8, 24, 150),
