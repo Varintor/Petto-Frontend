@@ -70,12 +70,12 @@ class PetRepository {
         AppConfig.petsEndpoint,
         data: {
           'name': name,
-          'species': species,
-          'breed': breed,
-          'gender': gender,
+          if (species != null && species.isNotEmpty) 'species': species,
+          if (breed != null && breed.isNotEmpty) 'breed': breed,
+          if (gender != null && gender.isNotEmpty) 'gender': gender,
           if (dateOfBirth != null)
             'date_of_birth': dateOfBirth.toIso8601String().split('T').first,
-          'weight_kg': weightKg,
+          if (weightKg != null) 'weight_kg': weightKg,
           if (bloodType != null && bloodType.isNotEmpty)
             'blood_type': bloodType,
         },

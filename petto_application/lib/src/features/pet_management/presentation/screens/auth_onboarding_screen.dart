@@ -30,11 +30,19 @@ enum _RegisterStep {
 }
 
 class AuthOnboardingScreen extends StatefulWidget {
-  const AuthOnboardingScreen({super.key, this.startAtLogin = false});
+  const AuthOnboardingScreen({
+    super.key,
+    this.startAtLogin = false,
+    this.onRegistrationComplete,
+  });
 
   /// When true, skip the marketing intro and open directly on the login
   /// form. Used by [AuthGate] right after a logout.
   final bool startAtLogin;
+
+  /// Test/host hook that avoids coupling registration tests to Home's provider
+  /// tree. Production leaves this null and follows the normal Home navigation.
+  final ValueChanged<Pet>? onRegistrationComplete;
 
   @override
   State<AuthOnboardingScreen> createState() => _AuthOnboardingScreenState();
@@ -49,12 +57,13 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
   static const _paleRose = Color(0xFFE7D4D9);
   static const _cream = Color(0xFFF6F4F1);
 
-  late _AuthScreen _screen =
-      widget.startAtLogin ? _AuthScreen.gateway : _AuthScreen.intro;
+  late _AuthScreen _screen = widget.startAtLogin
+      ? _AuthScreen.gateway
+      : _AuthScreen.intro;
   _RegisterStep _step = _RegisterStep.owner;
   int _transitionDirection = 1;
-  String _species = 'Cat';
-  String _gender = 'Male';
+  String? _species;
+  String? _gender;
 
   final _ownerName = TextEditingController();
   final _email = TextEditingController();
@@ -65,11 +74,13 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
   final _petName = TextEditingController();
   final _breed = TextEditingController();
   final _bloodType = TextEditingController();
-  final _age = TextEditingController(text: '0');
-  final _weight = TextEditingController(text: '0.0');
+  final _age = TextEditingController();
+  final _weight = TextEditingController();
   int _birthDay = 1;
   int _birthMonth = 1;
   int _birthYear = DateTime.now().year - 1;
+  DateTime? _birthday;
+  bool _hasSelectedBirthday = false;
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -104,16 +115,11 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     super.dispose();
   }
 
-  Color get _petColor => _species == 'Cat' ? _catColor : _dogColor;
-
-  String get _petNameOrDefault {
-    final value = _petName.text.trim();
-    if (value.isNotEmpty) return value;
-    return _species == 'Cat' ? 'Milo' : 'Buddy';
-  }
+  Color get _petColor => _species == 'Dog' ? _dogColor : _catColor;
 
   String get _birthdayLabel {
-    final date = DateTime(_birthYear, _birthMonth, _birthDay);
+    final date = _birthday;
+    if (date == null) return 'Not set';
     const months = [
       'Jan',
       'Feb',
@@ -136,13 +142,17 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
   }
 
   void _setBirthDay(int value) {
-    setState(() => _birthDay = value);
+    setState(() {
+      _birthDay = value;
+      _hasSelectedBirthday = true;
+    });
   }
 
   void _setBirthMonth(int value) {
     setState(() {
       _birthMonth = value;
       _birthDay = math.min(_birthDay, _daysInMonth(_birthYear, _birthMonth));
+      _hasSelectedBirthday = true;
     });
   }
 
@@ -150,11 +160,39 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     setState(() {
       _birthYear = value;
       _birthDay = math.min(_birthDay, _daysInMonth(_birthYear, _birthMonth));
+      _hasSelectedBirthday = true;
     });
+  }
+
+  void _confirmBirthday() {
+    if (!_hasSelectedBirthday) {
+      showTopAlert(
+        context,
+        'Select a birthday or tap NOT SURE',
+        icon: Icons.info_outline_rounded,
+      );
+      return;
+    }
+    setState(() {
+      _birthday = DateTime(_birthYear, _birthMonth, _birthDay);
+    });
+    _openSummary();
+  }
+
+  void _skipBirthday() {
+    setState(() {
+      _birthday = null;
+      _hasSelectedBirthday = false;
+    });
+    _openSummary();
   }
 
   void _openHome({Pet? initialPet}) {
     FocusManager.instance.primaryFocus?.unfocus();
+    if (initialPet != null && widget.onRegistrationComplete != null) {
+      widget.onRegistrationComplete!(initialPet);
+      return;
+    }
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => HomeScreen(initialPet: initialPet)),
     );
@@ -184,7 +222,11 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     final success = await auth.login(email, password);
     if (!mounted) return;
     if (success) {
-      _openHome();
+      // AuthGate owns post-login routing. It sends owners to Home and
+      // veterinarians to the dedicated Vet portal based on the role returned
+      // by the backend. Pushing Home here would bypass that authorization-aware
+      // routing and incorrectly ask veterinarians to create a pet.
+      return;
     } else {
       // Highlight the password field in red with an inline hint, and keep the
       // banner carrying the backend's message ("Invalid email or password").
@@ -216,20 +258,26 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
   Future<void> _runRegistrationAndCreatePet() async {
     final auth = context.read<AuthController>();
     try {
-      final dob = DateTime(_birthYear, _birthMonth, _birthDay);
+      final species = _species;
+      final petName = _petName.text.trim();
+      if (species == null || petName.isEmpty) {
+        throw StateError('Pet name and species are required');
+      }
       final breed = _breed.text.trim();
       final bloodType = _bloodType.text.trim();
+      final weight = _optionalPositiveNumber(_weight.text, fieldName: 'Weight');
       final result = await auth.repository.register(
         _email.text.trim(),
         _password.text,
         _ownerName.text.trim(),
         pet: {
-          'name': _petNameOrDefault,
-          'species': _species,
+          'name': petName,
+          'species': species,
           if (breed.isNotEmpty) 'breed': breed,
-          'gender': _gender,
-          'date_of_birth': dob.toIso8601String().split('T').first,
-          'weight_kg': double.tryParse(_weight.text.trim()),
+          if (_gender != null) 'gender': _gender,
+          if (_birthday != null)
+            'date_of_birth': _birthday!.toIso8601String().split('T').first,
+          if (weight != null) 'weight_kg': weight,
           if (bloodType.isNotEmpty) 'blood_type': bloodType,
         },
       );
@@ -243,12 +291,12 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
           ? Pet.fromJson(result.petJson!)
           : await PetRepository().createPet(
               token: token,
-              name: _petNameOrDefault,
-              species: _species,
+              name: petName,
+              species: species,
               breed: breed.isEmpty ? null : breed,
               gender: _gender,
-              dateOfBirth: dob,
-              weightKg: double.tryParse(_weight.text.trim()),
+              dateOfBirth: _birthday,
+              weightKg: weight,
               bloodType: bloodType.isEmpty ? null : bloodType,
             );
       _registeredPet = newPet;
@@ -268,6 +316,16 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
       }
       rethrow;
     }
+  }
+
+  double? _optionalPositiveNumber(String raw, {required String fieldName}) {
+    final value = raw.trim();
+    if (value.isEmpty) return null;
+    final parsed = double.tryParse(value);
+    if (parsed == null || parsed <= 0) {
+      throw FormatException('$fieldName must be greater than 0');
+    }
+    return parsed;
   }
 
   Future<void> _handleRegisterAndCreatePet() async {
@@ -489,6 +547,57 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     _nextStep();
   }
 
+  void _submitSpecies() {
+    if (_species == null) {
+      showTopAlert(
+        context,
+        'Please select a species',
+        icon: Icons.info_outline_rounded,
+      );
+      return;
+    }
+    _nextStep();
+  }
+
+  void _submitPetName() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    if (_petName.text.trim().isEmpty) {
+      showTopAlert(
+        context,
+        'Name is required',
+        icon: Icons.info_outline_rounded,
+      );
+      return;
+    }
+    _nextStep();
+  }
+
+  void _submitAdditionalInfo() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    final ageText = _age.text.trim();
+    final age = int.tryParse(ageText);
+    if (ageText.isNotEmpty && (age == null || age <= 0)) {
+      showTopAlert(
+        context,
+        'Age must be greater than 0',
+        icon: Icons.info_outline_rounded,
+      );
+      return;
+    }
+
+    final weightText = _weight.text.trim();
+    final weight = double.tryParse(weightText);
+    if (weightText.isNotEmpty && (weight == null || weight <= 0)) {
+      showTopAlert(
+        context,
+        'Weight must be greater than 0',
+        icon: Icons.info_outline_rounded,
+      );
+      return;
+    }
+    _nextStep();
+  }
+
   void _openSummary() {
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
@@ -607,8 +716,8 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
             children: [
               _ProfileSummaryPage(
                 ownerName: _ownerName.text.trim(),
-                petName: _petNameOrDefault,
-                species: _species,
+                petName: _petName.text.trim(),
+                species: _species!,
                 petColor: _petColor,
                 gender: _gender,
                 age: _age.text.trim(),
@@ -798,13 +907,13 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
             setState(() => _species = value);
           },
           onBack: _back,
-          onNext: _nextStep,
+          onNext: _submitSpecies,
         );
       case _RegisterStep.petName:
         return _StepPage(
           step: 3,
           showHeader: false,
-          topPet: _PetNameStage(species: _species, color: _petColor),
+          topPet: _PetNameStage(species: _species!, color: _petColor),
           title: 'Name Your Pet',
           subtitle: 'What is their name?',
           body: Center(
@@ -823,12 +932,12 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
           secondaryLabel: 'BACK',
           onSecondary: _back,
           primaryLabel: 'NEXT',
-          onPrimary: _nextStep,
+          onPrimary: _submitPetName,
         );
       case _RegisterStep.petDetails:
         return _DetailsStep(
           showHeader: false,
-          name: _petNameOrDefault,
+          name: _petName.text.trim(),
           gender: _gender,
           age: _age,
           weight: _weight,
@@ -836,12 +945,12 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
           bloodType: _bloodType,
           onGenderChanged: (value) => setState(() => _gender = value),
           onBack: _back,
-          onNext: _nextStep,
+          onNext: _submitAdditionalInfo,
         );
       case _RegisterStep.birthday:
         return _BirthdayStep(
           showHeader: false,
-          name: _petNameOrDefault,
+          name: _petName.text.trim(),
           day: _birthDay,
           month: _birthMonth,
           year: _birthYear,
@@ -849,7 +958,8 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
           onMonthChanged: _setBirthMonth,
           onYearChanged: _setBirthYear,
           onBack: _back,
-          onFinish: _openSummary,
+          onSkip: _skipBirthday,
+          onFinish: _confirmBirthday,
         );
     }
   }
@@ -1841,7 +1951,7 @@ class _PetTypeStep extends StatelessWidget {
   });
 
   final bool showHeader;
-  final String species;
+  final String? species;
   final Color petColor;
   final ValueChanged<String> onSelect;
   final VoidCallback onBack;
@@ -1908,7 +2018,9 @@ class _PetTypeStep extends StatelessWidget {
                               left: 0,
                               right: 0,
                               child: Center(
-                                child: _PetThoughtBubble(species: species),
+                                child: _PetThoughtBubble(
+                                  species: species ?? 'Cat',
+                                ),
                               ),
                             ),
                             Positioned(
@@ -1917,7 +2029,7 @@ class _PetTypeStep extends StatelessWidget {
                               bottom: 0,
                               child: Center(
                                 child: _PetAvatar(
-                                  species: species,
+                                  species: species ?? 'Cat',
                                   color: petColor,
                                   size: avatarSize,
                                 ),
@@ -2115,7 +2227,7 @@ class _DetailsStep extends StatelessWidget {
 
   final bool showHeader;
   final String name;
-  final String gender;
+  final String? gender;
   final TextEditingController age;
   final TextEditingController weight;
   final TextEditingController breed;
@@ -2265,6 +2377,7 @@ class _BirthdayStep extends StatelessWidget {
     required this.onMonthChanged,
     required this.onYearChanged,
     required this.onBack,
+    required this.onSkip,
     required this.onFinish,
   });
 
@@ -2277,6 +2390,7 @@ class _BirthdayStep extends StatelessWidget {
   final ValueChanged<int> onMonthChanged;
   final ValueChanged<int> onYearChanged;
   final VoidCallback onBack;
+  final VoidCallback onSkip;
   final VoidCallback onFinish;
 
   @override
@@ -2359,14 +2473,23 @@ class _BirthdayStep extends StatelessWidget {
           const SizedBox(height: 24),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 380),
-            child: Row(
+            child: Column(
               children: [
-                Expanded(
-                  child: _GhostButton(label: 'BACK', onTap: onBack),
+                SizedBox(
+                  width: double.infinity,
+                  child: _GhostButton(label: 'NOT SURE', onTap: onSkip),
                 ),
-                const SizedBox(width: 18),
-                Expanded(
-                  child: _ReferenceButton(label: 'FINISH', onTap: onFinish),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _GhostButton(label: 'BACK', onTap: onBack),
+                    ),
+                    const SizedBox(width: 18),
+                    Expanded(
+                      child: _ReferenceButton(label: 'FINISH', onTap: onFinish),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -2855,7 +2978,7 @@ class _ProfileSummaryPage extends StatelessWidget {
   final String petName;
   final String species;
   final Color petColor;
-  final String gender;
+  final String? gender;
   final String age;
   final String weight;
   final String breed;
@@ -3052,7 +3175,7 @@ class _ProfileSummaryPage extends StatelessWidget {
                           Expanded(
                             child: _SummaryMiniTile(
                               label: 'Gender',
-                              value: gender,
+                              value: gender ?? 'Not set',
                             ),
                           ),
                           const SizedBox(width: 10),
