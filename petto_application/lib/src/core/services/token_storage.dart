@@ -6,6 +6,7 @@ class TokenStorage {
     : _secureStorage = secureStorage ?? const FlutterSecureStorage();
 
   static const _tokenKey = 'auth_token';
+  static const _refreshTokenKey = 'auth_refresh_token';
   static const _userIdKey = 'user_id';
   static const _petIdKey = 'pet_id';
   late final Future<SharedPreferences> _preferences =
@@ -39,6 +40,15 @@ class TokenStorage {
     await prefs.remove(_tokenKey);
   }
 
+  Future<void> saveRefreshToken(String token) async {
+    await _secureStorage.write(key: _refreshTokenKey, value: token);
+  }
+
+  Future<String?> getRefreshToken() async {
+    final token = await _secureStorage.read(key: _refreshTokenKey);
+    return token == null || token.isEmpty ? null : token;
+  }
+
   Future<void> saveUserId(int userId) async {
     final prefs = await _preferences;
     await prefs.setInt(_userIdKey, userId);
@@ -61,6 +71,7 @@ class TokenStorage {
 
   Future<void> clear() async {
     await _secureStorage.delete(key: _tokenKey);
+    await _secureStorage.delete(key: _refreshTokenKey);
     final prefs = await _preferences;
     await prefs.remove(_tokenKey);
     await prefs.remove(_userIdKey);

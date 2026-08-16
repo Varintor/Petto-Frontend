@@ -35,4 +35,18 @@ void main() {
       false,
     );
   });
+
+  test('refresh tokens stay in secure storage and are cleared on logout', () async {
+    final storage = TokenStorage();
+
+    await storage.saveRefreshToken('refresh-secret');
+    expect(await storage.getRefreshToken(), 'refresh-secret');
+
+    await storage.clear();
+    expect(await storage.getRefreshToken(), isNull);
+    expect(
+      (await SharedPreferences.getInstance()).containsKey('auth_refresh_token'),
+      false,
+    );
+  });
 }

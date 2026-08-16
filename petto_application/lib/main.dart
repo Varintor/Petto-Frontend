@@ -8,6 +8,7 @@ import 'src/core/theme/app_theme.dart';
 import 'src/features/auth/data/repositories/auth_repository.dart';
 import 'src/features/auth/presentation/controllers/auth_controller.dart';
 import 'src/features/auth/presentation/screens/auth_gate.dart';
+import 'src/features/auth/presentation/screens/password_recovery_screen.dart';
 import 'src/features/health_assessment/presentation/controllers/health_assessment_controller.dart';
 import 'src/features/health_assessment/data/repositories/health_assessment_repository.dart';
 import 'src/features/activity_tracking/presentation/controllers/activity_tracking_controller.dart';
@@ -48,8 +49,37 @@ Future<void> _initializeNotifications() async {
   }
 }
 
-class PettoApp extends StatelessWidget {
+class PettoApp extends StatefulWidget {
   const PettoApp({super.key});
+
+  @override
+  State<PettoApp> createState() => _PettoAppState();
+}
+
+class _PettoAppState extends State<PettoApp> {
+  StreamSubscription<AuthState>? _authSubscription;
+  bool _recoveringPassword = false;
+
+  @override
+  void initState() {
+    super.initState();
+    try {
+      _authSubscription = Supabase.instance.client.auth.onAuthStateChange
+          .listen((state) {
+            if (state.event == AuthChangeEvent.passwordRecovery && mounted) {
+              setState(() => _recoveringPassword = true);
+            }
+          });
+    } catch (_) {
+      // Widget tests can render PettoApp without running the async main().
+    }
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -135,7 +165,13 @@ class PettoApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.light,
-        home: const AuthGate(),
+        home: _recoveringPassword
+            ? PasswordRecoveryScreen(
+                onComplete: () {
+                  if (mounted) setState(() => _recoveringPassword = false);
+                },
+              )
+            : const AuthGate(),
         debugShowCheckedModeBanner: false,
       ),
     );

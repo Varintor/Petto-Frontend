@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/config/app_config.dart';
 
@@ -39,14 +40,24 @@ class AuthUser {
 /// DB transaction (null on login, or on backends without atomic support).
 class AuthResult {
   final String accessToken;
+  final String? refreshToken;
+  final int? expiresAt;
   final AuthUser user;
   final Map<String, dynamic>? petJson;
 
-  AuthResult({required this.accessToken, required this.user, this.petJson});
+  AuthResult({
+    required this.accessToken,
+    required this.user,
+    this.refreshToken,
+    this.expiresAt,
+    this.petJson,
+  });
 
   factory AuthResult.fromJson(Map<String, dynamic> json) {
     return AuthResult(
       accessToken: json['access_token'] as String? ?? '',
+      refreshToken: json['refresh_token'] as String?,
+      expiresAt: json['expires_at'] as int?,
       user: AuthUser.fromJson(json['user'] as Map<String, dynamic>),
       petJson: json['pet'] as Map<String, dynamic>?,
     );
@@ -176,25 +187,20 @@ abstract class PasswordResetRepository {
 }
 
 class PasswordResetRepositoryImpl implements PasswordResetRepository {
-  PasswordResetRepositoryImpl({Dio? dio})
-    : dio = dio ?? Dio(BaseOptions(baseUrl: AppConfig.apiBaseUrl));
+  PasswordResetRepositoryImpl({SupabaseClient? client}) : _client = client;
 
-  final Dio dio;
+  final SupabaseClient? _client;
 
   @override
   Future<String> requestReset(String email) async {
     try {
-      final response = await dio.post(
-        AppConfig.forgotPasswordEndpoint,
-        data: {'email': email.trim().toLowerCase()},
+      await (_client ?? Supabase.instance.client).auth.resetPasswordForEmail(
+        email.trim().toLowerCase(),
+        redirectTo: AppConfig.passwordResetRedirectUrl,
       );
-      final data = Map<String, dynamic>.from(response.data as Map);
-      return data['message'] as String? ??
-          'If an account exists for this email, a reset link has been sent.';
-    } on DioException catch (error) {
-      final data = error.response?.data;
-      final detail = data is Map ? data['detail'] : null;
-      if (detail is String && detail.isNotEmpty) throw Exception(detail);
+      return 'If an account exists for this email, a reset link has been sent.';
+    } on AuthException catch (error) {
+      if (error.message.isNotEmpty) throw Exception(error.message);
       throw Exception('Could not send a reset link. Please try again.');
     }
   }

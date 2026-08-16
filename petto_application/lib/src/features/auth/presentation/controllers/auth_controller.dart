@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthUser;
 
 import '../../../../core/services/token_storage.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -20,6 +23,7 @@ class AuthController extends ChangeNotifier {
   AuthUser? _currentUser;
   String? _error;
   bool _justLoggedOut = false;
+  StreamSubscription<AuthState>? _supabaseAuthSubscription;
 
   /// Handlers invoked when [logout] runs, so other controllers can clear
   /// per-account in-memory state (stats, missions) before the new account
@@ -66,11 +70,40 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final token = await storage.getToken();
-      if (token == null) {
+      final storedToken = await storage.getToken();
+      if (storedToken == null) {
         _status = AuthStatus.unauthenticated;
         notifyListeners();
         return;
+      }
+      var token = storedToken;
+
+      String? refreshToken;
+      try {
+        refreshToken = await storage.getRefreshToken();
+      } catch (_) {
+        // Older/custom TokenStorage implementations may not expose refresh
+        // tokens yet. The existing access-token validation remains valid.
+      }
+      if (refreshToken != null) {
+        try {
+          final response = await Supabase.instance.client.auth.setSession(
+            refreshToken,
+          );
+          final refreshed = response.session;
+          if (refreshed != null) {
+            token = refreshed.accessToken;
+            await storage.saveToken(token);
+            final rotatedRefreshToken = refreshed.refreshToken;
+            if (rotatedRefreshToken != null) {
+              await storage.saveRefreshToken(rotatedRefreshToken);
+            }
+            _watchSupabaseTokenRefresh();
+          }
+        } catch (_) {
+          // The access token below may still be valid. /me remains the final
+          // authority and clears storage if both credentials are expired.
+        }
       }
 
       // Token validation and the local pet lookup are independent. Start both
@@ -136,11 +169,31 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<void> _applySession(AuthResult result) async {
-    _token = result.accessToken;
+    var accessToken = result.accessToken;
+    var refreshToken = result.refreshToken;
+    if (refreshToken != null && refreshToken.isNotEmpty) {
+      try {
+        final response = await Supabase.instance.client.auth.setSession(
+          refreshToken,
+        );
+        final session = response.session;
+        if (session != null) {
+          accessToken = session.accessToken;
+          refreshToken = session.refreshToken;
+          _watchSupabaseTokenRefresh();
+        }
+      } catch (_) {
+        // The backend-issued access token is still usable; Realtime falls back
+        // to polling if the local Supabase session cannot be established.
+      }
+    }
+    _token = accessToken;
     _userId = result.user.id;
     _currentUser = result.user;
     final results = await Future.wait<Object?>([
       storage.saveToken(_token ?? ''),
+      if (refreshToken != null && refreshToken.isNotEmpty)
+        storage.saveRefreshToken(refreshToken),
       storage.saveUserId(_userId ?? 0),
       storage.getPetId(),
     ]);
@@ -154,12 +207,29 @@ class AuthController extends ChangeNotifier {
     AuthResult result, {
     required int petId,
   }) async {
-    _token = result.accessToken;
+    var accessToken = result.accessToken;
+    var refreshToken = result.refreshToken;
+    if (refreshToken != null && refreshToken.isNotEmpty) {
+      try {
+        final response = await Supabase.instance.client.auth.setSession(
+          refreshToken,
+        );
+        final session = response.session;
+        if (session != null) {
+          accessToken = session.accessToken;
+          refreshToken = session.refreshToken;
+          _watchSupabaseTokenRefresh();
+        }
+      } catch (_) {}
+    }
+    _token = accessToken;
     _userId = result.user.id;
     _currentUser = result.user;
     _petId = petId;
     await Future.wait<void>([
       storage.saveToken(_token ?? ''),
+      if (refreshToken != null && refreshToken.isNotEmpty)
+        storage.saveRefreshToken(refreshToken),
       storage.saveUserId(_userId ?? 0),
       storage.savePetId(petId),
     ]);
@@ -184,6 +254,9 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    try {
+      await Supabase.instance.client.auth.signOut(scope: SignOutScope.local);
+    } catch (_) {}
     await storage.clear();
     _token = null;
     _userId = null;
@@ -214,5 +287,28 @@ class AuthController extends ChangeNotifier {
     final message = e.toString().replaceFirst('Exception: ', '');
     if (message.isEmpty) return 'Something went wrong. Please try again.';
     return message;
+  }
+
+  void _watchSupabaseTokenRefresh() {
+    if (_supabaseAuthSubscription != null) return;
+    _supabaseAuthSubscription = Supabase.instance.client.auth.onAuthStateChange
+        .listen((state) {
+          final session = state.session;
+          if (_status != AuthStatus.authenticated || session == null) return;
+          _token = session.accessToken;
+          unawaited(
+            Future.wait<void>([
+              storage.saveToken(session.accessToken),
+              if (session.refreshToken != null)
+                storage.saveRefreshToken(session.refreshToken!),
+            ]),
+          );
+        });
+  }
+
+  @override
+  void dispose() {
+    _supabaseAuthSubscription?.cancel();
+    super.dispose();
   }
 }

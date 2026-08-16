@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 /// Application configuration for talking to the Petto FastAPI backend.
 ///
 /// The backend mounts every router under the `/api/v1` prefix
@@ -103,6 +105,15 @@ class AppConfig {
   static const String checkEmailEndpoint = '$apiPrefix/auth/check-email';
   static const String forgotPasswordEndpoint =
       '$apiPrefix/auth/forgot-password';
+
+  /// PKCE recovery must return to the same client that requested the email.
+  /// Web uses its current origin; mobile uses the registered Petto URL scheme.
+  static String get passwordResetRedirectUrl => kIsWeb
+      ? Uri.base.origin
+      : const String.fromEnvironment(
+          'PASSWORD_RESET_REDIRECT_URL',
+          defaultValue: 'petto://reset-password',
+        );
 
   /// Create pet (authenticated) -> POST /api/v1/pets
   static const String petsEndpoint = '$apiPrefix/pets';
