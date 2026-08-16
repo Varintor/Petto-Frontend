@@ -21,6 +21,7 @@ class OwnerConsultationScreen extends StatefulWidget {
     this.latestAssessmentId,
     this.onAppointmentAccepted,
     this.loadMapTiles = true,
+    this.locationService,
   });
 
   final int petId;
@@ -28,6 +29,7 @@ class OwnerConsultationScreen extends StatefulWidget {
   final int? latestAssessmentId;
   final Future<void> Function()? onAppointmentAccepted;
   final bool loadMapTiles;
+  final LocationService? locationService;
 
   @override
   State<OwnerConsultationScreen> createState() =>
@@ -45,7 +47,8 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
   double? _userLatitude;
   double? _userLongitude;
   String? _locationHint;
-  final LocationService _locationService = LocationService();
+  late final LocationService _locationService =
+      widget.locationService ?? LocationService();
 
   @override
   void initState() {
@@ -100,42 +103,55 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
       _locating = true;
       _locationHint = null;
     });
-    final readiness = await _locationService.ensureReady();
-    if (!mounted) return;
-    if (readiness != LocationReadiness.ready) {
+    try {
+      final readiness = await _locationService.ensureReady();
+      if (!mounted) return;
+      if (readiness != LocationReadiness.ready) {
+        setState(() {
+          _locating = false;
+          _locationHint = switch (readiness) {
+            LocationReadiness.serviceDisabled =>
+              'Turn on Location to sort nearby.',
+            LocationReadiness.denied => 'Location permission was not granted.',
+            LocationReadiness.deniedForever =>
+              'Enable Location for Petto in device settings.',
+            LocationReadiness.ready => null,
+          };
+        });
+        return;
+      }
+      final position = await _locationService.currentPosition();
+      if (!mounted) return;
+      if (position == null) {
+        setState(() {
+          _locating = false;
+          _locationHint = 'Current location is unavailable. Try again.';
+        });
+        return;
+      }
+      final controller = context.read<ConsultationController>();
+      await controller.loadProviders(
+        latitude: position.latitude,
+        longitude: position.longitude,
+      );
+      if (!mounted) return;
       setState(() {
         _locating = false;
-        _locationHint = switch (readiness) {
-          LocationReadiness.serviceDisabled =>
-            'Turn on Location to sort nearby.',
-          LocationReadiness.denied => 'Location permission was not granted.',
-          LocationReadiness.deniedForever =>
-            'Enable Location for Petto in device settings.',
-          LocationReadiness.ready => null,
-        };
+        if (controller.error == null) {
+          _userLatitude = position.latitude;
+          _userLongitude = position.longitude;
+          _locationHint = 'Sorted by distance from your current location.';
+        } else {
+          _locationHint = 'Could not sort nearby providers. Try again.';
+        }
       });
-      return;
-    }
-    final position = await _locationService.currentPosition();
-    if (!mounted) return;
-    if (position == null) {
+    } catch (_) {
+      if (!mounted) return;
       setState(() {
         _locating = false;
-        _locationHint = 'Current location is unavailable. Try again.';
+        _locationHint = 'Location is unavailable. Try again.';
       });
-      return;
     }
-    await context.read<ConsultationController>().loadProviders(
-      latitude: position.latitude,
-      longitude: position.longitude,
-    );
-    if (!mounted) return;
-    setState(() {
-      _locating = false;
-      _userLatitude = position.latitude;
-      _userLongitude = position.longitude;
-      _locationHint = 'Sorted by distance from your current location.';
-    });
   }
 
   Future<void> _openDirections(VeterinaryProviderModel provider) async {

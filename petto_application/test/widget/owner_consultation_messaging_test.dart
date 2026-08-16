@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
+import 'package:petto_application/src/core/services/location_service.dart';
 import 'package:petto_application/src/features/vet_consultation/data/models/consultation_models.dart';
 import 'package:petto_application/src/features/vet_consultation/data/repositories/consultation_repository.dart';
 import 'package:petto_application/src/features/vet_consultation/presentation/controllers/consultation_controller.dart';
@@ -205,6 +206,17 @@ class _OwnerAppointmentRepository extends _OwnerMessagingRepository {
   }
 }
 
+class _DeniedLocationService extends LocationService {
+  @override
+  Future<LocationReadiness> ensureReady() async => LocationReadiness.denied;
+}
+
+class _FailingLocationService extends LocationService {
+  @override
+  Future<LocationReadiness> ensureReady() async =>
+      throw StateError('Location platform unavailable');
+}
+
 void main() {
   testWidgets('owner starts a backend consultation and sends a message', (
     tester,
@@ -345,5 +357,84 @@ void main() {
     expect(find.byType(TextField), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('location denial explains the issue and does not leave loading', (
+    tester,
+  ) async {
+    final controller = ConsultationController(
+      repository: _ProviderDiscoveryRepository(),
+    );
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<ConsultationController>.value(
+        value: controller,
+        child: MaterialApp(
+          home: Scaffold(
+            body: OwnerConsultationScreen(
+              petId: 5,
+              petName: 'Milo',
+              loadMapTiles: false,
+              locationService: _DeniedLocationService(),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(find.text('Use my location'));
+    await tester.pump();
+
+    expect(find.text('Location permission was not granted.'), findsOneWidget);
+    expect(find.text('Use my location'), findsOneWidget);
+    expect(
+      tester
+          .widget<OutlinedButton>(
+            find.widgetWithText(OutlinedButton, 'Use my location'),
+          )
+          .onPressed,
+      isNotNull,
+    );
+  });
+
+  testWidgets('location platform failure offers retry instead of hanging', (
+    tester,
+  ) async {
+    final controller = ConsultationController(
+      repository: _ProviderDiscoveryRepository(),
+    );
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<ConsultationController>.value(
+        value: controller,
+        child: MaterialApp(
+          home: Scaffold(
+            body: OwnerConsultationScreen(
+              petId: 5,
+              petName: 'Milo',
+              loadMapTiles: false,
+              locationService: _FailingLocationService(),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(find.text('Use my location'));
+    await tester.pump();
+
+    expect(find.text('Location is unavailable. Try again.'), findsOneWidget);
+    expect(
+      tester
+          .widget<OutlinedButton>(
+            find.widgetWithText(OutlinedButton, 'Use my location'),
+          )
+          .onPressed,
+      isNotNull,
+    );
   });
 }
