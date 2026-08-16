@@ -661,9 +661,8 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
               title: 'Live Pet Tracking',
               subtitle:
                   'Pair a device for activity, rest detection and alerts.',
-              actionLabel: 'Soon',
-              enabled: false,
-              onTap: () {},
+              actionLabel: 'Open',
+              onTap: () => _update(() => _activeView = _View.wellness),
             ),
           ],
         );
@@ -673,10 +672,9 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
 }
 
 class _SoftPulse extends StatefulWidget {
-  const _SoftPulse({required this.child, this.enabled = true});
+  const _SoftPulse({required this.child});
 
   final Widget child;
-  final bool enabled;
 
   @override
   State<_SoftPulse> createState() => _SoftPulseState();
@@ -708,7 +706,6 @@ class _SoftPulseState extends State<_SoftPulse>
 
   @override
   Widget build(BuildContext context) {
-    if (!widget.enabled) return widget.child;
     return AnimatedBuilder(
       animation: _scale,
       child: widget.child,
@@ -821,7 +818,6 @@ class _MissionActivityCard extends StatelessWidget {
     required this.subtitle,
     required this.actionLabel,
     required this.onTap,
-    this.enabled = true,
   });
 
   final IconData icon;
@@ -830,114 +826,92 @@ class _MissionActivityCard extends StatelessWidget {
   final String subtitle;
   final String actionLabel;
   final VoidCallback onTap;
-  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
-    final effectiveColor = enabled ? iconColor : AppTheme.mutedText;
-    return Opacity(
-      opacity: enabled ? 1 : 0.56,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(30),
-        child: Material(
-          color: Colors.transparent,
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: enabled ? onTap : null,
-            borderRadius: BorderRadius.circular(30),
-            child: Ink(
-              padding: const EdgeInsets.all(16),
-              decoration: AppTheme.glassCardDecoration(
-                color: enabled
-                    ? Colors.white
-                    : AppTheme.creamSurfaceColor.withValues(alpha: 0.68),
-                borderRadius: BorderRadius.circular(30),
-                borderColor: effectiveColor.withValues(
-                  alpha: enabled ? 0.18 : 0.08,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(30),
+      child: Material(
+        color: Colors.transparent,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(30),
+          child: Ink(
+            padding: const EdgeInsets.all(16),
+            decoration: AppTheme.glassCardDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(30),
+              borderColor: iconColor.withValues(alpha: 0.18),
+              hasShadow: false,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 54,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: iconColor,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: _SoftPulse(
+                    child: Icon(icon, color: Colors.white, size: 26),
+                  ),
                 ),
-                hasShadow: false,
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 54,
-                    height: 54,
-                    decoration: BoxDecoration(
-                      color: enabled
-                          ? effectiveColor
-                          : effectiveColor.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: _SoftPulse(
-                      enabled: enabled,
-                      child: Icon(
-                        icon,
-                        color: enabled ? Colors.white : effectiveColor,
-                        size: 26,
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
                       ),
-                    ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.copyWith(height: 1.35),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w800),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          subtitle,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodyMedium?.copyWith(height: 1.35),
-                        ),
-                      ],
-                    ),
+                ),
+                const SizedBox(width: 12),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 9,
                   ),
-                  const SizedBox(width: 12),
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 9,
-                    ),
-                    decoration: BoxDecoration(
-                      color: enabled
-                          ? AppTheme.creamSurfaceColor.withValues(alpha: 0.72)
-                          : AppTheme.secondaryText.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          actionLabel,
-                          style: Theme.of(context).textTheme.labelMedium
-                              ?.copyWith(
-                                color: enabled
-                                    ? AppTheme.primaryColor
-                                    : AppTheme.mutedText,
-                                fontWeight: FontWeight.w900,
-                              ),
-                        ),
-                        if (enabled) ...[
-                          const SizedBox(width: 5),
-                          const _SoftNudge(
-                            child: Icon(
-                              Icons.arrow_forward_rounded,
-                              size: 16,
+                  decoration: BoxDecoration(
+                    color: AppTheme.creamSurfaceColor.withValues(alpha: 0.72),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        actionLabel,
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
                               color: AppTheme.primaryColor,
+                              fontWeight: FontWeight.w900,
                             ),
-                          ),
-                        ],
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 5),
+                      const _SoftNudge(
+                        child: Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 16,
+                          color: AppTheme.primaryColor,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
