@@ -101,6 +101,8 @@ class AppConfig {
   static const String loginEndpoint = '$apiPrefix/auth/login';
   static const String meEndpoint = '$apiPrefix/auth/me';
   static const String checkEmailEndpoint = '$apiPrefix/auth/check-email';
+  static const String forgotPasswordEndpoint =
+      '$apiPrefix/auth/forgot-password';
 
   /// Create pet (authenticated) -> POST /api/v1/pets
   static const String petsEndpoint = '$apiPrefix/pets';

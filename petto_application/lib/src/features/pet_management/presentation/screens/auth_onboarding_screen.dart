@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/top_alert.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
+import '../../../auth/data/repositories/auth_repository.dart';
 import '../../../health_assessment/presentation/screens/home_screen.dart';
 import '../../../health_assessment/presentation/widgets/pet_avatar_widget.dart';
 import '../../data/repositories/pet_repository.dart';
@@ -34,6 +35,7 @@ class AuthOnboardingScreen extends StatefulWidget {
     super.key,
     this.startAtLogin = false,
     this.onRegistrationComplete,
+    this.passwordResetRepository,
   });
 
   /// When true, skip the marketing intro and open directly on the login
@@ -43,6 +45,7 @@ class AuthOnboardingScreen extends StatefulWidget {
   /// Test/host hook that avoids coupling registration tests to Home's provider
   /// tree. Production leaves this null and follows the normal Home navigation.
   final ValueChanged<Pet>? onRegistrationComplete;
+  final PasswordResetRepository? passwordResetRepository;
 
   @override
   State<AuthOnboardingScreen> createState() => _AuthOnboardingScreenState();
@@ -84,6 +87,8 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
 
   bool _isLoading = false;
   String? _errorMessage;
+  late final PasswordResetRepository _passwordResetRepository =
+      widget.passwordResetRepository ?? PasswordResetRepositoryImpl();
 
   /// Per-field login errors, so each field can turn red and show its own hint
   /// (e.g. "Email is required", "Password is required", "Wrong password").
@@ -470,10 +475,36 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     });
   }
 
-  void _sendPasswordReset() {
+  Future<void> _sendPasswordReset() async {
     FocusManager.instance.primaryFocus?.unfocus();
-    showTopAlert(context, 'Password reset link sent.');
+    final email = _loginEmail.text.trim();
+    if (!_isValidEmail(email)) {
+      showTopAlert(
+        context,
+        'Enter a valid email address.',
+        icon: Icons.error_outline_rounded,
+      );
+      return;
+    }
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+    try {
+      final message = await _passwordResetRepository.requestReset(email);
+      if (!mounted) return;
+      showTopAlert(context, message);
+    } catch (error) {
+      if (!mounted) return;
+      showTopAlert(
+        context,
+        error.toString().replaceFirst('Exception: ', ''),
+        icon: Icons.error_outline_rounded,
+      );
+      setState(() => _isLoading = false);
+      return;
+    }
+    if (!mounted) return;
     setState(() {
+      _isLoading = false;
       _transitionDirection = -1;
       _screen = _AuthScreen.gateway;
     });
@@ -674,9 +705,10 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
         return _PanelFrame(
           key: ValueKey(_AuthScreen.forgotPassword.name),
           child: _ForgotPasswordPage(
-            emailController: _email,
+            emailController: _loginEmail,
             onBack: _back,
             onSubmit: _sendPasswordReset,
+            isLoading: _isLoading,
           ),
         );
       case _AuthScreen.registerAccount:
@@ -1424,11 +1456,13 @@ class _ForgotPasswordPage extends StatelessWidget {
     required this.emailController,
     required this.onBack,
     required this.onSubmit,
+    required this.isLoading,
   });
 
   final TextEditingController emailController;
   final VoidCallback onBack;
   final VoidCallback onSubmit;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -1495,8 +1529,8 @@ class _ForgotPasswordPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   _ReferenceButton(
-                    label: 'SEND RESET LINK',
-                    onTap: onSubmit,
+                    label: isLoading ? 'SENDING...' : 'SEND RESET LINK',
+                    onTap: isLoading ? null : onSubmit,
                     icon: Icons.arrow_forward_rounded,
                     fullWidth: true,
                     animatedIcon: true,
@@ -4980,7 +5014,7 @@ class _ReferenceButton extends StatelessWidget {
   });
 
   final String label;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final IconData? icon;
   final bool fullWidth;
   final double? width;
@@ -4990,9 +5024,10 @@ class _ReferenceButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = quiet
+    final baseColor = quiet
         ? _AuthOnboardingScreenState._red.withValues(alpha: 0.9)
         : _AuthOnboardingScreenState._red;
+    final color = onTap == null ? baseColor.withValues(alpha: 0.45) : baseColor;
     final radius = BorderRadius.circular(rounded ? 28 : (quiet ? 22 : 16));
     return SizedBox(
       width: width ?? (fullWidth ? double.infinity : null),
