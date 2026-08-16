@@ -32,37 +32,80 @@ class DeviceModel {
   });
 
   factory DeviceModel.fromJson(Map<String, dynamic> json) => DeviceModel(
-        id: json['id'] as int,
-        petId: json['pet_id'] as int,
-        name: json['name'] as String,
-        deviceType: json['device_type'] as String? ?? 'ble_collar',
-        identifier: json['identifier'] as String,
-        isActive: json['is_active'] as bool? ?? true,
-        batteryPercent: json['battery_percent'] as int?,
-        lastLat: (json['last_lat'] as num?)?.toDouble(),
-        lastLng: (json['last_lng'] as num?)?.toDouble(),
-        lastSeenAt: json['last_seen_at'] != null
-            ? DateTime.tryParse(json['last_seen_at'] as String)
-            : null,
-      );
+    id: json['id'] as int,
+    petId: json['pet_id'] as int,
+    name: json['name'] as String,
+    deviceType: json['device_type'] as String? ?? 'ble_collar',
+    identifier: json['identifier'] as String,
+    isActive: json['is_active'] as bool? ?? true,
+    batteryPercent: json['battery_percent'] as int?,
+    lastLat: (json['last_lat'] as num?)?.toDouble(),
+    lastLng: (json['last_lng'] as num?)?.toDouble(),
+    lastSeenAt: json['last_seen_at'] != null
+        ? DateTime.tryParse(json['last_seen_at'] as String)
+        : null,
+  );
 }
 
 /// Pairing + live-position API for Mode B tracking (SRS-F4-035..038).
 /// The actual BLE scan/GATT link (flutter_blue_plus) is the Progress II work
 /// item; this repository already speaks the backend contract it will feed.
-class DeviceRepository {
+class TelemetryResultModel {
+  const TelemetryResultModel({
+    required this.device,
+    required this.anomalies,
+    required this.activityLogged,
+  });
+
+  final DeviceModel device;
+  final List<String> anomalies;
+  final bool activityLogged;
+
+  factory TelemetryResultModel.fromJson(Map<String, dynamic> json) =>
+      TelemetryResultModel(
+        device: DeviceModel.fromJson(
+          Map<String, dynamic>.from(json['device'] as Map),
+        ),
+        anomalies: (json['anomalies'] as List<dynamic>? ?? const [])
+            .map((item) => (item as Map)['message'] as String? ?? 'Alert')
+            .toList(),
+        activityLogged: json['activity_logged'] as bool? ?? false,
+      );
+}
+
+abstract class DeviceRepository {
+  Future<List<DeviceModel>> listDevices(int petId);
+  Future<DeviceModel> pairDevice({
+    required int petId,
+    required String name,
+    required String identifier,
+  });
+  Future<void> unpairDevice(int deviceId);
+  Future<TelemetryResultModel> ingestTelemetry({
+    required int deviceId,
+    required List<Map<String, dynamic>> samples,
+    int? batteryPercent,
+    double? sessionDurationMinutes,
+    double? sessionDistanceMeters,
+  });
+}
+
+class DeviceRepositoryImpl implements DeviceRepository {
   final Dio dio;
 
-  DeviceRepository({Dio? dio}) : dio = dio ?? ApiClient.dio;
+  DeviceRepositoryImpl({Dio? dio}) : dio = dio ?? ApiClient.dio;
 
+  @override
   Future<List<DeviceModel>> listDevices(int petId) async {
-    final response =
-        await dio.get('${AppConfig.apiPrefix}/pets/$petId/devices');
+    final response = await dio.get(
+      '${AppConfig.apiPrefix}/pets/$petId/devices',
+    );
     return (response.data as List<dynamic>)
         .map((j) => DeviceModel.fromJson(j as Map<String, dynamic>))
         .toList();
   }
 
+  @override
   Future<DeviceModel> pairDevice({
     required int petId,
     required String name,
@@ -75,7 +118,32 @@ class DeviceRepository {
     return DeviceModel.fromJson(response.data as Map<String, dynamic>);
   }
 
+  @override
   Future<void> unpairDevice(int deviceId) async {
     await dio.delete('${AppConfig.apiPrefix}/devices/$deviceId');
+  }
+
+  @override
+  Future<TelemetryResultModel> ingestTelemetry({
+    required int deviceId,
+    required List<Map<String, dynamic>> samples,
+    int? batteryPercent,
+    double? sessionDurationMinutes,
+    double? sessionDistanceMeters,
+  }) async {
+    final response = await dio.post(
+      '${AppConfig.apiPrefix}/devices/$deviceId/telemetry',
+      data: {
+        'samples': samples,
+        if (batteryPercent != null) 'battery_percent': batteryPercent,
+        if (sessionDurationMinutes != null)
+          'session_duration_minutes': sessionDurationMinutes,
+        if (sessionDistanceMeters != null)
+          'session_distance_meters': sessionDistanceMeters,
+      },
+    );
+    return TelemetryResultModel.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
   }
 }

@@ -12,6 +12,8 @@ import 'src/features/health_assessment/presentation/controllers/health_assessmen
 import 'src/features/health_assessment/data/repositories/health_assessment_repository.dart';
 import 'src/features/activity_tracking/presentation/controllers/activity_tracking_controller.dart';
 import 'src/features/activity_tracking/data/repositories/activity_repository.dart';
+import 'src/features/activity_tracking/data/repositories/device_repository.dart';
+import 'src/features/activity_tracking/presentation/controllers/device_tracking_controller.dart';
 import 'src/features/vaccinations/presentation/controllers/vaccination_controller.dart';
 import 'src/features/vaccinations/data/repositories/vaccination_repository.dart';
 import 'src/features/missions/presentation/controllers/missions_controller.dart';
@@ -55,6 +57,17 @@ class PettoApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(
           create: (_) => AuthController(repository: AuthRepositoryImpl()),
+        ),
+        ChangeNotifierProxyProvider<AuthController, DeviceTrackingController>(
+          create: (_) =>
+              DeviceTrackingController(repository: DeviceRepositoryImpl()),
+          update: (_, auth, controller) {
+            final c =
+                controller ??
+                DeviceTrackingController(repository: DeviceRepositoryImpl());
+            auth.addLogoutHandler(c.clearForAccount);
+            return c;
+          },
         ),
         ChangeNotifierProvider(
           create: (_) => HealthAssessmentController(
