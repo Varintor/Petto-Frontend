@@ -1414,16 +1414,11 @@ class _GatewayPage extends StatelessWidget {
                   const SizedBox(height: 18),
                   const _OrDivider(),
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _GoogleButton(onTap: onGoogle, compact: true),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _ReferenceButton(label: 'GUEST', onTap: onGuest),
-                      ),
-                    ],
+                  Center(
+                    child: SizedBox(
+                      width: 184,
+                      child: _ReferenceButton(label: 'GUEST', onTap: onGuest),
+                    ),
                   ),
                   const SizedBox(height: 32),
                   TextButton.icon(

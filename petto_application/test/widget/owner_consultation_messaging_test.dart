@@ -247,6 +247,14 @@ void main() {
     await tester.pump();
 
     expect(find.text('Assessment briefing'), findsOneWidget);
+    // HomeScreen overlays an approximately 80px persistent navigation bar.
+    // The chat composer must stay above it or the owner cannot send messages.
+    expect(
+      tester.getBottomRight(find.byType(TextField)).dy,
+      lessThanOrEqualTo(
+        tester.view.physicalSize.height / tester.view.devicePixelRatio - 80,
+      ),
+    );
     await tester.enterText(find.byType(TextField), 'Milo needs help.');
     await tester.tap(find.byIcon(Icons.send_rounded));
     await tester.pump();

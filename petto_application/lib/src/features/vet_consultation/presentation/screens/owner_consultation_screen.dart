@@ -539,7 +539,10 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
         SafeArea(
           top: false,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
+            // HomeScreen draws its persistent navigation bar above the active
+            // feature view. Keep the composer above that bar so sending a
+            // message remains possible on phones and the web demo.
+            padding: const EdgeInsets.fromLTRB(18, 8, 18, 104),
             child: Row(
               children: [
                 Expanded(
