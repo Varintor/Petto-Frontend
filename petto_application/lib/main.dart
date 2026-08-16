@@ -82,13 +82,16 @@ class PettoApp extends StatelessWidget {
               VaccinationController(repository: VaccinationRepositoryImpl()),
         ),
         ChangeNotifierProxyProvider<AuthController, ConsultationController>(
-          create: (_) =>
-              ConsultationController(repository: ConsultationRepositoryImpl()),
+          create: (_) => ConsultationController(
+            repository: ConsultationRepositoryImpl(),
+            healthCardRepository: HealthCardSharingRepositoryImpl(),
+          ),
           update: (_, auth, controller) {
             final c =
                 controller ??
                 ConsultationController(
                   repository: ConsultationRepositoryImpl(),
+                  healthCardRepository: HealthCardSharingRepositoryImpl(),
                 );
             auth.addLogoutHandler(c.clearForAccount);
             return c;
