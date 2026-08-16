@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../data/models/consultation_models.dart';
 import '../../data/repositories/consultation_repository.dart';
+import '../../data/services/consultation_realtime_service.dart';
 
 /// Feature 3 state: vet list, the active consultation, and its chat thread.
 /// Backend-persisted replacement for the local-only mock chat; the consult
@@ -10,14 +13,18 @@ import '../../data/repositories/consultation_repository.dart';
 class ConsultationController extends ChangeNotifier {
   final ConsultationRepository repository;
   final HealthCardSharingRepository? healthCardRepository;
+  final ConsultationRealtimeGateway realtimeGateway;
 
   ConsultationController({
     ConsultationRepository? repository,
     HealthCardSharingRepository? healthCardRepository,
+    ConsultationRealtimeGateway? realtimeGateway,
   }) : repository = repository ?? ConsultationRepositoryImpl(),
        healthCardRepository =
            healthCardRepository ??
-           (repository == null ? HealthCardSharingRepositoryImpl() : null);
+           (repository == null ? HealthCardSharingRepositoryImpl() : null),
+       realtimeGateway =
+           realtimeGateway ?? SupabaseConsultationRealtimeGateway();
 
   List<VetModel> _vets = [];
   List<VeterinaryProviderModel> _providers = [];
@@ -30,6 +37,7 @@ class ConsultationController extends ChangeNotifier {
   bool _sharingHealthCard = false;
   bool _loading = false;
   bool _refreshingMessages = false;
+  bool _realtimeConnected = false;
   String? _error;
   String? _retryContent;
   String? _retryClientMessageId;
@@ -45,6 +53,7 @@ class ConsultationController extends ChangeNotifier {
   bool get sharingHealthCard => _sharingHealthCard;
   bool get loading => _loading;
   bool get refreshingMessages => _refreshingMessages;
+  bool get realtimeConnected => _realtimeConnected;
   String? get error => _error;
 
   Future<void> loadVets() async {
@@ -99,6 +108,7 @@ class ConsultationController extends ChangeNotifier {
     required int vetId,
     int? providerId,
     int? assessmentId,
+    String? realtimeAccessToken,
   }) async {
     await _guard(() async {
       _active = await repository.createConsultation(
@@ -131,9 +141,15 @@ class ConsultationController extends ChangeNotifier {
           ? []
           : results[2] as List<SharedHealthCardModel>;
     });
+    await _watchActiveConsultation(realtimeAccessToken);
   }
 
-  Future<void> openConsultation(ConsultationModel consultation) async {
+  Future<void> openConsultation(
+    ConsultationModel consultation, {
+    String? realtimeAccessToken,
+  }) async {
+    await realtimeGateway.stop();
+    _realtimeConnected = false;
     _active = consultation;
     _messages = [];
     _appointments = [];
@@ -155,6 +171,52 @@ class ConsultationController extends ChangeNotifier {
             : results[3] as List<SharedHealthCardModel>;
       }
     });
+    await _watchActiveConsultation(realtimeAccessToken);
+  }
+
+  Future<void> _watchActiveConsultation(String? accessToken) async {
+    final consultation = _active;
+    if (consultation == null || accessToken == null || accessToken.isEmpty) {
+      _setRealtimeConnected(false);
+      return;
+    }
+    try {
+      await realtimeGateway.watch(
+        consultationId: consultation.id,
+        accessToken: accessToken,
+        onMessageChanged: _refreshMessagesFromRealtime,
+        onConnectionChanged: _setRealtimeConnected,
+      );
+    } catch (_) {
+      _setRealtimeConnected(false);
+    }
+  }
+
+  void _setRealtimeConnected(bool connected) {
+    if (_realtimeConnected == connected) return;
+    _realtimeConnected = connected;
+    notifyListeners();
+  }
+
+  Future<void> _refreshMessagesFromRealtime() async {
+    final active = _active;
+    if (active == null || _refreshingMessages) return;
+    _refreshingMessages = true;
+    try {
+      final latest = await repository.listMessages(active.id);
+      if (_active?.id != active.id) return;
+      final knownIds = _messages.map((message) => message.id).toSet();
+      final hasNewMessage = latest.any(
+        (message) => !knownIds.contains(message.id),
+      );
+      _messages = latest;
+      notifyListeners();
+      if (hasNewMessage) await _markReadBestEffort(active.id);
+    } catch (_) {
+      // The 4-second polling fallback will reconcile the thread.
+    } finally {
+      _refreshingMessages = false;
+    }
   }
 
   Future<void> _markReadBestEffort(int consultationId) async {
@@ -231,6 +293,8 @@ class ConsultationController extends ChangeNotifier {
   }
 
   void closeActiveConsultation() {
+    unawaited(realtimeGateway.stop());
+    _realtimeConnected = false;
     _active = null;
     _messages = [];
     _appointments = [];
@@ -252,7 +316,8 @@ class ConsultationController extends ChangeNotifier {
         text,
         clientMessageId: clientMessageId,
       );
-      _messages = [..._messages, sent];
+      _messages = [..._messages.where((message) => message.id != sent.id), sent]
+        ..sort((a, b) => a.id.compareTo(b.id));
       _retryContent = null;
       _retryClientMessageId = null;
       notifyListeners();
@@ -366,6 +431,8 @@ class ConsultationController extends ChangeNotifier {
     _appointments = [];
     _loading = false;
     _refreshingMessages = false;
+    _realtimeConnected = false;
+    unawaited(realtimeGateway.stop());
     _error = null;
     _retryContent = null;
     _retryClientMessageId = null;
@@ -384,5 +451,11 @@ class ConsultationController extends ChangeNotifier {
       _loading = false;
       notifyListeners();
     }
+  }
+
+  @override
+  void dispose() {
+    unawaited(realtimeGateway.stop());
+    super.dispose();
   }
 }

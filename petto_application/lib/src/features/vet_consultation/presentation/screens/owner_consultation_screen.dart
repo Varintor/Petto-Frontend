@@ -23,6 +23,7 @@ class OwnerConsultationScreen extends StatefulWidget {
     this.onAppointmentAccepted,
     this.loadMapTiles = true,
     this.locationService,
+    this.realtimeAccessToken,
   });
 
   final int petId;
@@ -31,6 +32,7 @@ class OwnerConsultationScreen extends StatefulWidget {
   final Future<void> Function()? onAppointmentAccepted;
   final bool loadMapTiles;
   final LocationService? locationService;
+  final String? realtimeAccessToken;
 
   @override
   State<OwnerConsultationScreen> createState() =>
@@ -40,6 +42,7 @@ class OwnerConsultationScreen extends StatefulWidget {
 class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
   final _messageController = TextEditingController();
   Timer? _refreshTimer;
+  int _pollTick = 0;
   bool _sending = false;
   bool _includeLatestAssessment = false;
   int? _respondingAppointmentId;
@@ -58,7 +61,11 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadWorkspace());
     _refreshTimer = Timer.periodic(const Duration(seconds: 4), (_) {
       if (mounted) {
-        context.read<ConsultationController>().refreshNewMessages();
+        final controller = context.read<ConsultationController>();
+        _pollTick++;
+        if (!controller.realtimeConnected || _pollTick % 4 == 0) {
+          controller.refreshNewMessages();
+        }
       }
     });
   }
@@ -95,8 +102,15 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
       vetId: vet.id,
       providerId: provider?.id,
       assessmentId: _includeLatestAssessment ? widget.latestAssessmentId : null,
+      realtimeAccessToken: widget.realtimeAccessToken,
     );
   }
+
+  Future<void> _openConsultation(ConsultationModel consultation) =>
+      context.read<ConsultationController>().openConsultation(
+        consultation,
+        realtimeAccessToken: widget.realtimeAccessToken,
+      );
 
   Future<void> _useCurrentLocation() async {
     if (_locating) return;
@@ -362,7 +376,7 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
             for (final consultation in controller.consultations)
               _ConsultationCard(
                 consultation: consultation,
-                onTap: () => controller.openConsultation(consultation),
+                onTap: () => _openConsultation(consultation),
               ),
           ],
           const SizedBox(height: 22),
@@ -456,6 +470,19 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
                     Text(
                       '${widget.petName} • ${consultation.status}',
                       style: const TextStyle(color: AppTheme.mutedText),
+                    ),
+                    Text(
+                      controller.realtimeConnected
+                          ? '● Realtime connected'
+                          : '● Reconnecting • polling active',
+                      key: const Key('owner-chat-connection-status'),
+                      style: TextStyle(
+                        color: controller.realtimeConnected
+                            ? Colors.green.shade700
+                            : Colors.orange.shade800,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),

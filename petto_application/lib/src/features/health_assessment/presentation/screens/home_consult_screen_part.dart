@@ -384,6 +384,7 @@ extension _HomeConsultScreenPart on _HomeScreenState {
         petName: _activePet.name,
         latestAssessmentId: latestAssessment?.id,
         onAppointmentAccepted: _loadScopedHomeFeatureState,
+        realtimeAccessToken: context.read<AuthController>().token,
       );
     }
     final onlineVetCount = _HomeScreenState._vets

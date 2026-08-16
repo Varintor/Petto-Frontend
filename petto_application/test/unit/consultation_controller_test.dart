@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:petto_application/src/features/vet_consultation/data/models/consultation_models.dart';
 import 'package:petto_application/src/features/vet_consultation/data/repositories/consultation_repository.dart';
+import 'package:petto_application/src/features/vet_consultation/data/services/consultation_realtime_service.dart';
 import 'package:petto_application/src/features/vet_consultation/presentation/controllers/consultation_controller.dart';
 
 class _FakeConsultationRepository implements ConsultationRepository {
@@ -200,6 +201,33 @@ class _FakeHealthCardSharingRepository implements HealthCardSharingRepository {
   }
 }
 
+class _FakeRealtimeGateway implements ConsultationRealtimeGateway {
+  Future<void> Function()? onMessageChanged;
+  void Function(bool connected)? onConnectionChanged;
+  int? consultationId;
+  String? accessToken;
+  bool stopped = false;
+
+  @override
+  Future<void> watch({
+    required int consultationId,
+    required String accessToken,
+    required Future<void> Function() onMessageChanged,
+    required void Function(bool connected) onConnectionChanged,
+  }) async {
+    this.consultationId = consultationId;
+    this.accessToken = accessToken;
+    this.onMessageChanged = onMessageChanged;
+    this.onConnectionChanged = onConnectionChanged;
+    onConnectionChanged(true);
+  }
+
+  @override
+  Future<void> stop() async {
+    stopped = true;
+  }
+}
+
 void main() {
   test(
     'vet loads assigned consultation, opens it, and sends a reply',
@@ -306,4 +334,37 @@ void main() {
 
     expect(controller.sharedHealthCards.single.petName, 'Milo');
   });
+
+  test(
+    'realtime event reconciles messages while REST remains authoritative',
+    () async {
+      final repository = _FakeConsultationRepository();
+      final realtime = _FakeRealtimeGateway();
+      final controller = ConsultationController(
+        repository: repository,
+        realtimeGateway: realtime,
+      );
+
+      await controller.openConsultation(
+        repository.consultation,
+        realtimeAccessToken: 'supabase-access-token',
+      );
+      expect(controller.realtimeConnected, isTrue);
+      expect(realtime.consultationId, repository.consultation.id);
+
+      repository.messages.add(
+        ChatMessageModel(
+          id: 99,
+          consultationId: repository.consultation.id,
+          senderType: 'user',
+          content: 'Realtime message',
+          createdAt: DateTime(2026, 8, 16),
+        ),
+      );
+      await realtime.onMessageChanged!();
+
+      expect(controller.messages.single.id, 99);
+      expect(repository.markedRead, isTrue);
+    },
+  );
 }

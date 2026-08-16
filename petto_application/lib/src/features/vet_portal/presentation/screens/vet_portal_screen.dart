@@ -67,7 +67,12 @@ class _VetPortalScreenState extends State<VetPortalScreen> {
   void _openMessage(int index, bool compact) {
     final controller = context.read<ConsultationController>();
     if (index < 0 || index >= controller.consultations.length) return;
-    unawaited(controller.openConsultation(controller.consultations[index]));
+    unawaited(
+      controller.openConsultation(
+        controller.consultations[index],
+        realtimeAccessToken: context.read<AuthController>().token,
+      ),
+    );
     if (compact) {
       Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => const _BackendConversationScreen()),
@@ -935,6 +940,7 @@ class _BackendConversationPanel extends StatefulWidget {
 class _BackendConversationPanelState extends State<_BackendConversationPanel> {
   final _message = TextEditingController();
   Timer? _refreshTimer;
+  int _pollTick = 0;
   bool _sending = false;
   bool _proposingAppointment = false;
 
@@ -943,7 +949,11 @@ class _BackendConversationPanelState extends State<_BackendConversationPanel> {
     super.initState();
     _refreshTimer = Timer.periodic(const Duration(seconds: 4), (_) {
       if (mounted) {
-        context.read<ConsultationController>().refreshNewMessages();
+        final controller = context.read<ConsultationController>();
+        _pollTick++;
+        if (!controller.realtimeConnected || _pollTick % 4 == 0) {
+          controller.refreshNewMessages();
+        }
       }
     });
   }
@@ -1059,12 +1069,30 @@ class _BackendConversationPanelState extends State<_BackendConversationPanel> {
                     const SizedBox(width: 8),
                   ],
                   Expanded(
-                    child: Text(
-                      consultation.petName ?? 'Pet #${consultation.petId}',
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          consultation.petName ?? 'Pet #${consultation.petId}',
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        Text(
+                          controller.realtimeConnected
+                              ? '● Realtime connected'
+                              : '● Reconnecting • polling active',
+                          key: const Key('vet-chat-connection-status'),
+                          style: TextStyle(
+                            color: controller.realtimeConnected
+                                ? Colors.green.shade700
+                                : Colors.orange.shade800,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   IconButton(
