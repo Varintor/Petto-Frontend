@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/top_alert.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
@@ -695,7 +696,6 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
             },
             onBack: _back,
             onLogin: _handleLogin,
-            onGoogle: () {},
             onRegister: _openRegisterFlow,
             onForgotPassword: _openForgotPassword,
             onGuest: _handleGuestMode,
@@ -1304,7 +1304,6 @@ class _GatewayPage extends StatelessWidget {
     required this.onPasswordChanged,
     required this.onBack,
     required this.onLogin,
-    required this.onGoogle,
     required this.onRegister,
     required this.onForgotPassword,
     required this.onGuest,
@@ -1321,7 +1320,6 @@ class _GatewayPage extends StatelessWidget {
   final ValueChanged<String> onPasswordChanged;
   final VoidCallback onBack;
   final VoidCallback onLogin;
-  final VoidCallback onGoogle;
   final VoidCallback onRegister;
   final VoidCallback onForgotPassword;
   final VoidCallback onGuest;
@@ -1411,15 +1409,17 @@ class _GatewayPage extends StatelessWidget {
                       Expanded(child: _RegisterActionButton(onTap: onRegister)),
                     ],
                   ),
-                  const SizedBox(height: 18),
-                  const _OrDivider(),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: SizedBox(
-                      width: 184,
-                      child: _ReferenceButton(label: 'GUEST', onTap: onGuest),
+                  if (AppConfig.environment != 'production') ...[
+                    const SizedBox(height: 18),
+                    const _OrDivider(),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: SizedBox(
+                        width: 184,
+                        child: _ReferenceButton(label: 'GUEST', onTap: onGuest),
+                      ),
                     ),
-                  ),
+                  ],
                   const SizedBox(height: 32),
                   TextButton.icon(
                     onPressed: onBack,
@@ -4871,7 +4871,11 @@ class _GatewayAuthFieldState extends State<_GatewayAuthField> {
   }
 }
 
+// Kept ready for the deferred Google Login scope; intentionally not rendered
+// in Progress 2 builds.
+// ignore: unused_element
 class _GoogleButton extends StatelessWidget {
+  // ignore: unused_element_parameter
   const _GoogleButton({required this.onTap, this.compact = false});
 
   static const _googleLogoSvg = '''
