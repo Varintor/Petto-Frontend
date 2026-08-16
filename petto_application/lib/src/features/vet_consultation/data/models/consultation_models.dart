@@ -245,3 +245,41 @@ class AppointmentModel {
         updatedAt: DateTime.parse(json['updated_at'] as String).toLocal(),
       );
 }
+
+class SharedHealthCardModel {
+  const SharedHealthCardModel({
+    required this.id,
+    required this.consultationId,
+    required this.petId,
+    required this.snapshot,
+    required this.sharedAt,
+    this.revokedAt,
+  });
+
+  final int id;
+  final int consultationId;
+  final int petId;
+  final Map<String, dynamic> snapshot;
+  final DateTime sharedAt;
+  final DateTime? revokedAt;
+
+  String get petName => snapshot['name'] as String? ?? 'Pet #$petId';
+  List<String> get allergies =>
+      List<String>.from(snapshot['allergies'] as List? ?? const []);
+  List<String> get chronicConditions =>
+      List<String>.from(snapshot['chronic_conditions'] as List? ?? const []);
+  List<String> get currentMedications =>
+      List<String>.from(snapshot['current_medications'] as List? ?? const []);
+
+  factory SharedHealthCardModel.fromJson(Map<String, dynamic> json) =>
+      SharedHealthCardModel(
+        id: json['id'] as int,
+        consultationId: json['consultation_id'] as int,
+        petId: json['pet_id'] as int,
+        snapshot: Map<String, dynamic>.from(json['snapshot'] as Map),
+        sharedAt: DateTime.parse(json['shared_at'] as String).toLocal(),
+        revokedAt: json['revoked_at'] == null
+            ? null
+            : DateTime.parse(json['revoked_at'] as String).toLocal(),
+      );
+}

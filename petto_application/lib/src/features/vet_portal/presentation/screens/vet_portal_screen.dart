@@ -9,6 +9,7 @@ import '../../../auth/presentation/screens/auth_gate.dart';
 import '../../../vet_consultation/data/models/consultation_models.dart';
 import '../../../vet_consultation/presentation/controllers/consultation_controller.dart';
 import '../../../vet_consultation/presentation/widgets/appointment_card.dart';
+import '../../../vet_consultation/presentation/widgets/shared_health_card.dart';
 
 enum _VetSection { dashboard, patients, messages, profile }
 
@@ -1106,6 +1107,8 @@ class _BackendConversationPanelState extends State<_BackendConversationPanel> {
                   : ListView(
                       padding: const EdgeInsets.all(18),
                       children: [
+                        for (final sharedCard in controller.sharedHealthCards)
+                          SharedHealthCardPanel(card: sharedCard),
                         for (final appointment in controller.appointments)
                           ConsultationAppointmentCard(appointment: appointment),
                         for (final message in controller.messages)

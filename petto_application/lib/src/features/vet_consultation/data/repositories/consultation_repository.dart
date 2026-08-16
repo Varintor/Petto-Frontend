@@ -233,3 +233,49 @@ class ConsultationRepositoryImpl implements ConsultationRepository {
     return ChatMessageModel.fromJson(response.data as Map<String, dynamic>);
   }
 }
+
+abstract class HealthCardSharingRepository {
+  Future<List<SharedHealthCardModel>> listSharedHealthCards(int consultationId);
+  Future<SharedHealthCardModel> shareHealthCard(int consultationId);
+  Future<void> revokeHealthCard(int consultationId, int sharedCardId);
+}
+
+class HealthCardSharingRepositoryImpl implements HealthCardSharingRepository {
+  HealthCardSharingRepositoryImpl({Dio? dio}) : dio = dio ?? ApiClient.dio;
+
+  final Dio dio;
+  static const String _base = '${AppConfig.apiPrefix}/consultations';
+
+  @override
+  Future<List<SharedHealthCardModel>> listSharedHealthCards(
+    int consultationId,
+  ) async {
+    final response = await dio.get(
+      '$_base/$consultationId/shared-health-cards',
+    );
+    return (response.data as List<dynamic>)
+        .map(
+          (item) => SharedHealthCardModel.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        )
+        .toList();
+  }
+
+  @override
+  Future<SharedHealthCardModel> shareHealthCard(int consultationId) async {
+    final response = await dio.post(
+      '$_base/$consultationId/shared-health-cards',
+    );
+    return SharedHealthCardModel.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
+  }
+
+  @override
+  Future<void> revokeHealthCard(int consultationId, int sharedCardId) async {
+    await dio.delete(
+      '$_base/$consultationId/shared-health-cards/$sharedCardId',
+    );
+  }
+}

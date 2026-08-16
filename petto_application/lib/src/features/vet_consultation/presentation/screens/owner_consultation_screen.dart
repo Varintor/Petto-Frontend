@@ -10,6 +10,7 @@ import '../../data/models/consultation_models.dart';
 import '../controllers/consultation_controller.dart';
 import '../widgets/appointment_card.dart';
 import '../widgets/provider_map_view.dart';
+import '../widgets/shared_health_card.dart';
 
 /// Authenticated owner-side Feature 3 workspace. Guest presentation data stays
 /// in the legacy home preview, while every action here uses the backend.
@@ -460,6 +461,31 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
                 ),
               ),
               IconButton(
+                tooltip: 'Share Pet Health ID',
+                onPressed: controller.sharingHealthCard
+                    ? null
+                    : () async {
+                        final shared = await controller.shareHealthCard();
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              shared
+                                  ? 'Pet Health ID shared with this veterinarian.'
+                                  : 'Could not share Pet Health ID.',
+                            ),
+                          ),
+                        );
+                      },
+                icon: controller.sharingHealthCard
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.badge_rounded),
+              ),
+              IconButton(
                 tooltip: 'Refresh messages',
                 onPressed: controller.loading
                     ? null
@@ -488,6 +514,12 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
               : ListView(
                   padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
                   children: [
+                    for (final sharedCard in controller.sharedHealthCards)
+                      SharedHealthCardPanel(
+                        card: sharedCard,
+                        onRevoke: () =>
+                            controller.revokeHealthCard(sharedCard.id),
+                      ),
                     for (final appointment in controller.appointments)
                       ConsultationAppointmentCard(
                         appointment: appointment,

@@ -55,6 +55,10 @@ class HealthCardModel {
     this.chronicConditions = const [],
     this.currentMedications = const [],
     this.notes,
+    this.latestAssessment,
+    this.latestVaccination,
+    this.recentActivity,
+    this.generatedAt,
   });
 
   final int petId;
@@ -69,6 +73,10 @@ class HealthCardModel {
   final List<String> chronicConditions;
   final List<String> currentMedications;
   final String? notes;
+  final HistoryEntryModel? latestAssessment;
+  final HistoryEntryModel? latestVaccination;
+  final HistoryEntryModel? recentActivity;
+  final DateTime? generatedAt;
 
   factory HealthCardModel.fromJson(Map<String, dynamic> json) =>
       HealthCardModel(
@@ -90,11 +98,70 @@ class HealthCardModel {
           json['current_medications'] as List? ?? const [],
         ),
         notes: json['notes'] as String?,
+        latestAssessment: json['latest_assessment'] == null
+            ? null
+            : HistoryEntryModel.fromJson(
+                Map<String, dynamic>.from(json['latest_assessment'] as Map),
+              ),
+        latestVaccination: json['latest_vaccination'] == null
+            ? null
+            : HistoryEntryModel.fromJson(
+                Map<String, dynamic>.from(json['latest_vaccination'] as Map),
+              ),
+        recentActivity: json['recent_activity'] == null
+            ? null
+            : HistoryEntryModel.fromJson(
+                Map<String, dynamic>.from(json['recent_activity'] as Map),
+              ),
+        generatedAt: json['generated_at'] == null
+            ? null
+            : DateTime.parse(json['generated_at'] as String),
+      );
+}
+
+class HealthProfileModel {
+  const HealthProfileModel({
+    required this.petId,
+    this.allergies = const [],
+    this.chronicConditions = const [],
+    this.currentMedications = const [],
+    this.notes,
+    this.updatedAt,
+  });
+
+  final int petId;
+  final List<String> allergies;
+  final List<String> chronicConditions;
+  final List<String> currentMedications;
+  final String? notes;
+  final DateTime? updatedAt;
+
+  factory HealthProfileModel.fromJson(Map<String, dynamic> json) =>
+      HealthProfileModel(
+        petId: json['pet_id'] as int,
+        allergies: List<String>.from(json['allergies'] as List? ?? const []),
+        chronicConditions: List<String>.from(
+          json['chronic_conditions'] as List? ?? const [],
+        ),
+        currentMedications: List<String>.from(
+          json['current_medications'] as List? ?? const [],
+        ),
+        notes: json['notes'] as String?,
+        updatedAt: json['updated_at'] == null
+            ? null
+            : DateTime.parse(json['updated_at'] as String),
       );
 }
 
 abstract class HealthHistoryRepository {
   Future<HealthCardModel> getHealthCard(int petId);
+  Future<HealthProfileModel> updateHealthProfile(
+    int petId, {
+    required List<String> allergies,
+    required List<String> chronicConditions,
+    required List<String> currentMedications,
+    String? notes,
+  });
   Future<List<HistoryEntryModel>> getHistory(
     int petId, {
     Set<String>? types,
@@ -115,6 +182,28 @@ class HealthHistoryRepositoryImpl implements HealthHistoryRepository {
       '${AppConfig.apiPrefix}/pets/$petId/health-card',
     );
     return HealthCardModel.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  @override
+  Future<HealthProfileModel> updateHealthProfile(
+    int petId, {
+    required List<String> allergies,
+    required List<String> chronicConditions,
+    required List<String> currentMedications,
+    String? notes,
+  }) async {
+    final response = await dio.put(
+      '${AppConfig.apiPrefix}/pets/$petId/health-profile',
+      data: {
+        'allergies': allergies,
+        'chronic_conditions': chronicConditions,
+        'current_medications': currentMedications,
+        'notes': notes,
+      },
+    );
+    return HealthProfileModel.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
   }
 
   @override
@@ -154,6 +243,7 @@ class HealthHistoryController extends ChangeNotifier {
   HealthCardModel? _card;
   Set<String> _typeFilter = {};
   bool _loading = false;
+  bool _savingProfile = false;
   String? _error;
 
   List<HistoryEntryModel> get entries => _entries;
@@ -161,6 +251,7 @@ class HealthHistoryController extends ChangeNotifier {
   int? get loadedPetId => _petId;
   Set<String> get typeFilter => _typeFilter;
   bool get loading => _loading;
+  bool get savingProfile => _savingProfile;
   String? get error => _error;
 
   Future<void> load({int? petId, Set<String>? types}) async {
@@ -191,12 +282,43 @@ class HealthHistoryController extends ChangeNotifier {
     }
   }
 
+  Future<bool> saveProfile({
+    required List<String> allergies,
+    required List<String> chronicConditions,
+    required List<String> currentMedications,
+    String? notes,
+  }) async {
+    final id = _petId;
+    if (id == null || _savingProfile) return false;
+    _savingProfile = true;
+    _error = null;
+    notifyListeners();
+    try {
+      await repository.updateHealthProfile(
+        id,
+        allergies: allergies,
+        chronicConditions: chronicConditions,
+        currentMedications: currentMedications,
+        notes: notes?.trim().isEmpty == true ? null : notes?.trim(),
+      );
+      _card = await repository.getHealthCard(id);
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      return false;
+    } finally {
+      _savingProfile = false;
+      notifyListeners();
+    }
+  }
+
   void clearForAccount() {
     _petId = null;
     _entries = [];
     _card = null;
     _typeFilter = {};
     _loading = false;
+    _savingProfile = false;
     _error = null;
     notifyListeners();
   }

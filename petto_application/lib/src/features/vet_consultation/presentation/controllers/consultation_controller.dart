@@ -9,9 +9,15 @@ import '../../data/repositories/consultation_repository.dart';
 /// screen rewire to this controller is the Progress II UI task.
 class ConsultationController extends ChangeNotifier {
   final ConsultationRepository repository;
+  final HealthCardSharingRepository? healthCardRepository;
 
-  ConsultationController({ConsultationRepository? repository})
-    : repository = repository ?? ConsultationRepositoryImpl();
+  ConsultationController({
+    ConsultationRepository? repository,
+    HealthCardSharingRepository? healthCardRepository,
+  }) : repository = repository ?? ConsultationRepositoryImpl(),
+       healthCardRepository =
+           healthCardRepository ??
+           (repository == null ? HealthCardSharingRepositoryImpl() : null);
 
   List<VetModel> _vets = [];
   List<VeterinaryProviderModel> _providers = [];
@@ -20,6 +26,8 @@ class ConsultationController extends ChangeNotifier {
   ConsultationModel? _active;
   List<ChatMessageModel> _messages = [];
   List<AppointmentModel> _appointments = [];
+  List<SharedHealthCardModel> _sharedHealthCards = [];
+  bool _sharingHealthCard = false;
   bool _loading = false;
   bool _refreshingMessages = false;
   String? _error;
@@ -33,6 +41,8 @@ class ConsultationController extends ChangeNotifier {
   ConsultationModel? get active => _active;
   List<ChatMessageModel> get messages => _messages;
   List<AppointmentModel> get appointments => _appointments;
+  List<SharedHealthCardModel> get sharedHealthCards => _sharedHealthCards;
+  bool get sharingHealthCard => _sharingHealthCard;
   bool get loading => _loading;
   bool get refreshingMessages => _refreshingMessages;
   String? get error => _error;
@@ -112,9 +122,14 @@ class ConsultationController extends ChangeNotifier {
       final results = await Future.wait<Object?>([
         repository.listMessages(_active!.id),
         repository.listAppointments(_active!.id),
+        if (healthCardRepository != null)
+          healthCardRepository!.listSharedHealthCards(_active!.id),
       ]);
       _messages = results[0] as List<ChatMessageModel>;
       _appointments = results[1] as List<AppointmentModel>;
+      _sharedHealthCards = healthCardRepository == null
+          ? []
+          : results[2] as List<SharedHealthCardModel>;
     });
   }
 
@@ -122,16 +137,22 @@ class ConsultationController extends ChangeNotifier {
     _active = consultation;
     _messages = [];
     _appointments = [];
+    _sharedHealthCards = [];
     await _guard(() async {
       final results = await Future.wait<Object?>([
         repository.listMessages(consultation.id),
         repository.listAppointments(consultation.id),
         _markReadBestEffort(consultation.id),
+        if (healthCardRepository != null)
+          healthCardRepository!.listSharedHealthCards(consultation.id),
       ]);
       // Ignore a late response if another thread was selected meanwhile.
       if (_active?.id == consultation.id) {
         _messages = results[0] as List<ChatMessageModel>;
         _appointments = results[1] as List<AppointmentModel>;
+        _sharedHealthCards = healthCardRepository == null
+            ? []
+            : results[3] as List<SharedHealthCardModel>;
       }
     });
   }
@@ -151,9 +172,14 @@ class ConsultationController extends ChangeNotifier {
       final results = await Future.wait<Object?>([
         repository.listMessages(active.id),
         repository.listAppointments(active.id),
+        if (healthCardRepository != null)
+          healthCardRepository!.listSharedHealthCards(active.id),
       ]);
       _messages = results[0] as List<ChatMessageModel>;
       _appointments = results[1] as List<AppointmentModel>;
+      if (healthCardRepository != null) {
+        _sharedHealthCards = results[2] as List<SharedHealthCardModel>;
+      }
     });
   }
 
@@ -166,6 +192,8 @@ class ConsultationController extends ChangeNotifier {
       final results = await Future.wait<Object?>([
         repository.listMessages(active.id, afterId: afterId),
         repository.listAppointments(active.id),
+        if (healthCardRepository != null)
+          healthCardRepository!.listSharedHealthCards(active.id),
       ]);
       final incoming = results[0] as List<ChatMessageModel>;
       final appointments = results[1] as List<AppointmentModel>;
@@ -176,6 +204,9 @@ class ConsultationController extends ChangeNotifier {
         ...incoming.where((message) => knownIds.add(message.id)),
       ];
       _appointments = appointments;
+      if (healthCardRepository != null) {
+        _sharedHealthCards = results[2] as List<SharedHealthCardModel>;
+      }
       notifyListeners();
       if (incoming.isNotEmpty) await _markReadBestEffort(active.id);
     } catch (_) {
@@ -203,6 +234,7 @@ class ConsultationController extends ChangeNotifier {
     _active = null;
     _messages = [];
     _appointments = [];
+    _sharedHealthCards = [];
     _error = null;
     notifyListeners();
   }
@@ -228,6 +260,48 @@ class ConsultationController extends ChangeNotifier {
     } catch (e) {
       _retryContent = text;
       _retryClientMessageId = clientMessageId;
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> shareHealthCard() async {
+    final active = _active;
+    final repo = healthCardRepository;
+    if (active == null || repo == null || _sharingHealthCard) return false;
+    _sharingHealthCard = true;
+    _error = null;
+    notifyListeners();
+    try {
+      final shared = await repo.shareHealthCard(active.id);
+      _sharedHealthCards = [
+        shared,
+        ..._sharedHealthCards.where((item) => item.id != shared.id),
+      ];
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      return false;
+    } finally {
+      _sharingHealthCard = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> revokeHealthCard(int sharedCardId) async {
+    final active = _active;
+    final repo = healthCardRepository;
+    if (active == null || repo == null) return false;
+    try {
+      await repo.revokeHealthCard(active.id, sharedCardId);
+      _sharedHealthCards = _sharedHealthCards
+          .where((item) => item.id != sharedCardId)
+          .toList();
+      _error = null;
+      notifyListeners();
+      return true;
+    } catch (e) {
       _error = e.toString();
       notifyListeners();
       return false;

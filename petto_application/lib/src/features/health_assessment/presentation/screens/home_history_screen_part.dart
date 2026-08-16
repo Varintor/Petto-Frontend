@@ -31,7 +31,12 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
               onRetry: () => controller.load(petId: petId),
             )
           else ...[
-            if (controller.card != null) _PetHealthCard(controller.card!),
+            if (controller.card != null)
+              _PetHealthCard(
+                controller.card!,
+                onEdit: () =>
+                    _editHealthProfile(context, controller.card!, controller),
+              ),
             const SizedBox(height: 20),
             Text(
               'Health timeline',
@@ -81,11 +86,104 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
       ],
     ],
   );
+
+  Future<void> _editHealthProfile(
+    BuildContext context,
+    HealthCardModel card,
+    HealthHistoryController controller,
+  ) async {
+    final allergies = TextEditingController(text: card.allergies.join(', '));
+    final conditions = TextEditingController(
+      text: card.chronicConditions.join(', '),
+    );
+    final medications = TextEditingController(
+      text: card.currentMedications.join(', '),
+    );
+    final notes = TextEditingController(text: card.notes ?? '');
+    final shouldSave = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Edit health profile'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: allergies,
+                decoration: const InputDecoration(
+                  labelText: 'Allergies',
+                  hintText: 'Separate items with commas',
+                ),
+              ),
+              TextField(
+                controller: conditions,
+                decoration: const InputDecoration(
+                  labelText: 'Chronic conditions',
+                  hintText: 'Separate items with commas',
+                ),
+              ),
+              TextField(
+                controller: medications,
+                decoration: const InputDecoration(
+                  labelText: 'Current medications',
+                  hintText: 'Separate items with commas',
+                ),
+              ),
+              TextField(
+                controller: notes,
+                maxLines: 3,
+                decoration: const InputDecoration(labelText: 'Notes'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    List<String> items(String value) => value
+        .split(',')
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toList();
+    if (shouldSave == true && context.mounted) {
+      final saved = await controller.saveProfile(
+        allergies: items(allergies.text),
+        chronicConditions: items(conditions.text),
+        currentMedications: items(medications.text),
+        notes: notes.text,
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              saved
+                  ? 'Health profile updated.'
+                  : 'Could not update health profile.',
+            ),
+          ),
+        );
+      }
+    }
+    allergies.dispose();
+    conditions.dispose();
+    medications.dispose();
+    notes.dispose();
+  }
 }
 
 class _PetHealthCard extends StatelessWidget {
-  const _PetHealthCard(this.card);
+  const _PetHealthCard(this.card, {required this.onEdit});
   final HealthCardModel card;
+  final VoidCallback onEdit;
 
   String _value(String? value) =>
       value == null || value.trim().isEmpty ? 'Not set' : value;
@@ -109,17 +207,24 @@ class _PetHealthCard extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
+        Row(
           children: [
-            Icon(Icons.pets_rounded, color: Colors.white),
-            SizedBox(width: 8),
-            Text(
-              'PETTO HEALTH CARD',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.1,
+            const Icon(Icons.pets_rounded, color: Colors.white),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text(
+                'PETTO HEALTH ID',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.1,
+                ),
               ),
+            ),
+            IconButton(
+              tooltip: 'Edit health profile',
+              onPressed: onEdit,
+              icon: const Icon(Icons.edit_rounded, color: Colors.white),
             ),
           ],
         ),
@@ -161,6 +266,34 @@ class _PetHealthCard extends StatelessWidget {
               ? 'None recorded'
               : card.currentMedications.join(', '),
         ),
+        const SizedBox(height: 8),
+        _HealthCardFact(
+          'Chronic conditions',
+          card.chronicConditions.isEmpty
+              ? 'None recorded'
+              : card.chronicConditions.join(', '),
+        ),
+        if (card.latestAssessment != null ||
+            card.latestVaccination != null ||
+            card.recentActivity != null) ...[
+          const Divider(height: 24, color: Colors.white24),
+          if (card.latestAssessment != null)
+            _HealthCardFact(
+              'Latest assessment',
+              '${card.latestAssessment!.riskLevel ?? card.latestAssessment!.status ?? 'Recorded'} • ${card.latestAssessment!.title}',
+            ),
+          if (card.latestVaccination != null) ...[
+            const SizedBox(height: 8),
+            _HealthCardFact(
+              'Latest vaccination',
+              card.latestVaccination!.title,
+            ),
+          ],
+          if (card.recentActivity != null) ...[
+            const SizedBox(height: 8),
+            _HealthCardFact('Recent activity', card.recentActivity!.title),
+          ],
+        ],
       ],
     ),
   );

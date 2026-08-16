@@ -168,6 +168,38 @@ class _ControlledOpenRepository extends _FakeConsultationRepository {
   }
 }
 
+class _FakeHealthCardSharingRepository implements HealthCardSharingRepository {
+  final cards = <SharedHealthCardModel>[];
+
+  @override
+  Future<List<SharedHealthCardModel>> listSharedHealthCards(
+    int consultationId,
+  ) async => List.of(cards);
+
+  @override
+  Future<SharedHealthCardModel> shareHealthCard(int consultationId) async {
+    final card = SharedHealthCardModel(
+      id: 70,
+      consultationId: consultationId,
+      petId: 20,
+      snapshot: const {
+        'name': 'Milo',
+        'allergies': ['Chicken'],
+        'chronic_conditions': <String>[],
+        'current_medications': <String>[],
+      },
+      sharedAt: DateTime(2026, 8, 16),
+    );
+    cards.add(card);
+    return card;
+  }
+
+  @override
+  Future<void> revokeHealthCard(int consultationId, int sharedCardId) async {
+    cards.removeWhere((item) => item.id == sharedCardId);
+  }
+}
+
 void main() {
   test(
     'vet loads assigned consultation, opens it, and sends a reply',
@@ -239,4 +271,39 @@ void main() {
       expect(controller.appointments.single.status, 'accepted');
     },
   );
+
+  test(
+    'owner can share and revoke a health-card snapshot in a consultation',
+    () async {
+      final repository = _FakeConsultationRepository();
+      final sharing = _FakeHealthCardSharingRepository();
+      final controller = ConsultationController(
+        repository: repository,
+        healthCardRepository: sharing,
+      );
+      await controller.openConsultation(repository.consultation);
+
+      expect(await controller.shareHealthCard(), isTrue);
+      expect(controller.sharedHealthCards.single.petName, 'Milo');
+      expect(controller.sharedHealthCards.single.allergies, ['Chicken']);
+
+      expect(await controller.revokeHealthCard(70), isTrue);
+      expect(controller.sharedHealthCards, isEmpty);
+    },
+  );
+
+  test('active vet polling receives a newly shared health card', () async {
+    final repository = _FakeConsultationRepository();
+    final sharing = _FakeHealthCardSharingRepository();
+    final controller = ConsultationController(
+      repository: repository,
+      healthCardRepository: sharing,
+    );
+    await controller.openConsultation(repository.consultation);
+    await sharing.shareHealthCard(repository.consultation.id);
+
+    await controller.refreshNewMessages();
+
+    expect(controller.sharedHealthCards.single.petName, 'Milo');
+  });
 }
