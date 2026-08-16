@@ -44,7 +44,8 @@ dependencies:
   flutter_map: ^7.0.2          # แผนที่ OSM สำหรับ live walk tracking (ไม่ต้องใช้ API key)
   latlong2: ^0.9.1             # LatLng สำหรับ flutter_map
   flutter_svg: ^2.3.0
-  supabase_flutter: ^2.0.0
+  # Keep the tested Auth/Realtime API stable; pubspec.lock pins transitives.
+  supabase_flutter: 2.14.2
   flutter_local_notifications: ^17.2.4   # OS-level reminders (mobile/desktop)
   timezone: ^0.9.4                       # zoned schedules for daily reminders
   flutter_timezone: ^3.0.1                # detect device timezone at runtime
