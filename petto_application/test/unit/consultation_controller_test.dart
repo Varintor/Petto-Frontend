@@ -19,6 +19,7 @@ class _FakeConsultationRepository implements ConsultationRepository {
   final clientMessageIds = <String>[];
   bool markedRead = false;
   bool failNextSend = false;
+  int listMessagesCalls = 0;
   final appointments = <AppointmentModel>[];
 
   @override
@@ -30,7 +31,10 @@ class _FakeConsultationRepository implements ConsultationRepository {
   Future<List<ChatMessageModel>> listMessages(
     int consultationId, {
     int? afterId,
-  }) async => List.of(messages);
+  }) async {
+    listMessagesCalls += 1;
+    return List.of(messages);
+  }
 
   @override
   Future<ChatMessageModel> sendMessage(
@@ -169,6 +173,24 @@ class _ControlledOpenRepository extends _FakeConsultationRepository {
   }
 }
 
+class _DelayedRealtimeReconcileRepository extends _FakeConsultationRepository {
+  final reconcileCompleter = Completer<List<ChatMessageModel>>();
+  bool _opened = false;
+
+  @override
+  Future<List<ChatMessageModel>> listMessages(
+    int consultationId, {
+    int? afterId,
+  }) {
+    listMessagesCalls += 1;
+    if (!_opened) {
+      _opened = true;
+      return Future.value([]);
+    }
+    return reconcileCompleter.future;
+  }
+}
+
 class _FakeHealthCardSharingRepository implements HealthCardSharingRepository {
   final cards = <SharedHealthCardModel>[];
 
@@ -202,7 +224,7 @@ class _FakeHealthCardSharingRepository implements HealthCardSharingRepository {
 }
 
 class _FakeRealtimeGateway implements ConsultationRealtimeGateway {
-  Future<void> Function()? onMessageChanged;
+  Future<void> Function(Map<String, dynamic> record)? onMessageChanged;
   void Function(bool connected)? onConnectionChanged;
   int? consultationId;
   String? accessToken;
@@ -212,7 +234,8 @@ class _FakeRealtimeGateway implements ConsultationRealtimeGateway {
   Future<void> watch({
     required int consultationId,
     required String accessToken,
-    required Future<void> Function() onMessageChanged,
+    required Future<void> Function(Map<String, dynamic> record)
+    onMessageChanged,
     required void Function(bool connected) onConnectionChanged,
   }) async {
     this.consultationId = consultationId;
@@ -352,19 +375,109 @@ void main() {
       expect(controller.realtimeConnected, isTrue);
       expect(realtime.consultationId, repository.consultation.id);
 
-      repository.messages.add(
-        ChatMessageModel(
-          id: 99,
-          consultationId: repository.consultation.id,
-          senderType: 'user',
-          content: 'Realtime message',
-          createdAt: DateTime(2026, 8, 16),
-        ),
+      final realtimeMessage = ChatMessageModel(
+        id: 99,
+        consultationId: repository.consultation.id,
+        senderType: 'user',
+        content: 'Realtime message',
+        createdAt: DateTime(2026, 8, 16),
+        clientMessageId: 'realtime-99',
       );
-      await realtime.onMessageChanged!();
+      repository.messages.add(realtimeMessage);
+      await realtime.onMessageChanged!({
+        'id': 99,
+        'consultation_id': repository.consultation.id,
+        'sender_type': 'user',
+        'content': 'Realtime message',
+        'attachment_uri': null,
+        'created_at': DateTime(2026, 8, 16).toIso8601String(),
+        'is_read': false,
+        'delivered_at': null,
+        'read_at': null,
+        'client_message_id': 'realtime-99',
+      });
 
       expect(controller.messages.single.id, 99);
       expect(repository.markedRead, isTrue);
+      expect(repository.listMessagesCalls, greaterThanOrEqualTo(2));
+    },
+  );
+
+  test(
+    'duplicate realtime row replaces the message instead of appending',
+    () async {
+      final repository = _FakeConsultationRepository();
+      final realtime = _FakeRealtimeGateway();
+      final controller = ConsultationController(
+        repository: repository,
+        realtimeGateway: realtime,
+      );
+      await controller.openConsultation(
+        repository.consultation,
+        realtimeAccessToken: 'supabase-access-token',
+      );
+
+      final record = <String, dynamic>{
+        'id': 100,
+        'consultation_id': repository.consultation.id,
+        'sender_type': 'vet',
+        'content': 'Initial content',
+        'attachment_uri': null,
+        'created_at': DateTime(2026, 8, 16, 11).toIso8601String(),
+        'is_read': false,
+        'delivered_at': null,
+        'read_at': null,
+        'client_message_id': 'realtime-100',
+      };
+      repository.messages.add(ChatMessageModel.fromJson(record));
+      await realtime.onMessageChanged!(record);
+      repository.messages[0] = ChatMessageModel.fromJson({
+        ...record,
+        'is_read': true,
+      });
+      await realtime.onMessageChanged!({...record, 'is_read': true});
+
+      expect(controller.messages, hasLength(1));
+      expect(controller.messages.single.id, 100);
+      expect(controller.messages.single.isRead, isTrue);
+    },
+  );
+
+  test(
+    'realtime row is visible before REST reconciliation completes',
+    () async {
+      final repository = _DelayedRealtimeReconcileRepository();
+      final realtime = _FakeRealtimeGateway();
+      final controller = ConsultationController(
+        repository: repository,
+        realtimeGateway: realtime,
+      );
+      await controller.openConsultation(
+        repository.consultation,
+        realtimeAccessToken: 'supabase-access-token',
+      );
+
+      final record = <String, dynamic>{
+        'id': 101,
+        'consultation_id': repository.consultation.id,
+        'sender_type': 'user',
+        'content': 'Visible immediately',
+        'attachment_uri': null,
+        'created_at': DateTime(2026, 8, 16, 11, 5).toIso8601String(),
+        'is_read': false,
+        'delivered_at': null,
+        'read_at': null,
+        'client_message_id': 'realtime-101',
+      };
+      await realtime.onMessageChanged!(record);
+
+      expect(repository.reconcileCompleter.isCompleted, isFalse);
+      expect(controller.messages.single.content, 'Visible immediately');
+
+      repository.reconcileCompleter.complete([
+        ChatMessageModel.fromJson(record),
+      ]);
+      await Future<void>.delayed(Duration.zero);
     },
   );
 }

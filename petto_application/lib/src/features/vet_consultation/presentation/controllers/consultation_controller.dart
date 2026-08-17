@@ -184,7 +184,7 @@ class ConsultationController extends ChangeNotifier {
       await realtimeGateway.watch(
         consultationId: consultation.id,
         accessToken: accessToken,
-        onMessageChanged: _refreshMessagesFromRealtime,
+        onMessageChanged: _applyRealtimeMessage,
         onConnectionChanged: _setRealtimeConnected,
       );
     } catch (_) {
@@ -196,6 +196,37 @@ class ConsultationController extends ChangeNotifier {
     if (_realtimeConnected == connected) return;
     _realtimeConnected = connected;
     notifyListeners();
+  }
+
+  /// Applies the row carried by Supabase Realtime before performing a REST
+  /// reconciliation. This keeps chat delivery responsive while retaining the
+  /// backend as the authoritative source after reconnects or partial events.
+  Future<void> _applyRealtimeMessage(Map<String, dynamic> record) async {
+    final active = _active;
+    if (active == null) return;
+
+    ChatMessageModel message;
+    try {
+      message = ChatMessageModel.fromJson(record);
+    } catch (_) {
+      unawaited(_refreshMessagesFromRealtime());
+      return;
+    }
+    if (message.consultationId != active.id || _active?.id != active.id) return;
+
+    final existingIndex = _messages.indexWhere((item) => item.id == message.id);
+    final isNewMessage = existingIndex == -1;
+    if (isNewMessage) {
+      _messages = [..._messages, message]..sort((a, b) => a.id.compareTo(b.id));
+    } else {
+      _messages = List<ChatMessageModel>.of(_messages)
+        ..[existingIndex] = message
+        ..sort((a, b) => a.id.compareTo(b.id));
+    }
+    notifyListeners();
+
+    if (isNewMessage) unawaited(_markReadBestEffort(active.id));
+    unawaited(_refreshMessagesFromRealtime());
   }
 
   Future<void> _refreshMessagesFromRealtime() async {

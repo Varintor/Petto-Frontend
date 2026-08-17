@@ -939,8 +939,11 @@ class _BackendConversationPanel extends StatefulWidget {
 
 class _BackendConversationPanelState extends State<_BackendConversationPanel> {
   final _message = TextEditingController();
+  final _conversationScrollController = ScrollController();
   Timer? _refreshTimer;
   int _pollTick = 0;
+  int? _visibleConsultationId;
+  int _visibleConversationItemCount = -1;
   bool _sending = false;
   bool _proposingAppointment = false;
 
@@ -961,8 +964,26 @@ class _BackendConversationPanelState extends State<_BackendConversationPanel> {
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _conversationScrollController.dispose();
     _message.dispose();
     super.dispose();
+  }
+
+  void _scheduleScrollToLatest(int consultationId, int itemCount) {
+    if (_visibleConsultationId == consultationId &&
+        _visibleConversationItemCount == itemCount) {
+      return;
+    }
+    _visibleConsultationId = consultationId;
+    _visibleConversationItemCount = itemCount;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_conversationScrollController.hasClients) return;
+      _conversationScrollController.animateTo(
+        _conversationScrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+      );
+    });
   }
 
   Future<void> _send() async {
@@ -1055,6 +1076,12 @@ class _BackendConversationPanelState extends State<_BackendConversationPanel> {
             message: 'Select a consultation to read its messages.',
           );
         }
+        _scheduleScrollToLatest(
+          consultation.id,
+          controller.messages.length +
+              controller.appointments.length +
+              controller.sharedHealthCards.length,
+        );
         return Column(
           children: [
             Padding(
@@ -1133,6 +1160,7 @@ class _BackendConversationPanelState extends State<_BackendConversationPanel> {
                       controller.appointments.isEmpty
                   ? const Center(child: CircularProgressIndicator())
                   : ListView(
+                      controller: _conversationScrollController,
                       padding: const EdgeInsets.all(18),
                       children: [
                         for (final sharedCard in controller.sharedHealthCards)

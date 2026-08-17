@@ -41,8 +41,11 @@ class OwnerConsultationScreen extends StatefulWidget {
 
 class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
   final _messageController = TextEditingController();
+  final _conversationScrollController = ScrollController();
   Timer? _refreshTimer;
   int _pollTick = 0;
+  int? _visibleConsultationId;
+  int _visibleConversationItemCount = -1;
   bool _sending = false;
   bool _includeLatestAssessment = false;
   int? _respondingAppointmentId;
@@ -89,8 +92,26 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _conversationScrollController.dispose();
     _messageController.dispose();
     super.dispose();
+  }
+
+  void _scheduleScrollToLatest(int consultationId, int itemCount) {
+    if (_visibleConsultationId == consultationId &&
+        _visibleConversationItemCount == itemCount) {
+      return;
+    }
+    _visibleConsultationId = consultationId;
+    _visibleConversationItemCount = itemCount;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_conversationScrollController.hasClients) return;
+      _conversationScrollController.animateTo(
+        _conversationScrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+      );
+    });
   }
 
   Future<void> _startConsultation(
@@ -443,6 +464,12 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
     ConsultationController controller,
     ConsultationModel consultation,
   ) {
+    _scheduleScrollToLatest(
+      consultation.id,
+      controller.messages.length +
+          controller.appointments.length +
+          controller.sharedHealthCards.length,
+    );
     return Column(
       children: [
         Padding(
@@ -539,6 +566,7 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
               : controller.messages.isEmpty && controller.appointments.isEmpty
               ? const _EmptyCard(message: 'No messages yet. Say hello.')
               : ListView(
+                  controller: _conversationScrollController,
                   padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
                   children: [
                     for (final sharedCard in controller.sharedHealthCards)
