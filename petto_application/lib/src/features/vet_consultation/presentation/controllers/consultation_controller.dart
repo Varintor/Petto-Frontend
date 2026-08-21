@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/network/api_client.dart';
 import '../../data/models/consultation_models.dart';
 import '../../data/repositories/consultation_repository.dart';
 import '../../data/services/consultation_realtime_service.dart';
@@ -312,7 +313,7 @@ class ConsultationController extends ChangeNotifier {
       await repository.shareAssessment(active.id, assessmentId);
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = ApiClient.describeError(e);
       notifyListeners();
       return false;
     }
@@ -351,7 +352,7 @@ class ConsultationController extends ChangeNotifier {
     } catch (e) {
       _retryContent = text;
       _retryClientMessageId = clientMessageId;
-      _error = e.toString();
+      _error = ApiClient.describeError(e);
       notifyListeners();
       return false;
     }
@@ -372,7 +373,7 @@ class ConsultationController extends ChangeNotifier {
       ];
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = ApiClient.describeError(e);
       return false;
     } finally {
       _sharingHealthCard = false;
@@ -393,7 +394,7 @@ class ConsultationController extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = ApiClient.describeError(e);
       notifyListeners();
       return false;
     }
@@ -421,7 +422,7 @@ class ConsultationController extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = ApiClient.describeError(e);
       notifyListeners();
       return false;
     }
@@ -441,7 +442,7 @@ class ConsultationController extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = ApiClient.describeError(e);
       notifyListeners();
       return false;
     }
@@ -472,7 +473,7 @@ class ConsultationController extends ChangeNotifier {
     try {
       await body();
     } catch (e) {
-      _error = e.toString();
+      _error = ApiClient.describeError(e);
     } finally {
       _loading = false;
       notifyListeners();

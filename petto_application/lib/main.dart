@@ -34,6 +34,7 @@ void main() async {
     url: AppConfig.supabaseUrl,
     publishableKey: AppConfig.supabasePublishableKey,
   );
+  ApiClient.initializeAuthSync();
 
   runApp(const PettoApp());
 
