@@ -244,7 +244,8 @@ class ConsultationController extends ChangeNotifier {
       notifyListeners();
       if (hasNewMessage) await _markReadBestEffort(active.id);
     } catch (_) {
-      // The 4-second polling fallback will reconcile the thread.
+      // A disconnected Realtime channel enables the polling fallback, which
+      // will reconcile the thread without continuously querying while online.
     } finally {
       _refreshingMessages = false;
     }

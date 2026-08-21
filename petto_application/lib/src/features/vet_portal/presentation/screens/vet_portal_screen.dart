@@ -941,7 +941,6 @@ class _BackendConversationPanelState extends State<_BackendConversationPanel> {
   final _message = TextEditingController();
   final _conversationScrollController = ScrollController();
   Timer? _refreshTimer;
-  int _pollTick = 0;
   int? _visibleConsultationId;
   int _visibleConversationItemCount = -1;
   bool _sending = false;
@@ -953,8 +952,7 @@ class _BackendConversationPanelState extends State<_BackendConversationPanel> {
     _refreshTimer = Timer.periodic(const Duration(seconds: 6), (_) {
       if (mounted) {
         final controller = context.read<ConsultationController>();
-        _pollTick++;
-        if (!controller.realtimeConnected || _pollTick % 10 == 0) {
+        if (!controller.realtimeConnected) {
           controller.refreshNewMessages();
         }
       }
