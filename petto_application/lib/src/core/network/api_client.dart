@@ -19,6 +19,26 @@ class ApiClient {
 
   static final Dio dio = _build();
 
+  /// Wake a sleeping staging backend while the user is still on Welcome/Auth.
+  ///
+  /// Railway Serverless may cold-start after an idle period. This best-effort
+  /// request uses a standalone client so it never waits for secure token
+  /// storage and never delays the first frame.
+  static Future<void> warmUp() async {
+    try {
+      await Dio(
+        BaseOptions(
+          baseUrl: AppConfig.apiBaseUrl,
+          connectTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
+          headers: const {'Accept': 'application/json'},
+        ),
+      ).get('/health');
+    } catch (_) {
+      // A normal authenticated request will retry through the regular UI.
+    }
+  }
+
   static Dio _build() {
     final dio = Dio(
       BaseOptions(

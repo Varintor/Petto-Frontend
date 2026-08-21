@@ -950,11 +950,11 @@ class _BackendConversationPanelState extends State<_BackendConversationPanel> {
   @override
   void initState() {
     super.initState();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+    _refreshTimer = Timer.periodic(const Duration(seconds: 6), (_) {
       if (mounted) {
         final controller = context.read<ConsultationController>();
         _pollTick++;
-        if (!controller.realtimeConnected || _pollTick % 4 == 0) {
+        if (!controller.realtimeConnected || _pollTick % 10 == 0) {
           controller.refreshNewMessages();
         }
       }

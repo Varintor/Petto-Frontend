@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'src/core/config/app_config.dart';
+import 'src/core/network/api_client.dart';
 import 'src/core/theme/app_theme.dart';
 import 'src/features/auth/data/repositories/auth_repository.dart';
 import 'src/features/auth/presentation/controllers/auth_controller.dart';
@@ -35,6 +36,10 @@ void main() async {
   );
 
   runApp(const PettoApp());
+
+  // Start waking Railway while the user is still on Welcome/Login. This
+  // hides most Hobby/Serverless cold-start latency without blocking startup.
+  unawaited(ApiClient.warmUp());
 
   // Notification setup is not required for the first frame. Initialize it in
   // the background so a slow platform channel cannot delay app startup.

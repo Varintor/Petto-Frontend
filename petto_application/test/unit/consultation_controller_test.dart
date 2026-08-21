@@ -173,24 +173,6 @@ class _ControlledOpenRepository extends _FakeConsultationRepository {
   }
 }
 
-class _DelayedRealtimeReconcileRepository extends _FakeConsultationRepository {
-  final reconcileCompleter = Completer<List<ChatMessageModel>>();
-  bool _opened = false;
-
-  @override
-  Future<List<ChatMessageModel>> listMessages(
-    int consultationId, {
-    int? afterId,
-  }) {
-    listMessagesCalls += 1;
-    if (!_opened) {
-      _opened = true;
-      return Future.value([]);
-    }
-    return reconcileCompleter.future;
-  }
-}
-
 class _FakeHealthCardSharingRepository implements HealthCardSharingRepository {
   final cards = <SharedHealthCardModel>[];
 
@@ -272,7 +254,7 @@ void main() {
     },
   );
 
-  test('message loading and read receipt start concurrently', () async {
+  test('read receipt does not block opening a consultation', () async {
     final repository = _ControlledOpenRepository();
     final controller = ConsultationController(repository: repository);
 
@@ -285,10 +267,11 @@ void main() {
     expect(controller.loading, isTrue);
 
     repository.messagesCompleter.complete([]);
-    repository.readCompleter.complete();
     await opening;
 
     expect(controller.loading, isFalse);
+    expect(repository.readCompleter.isCompleted, isFalse);
+    repository.readCompleter.complete();
   });
 
   test('a failed message retry reuses its client message id', () async {
@@ -343,23 +326,30 @@ void main() {
     },
   );
 
-  test('active vet polling receives a newly shared health card', () async {
-    final repository = _FakeConsultationRepository();
-    final sharing = _FakeHealthCardSharingRepository();
-    final controller = ConsultationController(
-      repository: repository,
-      healthCardRepository: sharing,
-    );
-    await controller.openConsultation(repository.consultation);
-    await sharing.shareHealthCard(repository.consultation.id);
+  test(
+    'background polling fetches messages without reloading health cards',
+    () async {
+      final repository = _FakeConsultationRepository();
+      final sharing = _FakeHealthCardSharingRepository();
+      final controller = ConsultationController(
+        repository: repository,
+        healthCardRepository: sharing,
+      );
+      await controller.openConsultation(repository.consultation);
+      await sharing.shareHealthCard(repository.consultation.id);
 
-    await controller.refreshNewMessages();
+      await controller.refreshNewMessages();
 
-    expect(controller.sharedHealthCards.single.petName, 'Milo');
-  });
+      expect(controller.sharedHealthCards, isEmpty);
+      expect(repository.listMessagesCalls, 2);
+
+      await controller.refreshMessages();
+      expect(controller.sharedHealthCards.single.petName, 'Milo');
+    },
+  );
 
   test(
-    'realtime event reconciles messages while REST remains authoritative',
+    'realtime event applies a message without an extra REST request',
     () async {
       final repository = _FakeConsultationRepository();
       final realtime = _FakeRealtimeGateway();
@@ -399,7 +389,7 @@ void main() {
 
       expect(controller.messages.single.id, 99);
       expect(repository.markedRead, isTrue);
-      expect(repository.listMessagesCalls, greaterThanOrEqualTo(2));
+      expect(repository.listMessagesCalls, 1);
     },
   );
 
@@ -444,9 +434,9 @@ void main() {
   );
 
   test(
-    'realtime row is visible before REST reconciliation completes',
+    'realtime row is visible immediately without waiting for REST',
     () async {
-      final repository = _DelayedRealtimeReconcileRepository();
+      final repository = _FakeConsultationRepository();
       final realtime = _FakeRealtimeGateway();
       final controller = ConsultationController(
         repository: repository,
@@ -471,13 +461,8 @@ void main() {
       };
       await realtime.onMessageChanged!(record);
 
-      expect(repository.reconcileCompleter.isCompleted, isFalse);
       expect(controller.messages.single.content, 'Visible immediately');
-
-      repository.reconcileCompleter.complete([
-        ChatMessageModel.fromJson(record),
-      ]);
-      await Future<void>.delayed(Duration.zero);
+      expect(repository.listMessagesCalls, 1);
     },
   );
 }

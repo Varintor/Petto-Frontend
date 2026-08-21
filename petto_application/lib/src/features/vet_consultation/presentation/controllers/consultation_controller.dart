@@ -154,11 +154,12 @@ class ConsultationController extends ChangeNotifier {
     _messages = [];
     _appointments = [];
     _sharedHealthCards = [];
+    // A read receipt is best-effort and must never delay rendering the thread.
+    unawaited(_markReadBestEffort(consultation.id));
     await _guard(() async {
       final results = await Future.wait<Object?>([
         repository.listMessages(consultation.id),
         repository.listAppointments(consultation.id),
-        _markReadBestEffort(consultation.id),
         if (healthCardRepository != null)
           healthCardRepository!.listSharedHealthCards(consultation.id),
       ]);
@@ -168,7 +169,7 @@ class ConsultationController extends ChangeNotifier {
         _appointments = results[1] as List<AppointmentModel>;
         _sharedHealthCards = healthCardRepository == null
             ? []
-            : results[3] as List<SharedHealthCardModel>;
+            : results[2] as List<SharedHealthCardModel>;
       }
     });
     await _watchActiveConsultation(realtimeAccessToken);
@@ -226,7 +227,6 @@ class ConsultationController extends ChangeNotifier {
     notifyListeners();
 
     if (isNewMessage) unawaited(_markReadBestEffort(active.id));
-    unawaited(_refreshMessagesFromRealtime());
   }
 
   Future<void> _refreshMessagesFromRealtime() async {
@@ -282,24 +282,18 @@ class ConsultationController extends ChangeNotifier {
     _refreshingMessages = true;
     try {
       final afterId = _messages.isEmpty ? null : _messages.last.id;
-      final results = await Future.wait<Object?>([
-        repository.listMessages(active.id, afterId: afterId),
-        repository.listAppointments(active.id),
-        if (healthCardRepository != null)
-          healthCardRepository!.listSharedHealthCards(active.id),
-      ]);
-      final incoming = results[0] as List<ChatMessageModel>;
-      final appointments = results[1] as List<AppointmentModel>;
+      // Polling is only a fallback for chat delivery. Appointments and shared
+      // cards change far less often and are loaded on open/manual refresh.
+      final incoming = await repository.listMessages(
+        active.id,
+        afterId: afterId,
+      );
       if (_active?.id != active.id) return;
       final knownIds = _messages.map((message) => message.id).toSet();
       _messages = [
         ..._messages,
         ...incoming.where((message) => knownIds.add(message.id)),
       ];
-      _appointments = appointments;
-      if (healthCardRepository != null) {
-        _sharedHealthCards = results[2] as List<SharedHealthCardModel>;
-      }
       notifyListeners();
       if (incoming.isNotEmpty) await _markReadBestEffort(active.id);
     } catch (_) {
