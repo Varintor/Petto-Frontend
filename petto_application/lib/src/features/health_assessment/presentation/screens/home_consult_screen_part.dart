@@ -147,12 +147,15 @@ extension _HomeConsultScreenPart on _HomeScreenState {
     });
   }
 
-  void _loadAssessmentHistory() {
+  void _loadAssessmentHistory({bool force = false}) {
     // No pet yet (guest / fresh account) — leave the history empty rather
     // than fetching a shared default pet's data.
     final petId = context.read<AuthController>().petId;
     if (petId == null) return;
-    context.read<HealthAssessmentController>().loadPetHistory(petId);
+    context.read<HealthAssessmentController>().loadPetHistory(
+      petId,
+      force: force,
+    );
   }
 
   void _showAssessmentDetail(AssessmentEntity assessment) {
@@ -373,7 +376,7 @@ extension _HomeConsultScreenPart on _HomeScreenState {
     final assessmentController = context.watch<HealthAssessmentController>();
     final assessments = assessmentController.history;
     final latestAssessment = assessments.isNotEmpty ? assessments.first : null;
-    if (assessments.isEmpty && !assessmentController.isLoading) {
+    if (assessments.isEmpty && !assessmentController.isHistoryLoading) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _loadAssessmentHistory();
       });
@@ -520,7 +523,8 @@ extension _HomeConsultScreenPart on _HomeScreenState {
             child: _AssistantSummaryCard(
               icon: Icons.fact_check_rounded,
               title: 'Latest check',
-              subtitle: assessmentController.isLoading && assessments.isEmpty
+              subtitle:
+                  assessmentController.isHistoryLoading && assessments.isEmpty
                   ? 'Loading health records...'
                   : latestAssessment?.symptoms ?? 'No assessment yet',
               meta: latestAssessment?.riskLevel ?? 'Start scan',
@@ -534,7 +538,7 @@ extension _HomeConsultScreenPart on _HomeScreenState {
               trailingLabel: assessments.length > 1 ? 'View all' : 'Refresh',
               onTrailingTap: assessments.length > 1
                   ? () => _showAssessmentHistorySheet(assessments)
-                  : _loadAssessmentHistory,
+                  : () => _loadAssessmentHistory(force: true),
             ),
           ),
           const SizedBox(height: 12),

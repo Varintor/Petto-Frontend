@@ -41,6 +41,8 @@ class HealthAssessmentController extends ChangeNotifier {
   AssessmentEntity? _currentAssessment;
   List<AssessmentEntity> _history = [];
   AssessmentError? _error;
+  bool _historyLoading = false;
+  int? _historyPetId;
 
   double _uploadProgress = 0.0;
   double _downloadProgress = 0.0;
@@ -55,6 +57,7 @@ class HealthAssessmentController extends ChangeNotifier {
   String? get errorMessage => _error?.message;
 
   bool get isLoading => _status == AssessmentStatus.loading;
+  bool get isHistoryLoading => _historyLoading;
   bool get isSuccess => _status == AssessmentStatus.success;
   bool get hasError => _status == AssessmentStatus.error;
   bool get isIdle => _status == AssessmentStatus.idle;
@@ -67,7 +70,8 @@ class HealthAssessmentController extends ChangeNotifier {
       switch (error.type) {
         case DioExceptionType.connectionTimeout:
           return AssessmentError(
-            message: 'Connection timed out (60s).\nPlease check the server is running.',
+            message:
+                'Connection timed out (60s).\nPlease check the server is running.',
             type: ErrorType.connectionTimeout,
             technicalDetails: error.message,
           );
@@ -81,14 +85,16 @@ class HealthAssessmentController extends ChangeNotifier {
 
         case DioExceptionType.receiveTimeout:
           return AssessmentError(
-            message: 'AI processing is taking longer than expected.\nPlease wait or try again later.',
+            message:
+                'AI processing is taking longer than expected.\nPlease wait or try again later.',
             type: ErrorType.receiveTimeout,
             technicalDetails: 'Gemini AI processing timeout',
           );
 
         case DioExceptionType.connectionError:
           return AssessmentError(
-            message: 'Cannot reach the server.\n'
+            message:
+                'Cannot reach the server.\n'
                 'URL: ${AppConfig.apiBaseUrl}${AppConfig.apiPrefix}/assessments\n\n'
                 'Please check:\n'
                 '- Is the server running?\n'
@@ -156,16 +162,27 @@ class HealthAssessmentController extends ChangeNotifier {
     }
   }
 
-  Future<void> loadPetHistory(int petId) async {
+  Future<void> loadPetHistory(int petId, {bool force = false}) async {
+    // Home can rebuild many times while an empty history is displayed. Keep
+    // one in-flight request and remember that an empty result was loaded so a
+    // rebuild cannot create an unbounded request loop. Explicit refresh uses
+    // force=true.
+    if (!force && _historyPetId == petId) return;
+    _historyLoading = true;
+    _historyPetId = petId;
     _error = null;
     notifyListeners();
 
     try {
-      _history = await repository.getPetAssessmentHistory(petId);
-      notifyListeners();
+      final history = await repository.getPetAssessmentHistory(petId);
+      if (_historyPetId == petId) _history = history;
     } catch (e) {
-      _error = _parseError(e);
-      notifyListeners();
+      if (_historyPetId == petId) _error = _parseError(e);
+    } finally {
+      if (_historyPetId == petId) {
+        _historyLoading = false;
+        notifyListeners();
+      }
     }
   }
 
