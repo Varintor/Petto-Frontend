@@ -121,7 +121,14 @@ class AuthController extends ChangeNotifier {
       _status = AuthStatus.authenticated;
       notifyListeners();
     } catch (_) {
-      await storage.clear();
+      // Session restoration must never leave AuthGate spinning forever when
+      // browser storage or a platform plugin is unavailable. Clearing stale
+      // credentials is best-effort; the unauthenticated state is authoritative.
+      try {
+        await storage.clear();
+      } catch (_) {
+        // A storage cleanup failure must not block the login screen.
+      }
       _token = null;
       _userId = null;
       _currentUser = null;
