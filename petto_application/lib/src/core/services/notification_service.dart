@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
@@ -16,6 +17,8 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   bool _initialised = false;
+  bool _notificationPermissionRequested = false;
+  bool _exactAlarmPermissionRequested = false;
   bool get supported => !kIsWeb;
 
   // Stable ids so re-scheduling overwrites old reminders instead of stacking.
@@ -53,15 +56,47 @@ class NotificationService {
       const InitializationSettings(android: android, iOS: ios, macOS: macos),
     );
 
-    // Android 13+ needs an explicit runtime permission. Older Androids and the
-    // iOS DarwinInitializationSettings above handle theirs at init.
-    await _plugin
+    _initialised = true;
+  }
+
+  /// Requests Android notification and exact-alarm permissions once per app
+  /// session. If exact alarms are unavailable, callers use an inexact mode
+  /// instead of failing to save the user's calendar event or reminders.
+  Future<AndroidScheduleMode> _androidScheduleMode({
+    required bool requestExact,
+  }) async {
+    final android = _plugin
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.requestNotificationsPermission();
+        >();
+    if (android == null) return AndroidScheduleMode.exactAllowWhileIdle;
 
-    _initialised = true;
+    try {
+      if (!_notificationPermissionRequested) {
+        _notificationPermissionRequested = true;
+        await android.requestNotificationsPermission();
+      }
+
+      // Daily mission reminders tolerate the small delay Android may apply to
+      // inexact alarms. Reserve the intrusive exact-alarm settings prompt for
+      // a timed Calendar event where the 30-minute reminder matters.
+      if (!requestExact) return AndroidScheduleMode.inexactAllowWhileIdle;
+
+      var canScheduleExact =
+          await android.canScheduleExactNotifications() ?? true;
+      if (!canScheduleExact && !_exactAlarmPermissionRequested) {
+        _exactAlarmPermissionRequested = true;
+        await android.requestExactAlarmsPermission();
+        canScheduleExact =
+            await android.canScheduleExactNotifications() ?? false;
+      }
+      return canScheduleExact
+          ? AndroidScheduleMode.exactAllowWhileIdle
+          : AndroidScheduleMode.inexactAllowWhileIdle;
+    } on PlatformException catch (error) {
+      debugPrint('NotificationService: permission request failed: $error');
+      return AndroidScheduleMode.inexactAllowWhileIdle;
+    }
   }
 
   /// Schedules (or re-schedules) the two daily mission reminders. Idempotent —
@@ -71,7 +106,9 @@ class NotificationService {
     int eveningHour = 19,
   }) async {
     if (!supported) {
-      debugPrint('[notif] would schedule daily missions ($morningHour:00 / $eveningHour:00)');
+      debugPrint(
+        '[notif] would schedule daily missions ($morningHour:00 / $eveningHour:00)',
+      );
       return;
     }
     await init();
@@ -99,15 +136,17 @@ class NotificationService {
     Duration leadTime = const Duration(minutes: 30),
   }) async {
     if (!supported) {
-      debugPrint('[notif] would schedule event "$title" at $when (lead $leadTime)');
+      debugPrint(
+        '[notif] would schedule event "$title" at $when (lead $leadTime)',
+      );
       return;
     }
     await init();
+    final androidScheduleMode = await _androidScheduleMode(requestExact: true);
     final notifId = calendarEventId(eventId);
     await _plugin.cancel(notifId);
 
-    final fireAt = tz.TZDateTime.from(when, tz.local)
-        .subtract(leadTime);
+    final fireAt = tz.TZDateTime.from(when, tz.local).subtract(leadTime);
     // No point scheduling in the past.
     if (fireAt.isBefore(tz.TZDateTime.now(tz.local))) return;
 
@@ -117,7 +156,7 @@ class NotificationService {
       body ?? 'Tap to open the calendar.',
       fireAt,
       _details(channelId: 'calendar', channelName: 'Calendar reminders'),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: androidScheduleMode,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: null,
@@ -136,6 +175,7 @@ class NotificationService {
     required String title,
     required String body,
   }) async {
+    final androidScheduleMode = await _androidScheduleMode(requestExact: false);
     final now = tz.TZDateTime.now(tz.local);
     var fireAt = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour);
     if (!fireAt.isAfter(now)) fireAt = fireAt.add(const Duration(days: 1));
@@ -146,7 +186,7 @@ class NotificationService {
       body,
       fireAt,
       _details(channelId: 'missions', channelName: 'Daily missions'),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: androidScheduleMode,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.time, // repeat daily
