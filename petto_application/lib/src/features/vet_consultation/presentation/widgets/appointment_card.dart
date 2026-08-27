@@ -9,12 +9,16 @@ class ConsultationAppointmentCard extends StatelessWidget {
     required this.appointment,
     this.onAccept,
     this.onDecline,
+    this.onReschedule,
+    this.onCancel,
     this.busy = false,
   });
 
   final AppointmentModel appointment;
   final VoidCallback? onAccept;
   final VoidCallback? onDecline;
+  final VoidCallback? onReschedule;
+  final VoidCallback? onCancel;
   final bool busy;
 
   @override
@@ -96,6 +100,33 @@ class ConsultationAppointmentCard extends StatelessWidget {
                 ],
               ),
             ],
+            if (!canRespond &&
+                appointment.canBeChanged &&
+                (onReschedule != null || onCancel != null)) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  if (onReschedule != null)
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: busy ? null : onReschedule,
+                        icon: const Icon(Icons.edit_calendar_rounded),
+                        label: const Text('Reschedule'),
+                      ),
+                    ),
+                  if (onReschedule != null && onCancel != null)
+                    const SizedBox(width: 10),
+                  if (onCancel != null)
+                    Expanded(
+                      child: TextButton.icon(
+                        onPressed: busy ? null : onCancel,
+                        icon: const Icon(Icons.event_busy_rounded),
+                        label: const Text('Cancel'),
+                      ),
+                    ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -113,6 +144,7 @@ class _StatusChip extends StatelessWidget {
     final color = switch (status) {
       'accepted' => Colors.green,
       'declined' => Colors.redAccent,
+      'cancelled' => Colors.grey,
       _ => AppTheme.primaryColor,
     };
     return Container(

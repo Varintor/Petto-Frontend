@@ -21,6 +21,7 @@ class _FakeConsultationRepository implements ConsultationRepository {
   bool failNextSend = false;
   int listMessagesCalls = 0;
   final appointments = <AppointmentModel>[];
+  final sharedAssessments = <SharedAssessmentModel>[];
 
   @override
   Future<List<ConsultationModel>> listVetConsultations() async => [
@@ -64,7 +65,30 @@ class _FakeConsultationRepository implements ConsultationRepository {
   }
 
   @override
-  Future<void> shareAssessment(int consultationId, int assessmentId) async {}
+  Future<void> shareAssessment(int consultationId, int assessmentId) async {
+    sharedAssessments.add(
+      SharedAssessmentModel(
+        id: 80,
+        consultationId: consultationId,
+        assessmentId: assessmentId,
+        symptomDescription: 'Lethargic',
+        status: 'failed',
+        errorCode: 'AI_TIMEOUT',
+        sharedAt: DateTime(2026, 8, 14),
+        createdAt: DateTime(2026, 8, 13),
+      ),
+    );
+  }
+
+  @override
+  Future<List<SharedAssessmentModel>> listSharedAssessments(
+    int consultationId,
+  ) async => List.of(sharedAssessments);
+
+  @override
+  Future<void> revokeAssessment(int consultationId, int assessmentId) async {
+    sharedAssessments.removeWhere((item) => item.assessmentId == assessmentId);
+  }
 
   @override
   Future<List<AppointmentModel>> listAppointments(int consultationId) async =>
@@ -113,6 +137,59 @@ class _FakeConsultationRepository implements ConsultationRepository {
       respondedAt: DateTime(2026, 8, 14, 11),
       createdAt: previous.createdAt,
       updatedAt: DateTime(2026, 8, 14, 11),
+    );
+    appointments
+      ..clear()
+      ..add(updated);
+    return updated;
+  }
+
+  @override
+  Future<AppointmentModel> updateAppointment(
+    int appointmentId, {
+    required DateTime startsAt,
+    DateTime? endsAt,
+    String? reason,
+  }) async {
+    final previous = appointments.singleWhere(
+      (item) => item.id == appointmentId,
+    );
+    final updated = AppointmentModel(
+      id: previous.id,
+      consultationId: previous.consultationId,
+      petId: previous.petId,
+      proposedByVetId: previous.proposedByVetId,
+      startsAt: startsAt,
+      endsAt: endsAt,
+      reason: reason,
+      status: previous.status,
+      respondedAt: previous.respondedAt,
+      createdAt: previous.createdAt,
+      updatedAt: DateTime(2026, 8, 15),
+    );
+    appointments
+      ..clear()
+      ..add(updated);
+    return updated;
+  }
+
+  @override
+  Future<AppointmentModel> cancelAppointment(int appointmentId) async {
+    final previous = appointments.singleWhere(
+      (item) => item.id == appointmentId,
+    );
+    final updated = AppointmentModel(
+      id: previous.id,
+      consultationId: previous.consultationId,
+      petId: previous.petId,
+      proposedByVetId: previous.proposedByVetId,
+      startsAt: previous.startsAt,
+      endsAt: previous.endsAt,
+      reason: previous.reason,
+      status: 'cancelled',
+      respondedAt: previous.respondedAt,
+      createdAt: previous.createdAt,
+      updatedAt: DateTime(2026, 8, 16),
     );
     appointments
       ..clear()
@@ -303,6 +380,21 @@ void main() {
       final accepted = await controller.decideAppointment(50, 'accepted');
       expect(accepted, isTrue);
       expect(controller.appointments.single.status, 'accepted');
+
+      final newTime = DateTime(2026, 8, 22, 13, 30);
+      expect(
+        await controller.updateAppointment(
+          50,
+          startsAt: newTime,
+          reason: 'Rescheduled skin follow-up',
+        ),
+        isTrue,
+      );
+      expect(controller.appointments.single.startsAt, newTime);
+      expect(controller.appointments.single.status, 'accepted');
+
+      expect(await controller.cancelAppointment(50), isTrue);
+      expect(controller.appointments.single.status, 'cancelled');
     },
   );
 
@@ -325,6 +417,20 @@ void main() {
       expect(controller.sharedHealthCards, isEmpty);
     },
   );
+
+  test('owner can share and revoke an assessment with failure state', () async {
+    final repository = _FakeConsultationRepository();
+    final controller = ConsultationController(repository: repository);
+    await controller.openConsultation(repository.consultation);
+
+    expect(await controller.shareAssessment(91), isTrue);
+    expect(controller.sharedAssessments.single.failed, isTrue);
+    expect(controller.sharedAssessments.single.riskLevel, isNull);
+    expect(controller.sharedAssessments.single.errorCode, 'AI_TIMEOUT');
+
+    expect(await controller.revokeAssessment(91), isTrue);
+    expect(controller.sharedAssessments, isEmpty);
+  });
 
   test(
     'background polling fetches messages without reloading health cards',

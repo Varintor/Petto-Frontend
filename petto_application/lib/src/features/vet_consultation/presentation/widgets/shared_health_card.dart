@@ -54,6 +54,13 @@ class SharedHealthCardPanel extends StatelessWidget {
             _row('Latest vaccination', latestVaccination['title'] as String?),
           if (recentActivity != null)
             _row('Recent activity', recentActivity['summary'] as String?),
+          if (card.profileUpdatedAt != null)
+            _row(
+              'Health profile updated',
+              '${card.profileUpdatedAt!.day}/${card.profileUpdatedAt!.month}/${card.profileUpdatedAt!.year} '
+                  '${card.profileUpdatedAt!.hour.toString().padLeft(2, '0')}:'
+                  '${card.profileUpdatedAt!.minute.toString().padLeft(2, '0')}',
+            ),
         ],
       ),
     );

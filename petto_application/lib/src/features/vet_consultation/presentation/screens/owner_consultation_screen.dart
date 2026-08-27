@@ -10,6 +10,7 @@ import '../../data/models/consultation_models.dart';
 import '../controllers/consultation_controller.dart';
 import '../widgets/appointment_card.dart';
 import '../widgets/provider_map_view.dart';
+import '../widgets/shared_assessment_card.dart';
 import '../widgets/shared_health_card.dart';
 
 /// Authenticated owner-side Feature 3 workspace. Guest presentation data stays
@@ -307,6 +308,43 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
     setState(() => _respondingAppointmentId = null);
   }
 
+  Future<void> _cancelAppointment(AppointmentModel appointment) async {
+    if (_respondingAppointmentId != null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Cancel appointment?'),
+        content: const Text(
+          'The appointment will also be removed from the pet Calendar.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Keep appointment'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Cancel appointment'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _respondingAppointmentId = appointment.id);
+    final updated = await context
+        .read<ConsultationController>()
+        .cancelAppointment(appointment.id);
+    if (updated) {
+      try {
+        await widget.onAppointmentAccepted?.call();
+      } catch (_) {
+        // The cancellation is persisted; Calendar refresh can recover later.
+      }
+    }
+    if (!mounted) return;
+    setState(() => _respondingAppointmentId = null);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<ConsultationController>(
@@ -466,6 +504,7 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
       consultation.id,
       controller.messages.length +
           controller.appointments.length +
+          controller.sharedAssessments.length +
           controller.sharedHealthCards.length,
     );
     return Column(
@@ -513,8 +552,30 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
                 ),
               ),
               IconButton(
+                tooltip: 'Share selected assessment',
+                onPressed:
+                    widget.latestAssessmentId == null || consultation.isClosed
+                    ? null
+                    : () async {
+                        final shared = await controller.shareAssessment(
+                          widget.latestAssessmentId!,
+                        );
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              shared
+                                  ? 'Assessment shared with this veterinarian.'
+                                  : 'Could not share the assessment.',
+                            ),
+                          ),
+                        );
+                      },
+                icon: const Icon(Icons.auto_awesome_rounded),
+              ),
+              IconButton(
                 tooltip: 'Share Pet Health ID',
-                onPressed: controller.sharingHealthCard
+                onPressed: controller.sharingHealthCard || consultation.isClosed
                     ? null
                     : () async {
                         final shared = await controller.shareHealthCard();
@@ -559,14 +620,26 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
           child:
               controller.loading &&
                   controller.messages.isEmpty &&
-                  controller.appointments.isEmpty
+                  controller.appointments.isEmpty &&
+                  controller.sharedAssessments.isEmpty &&
+                  controller.sharedHealthCards.isEmpty
               ? const Center(child: CircularProgressIndicator())
-              : controller.messages.isEmpty && controller.appointments.isEmpty
+              : controller.messages.isEmpty &&
+                    controller.appointments.isEmpty &&
+                    controller.sharedAssessments.isEmpty &&
+                    controller.sharedHealthCards.isEmpty
               ? const _EmptyCard(message: 'No messages yet. Say hello.')
               : ListView(
                   controller: _conversationScrollController,
                   padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
                   children: [
+                    for (final assessment in controller.sharedAssessments)
+                      SharedAssessmentPanel(
+                        assessment: assessment,
+                        onRevoke: () => controller.revokeAssessment(
+                          assessment.assessmentId,
+                        ),
+                      ),
                     for (final sharedCard in controller.sharedHealthCards)
                       SharedHealthCardPanel(
                         card: sharedCard,
@@ -583,6 +656,9 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
                         onDecline: appointment.isPending
                             ? () => _decideAppointment(appointment, 'declined')
                             : null,
+                        onCancel: appointment.isAccepted
+                            ? () => _cancelAppointment(appointment)
+                            : null,
                       ),
                     for (final message in controller.messages)
                       _OwnerMessageBubble(message),
@@ -596,33 +672,53 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
             // feature view. Keep the composer above that bar so sending a
             // message remains possible on phones and the web demo.
             padding: const EdgeInsets.fromLTRB(18, 8, 18, 104),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    enabled: !_sending,
-                    textInputAction: TextInputAction.send,
-                    onSubmitted: (_) => _sendMessage(),
-                    decoration: const InputDecoration(
-                      hintText: 'Type a message...',
-                      border: OutlineInputBorder(),
+            child: consultation.isClosed
+                ? const Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(14),
+                      child: Row(
+                        children: [
+                          Icon(Icons.lock_outline_rounded),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'This consultation is closed. Messages are read-only.',
+                              style: TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                  )
+                : Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _messageController,
+                          enabled: !_sending,
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (_) => _sendMessage(),
+                          decoration: const InputDecoration(
+                            hintText: 'Type a message...',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      IconButton.filled(
+                        onPressed: _sending ? null : _sendMessage,
+                        icon: _sending
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.send_rounded),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(width: 10),
-                IconButton.filled(
-                  onPressed: _sending ? null : _sendMessage,
-                  icon: _sending
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.send_rounded),
-                ),
-              ],
-            ),
           ),
         ),
       ],
