@@ -45,13 +45,22 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 10),
+            _historyFilters(context, controller),
+            if (controller.loading) ...[
+              const SizedBox(height: 8),
+              const LinearProgressIndicator(),
+            ],
+            const SizedBox(height: 10),
             if (controller.entries.isEmpty)
               const _HealthHistoryStateCard(
                 message: 'No health records have been saved yet.',
               )
             else
               for (final entry in controller.entries)
-                _HealthTimelineCard(entry),
+                _HealthTimelineCard(
+                  entry,
+                  onTap: () => _showHistoryDetail(context, controller, entry),
+                ),
           ],
         ],
       ),
@@ -178,6 +187,140 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
     medications.dispose();
     notes.dispose();
   }
+
+  Widget _historyFilters(
+    BuildContext context,
+    HealthHistoryController controller,
+  ) {
+    const labels = {
+      'assessment': 'Assessments',
+      'activity': 'Activity',
+      'vaccination': 'Vaccinations',
+      'mission': 'Care',
+      'appointment': 'Appointments',
+    };
+    final hasDateRange =
+        controller.dateFrom != null || controller.dateTo != null;
+    String shortDate(DateTime date) => '${date.day}/${date.month}/${date.year}';
+    final dateLabel = controller.dateFrom != null && controller.dateTo != null
+        ? '${shortDate(controller.dateFrom!)} – ${shortDate(controller.dateTo!)}'
+        : 'Date range';
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        for (final item in labels.entries)
+          FilterChip(
+            label: Text(item.value),
+            selected: controller.typeFilter.contains(item.key),
+            onSelected: (_) {
+              final updated = Set<String>.from(controller.typeFilter);
+              updated.contains(item.key)
+                  ? updated.remove(item.key)
+                  : updated.add(item.key);
+              controller.applyFilters(
+                types: updated,
+                from: controller.dateFrom,
+                to: controller.dateTo,
+              );
+            },
+          ),
+        ActionChip(
+          avatar: const Icon(Icons.date_range_rounded, size: 18),
+          label: Text(dateLabel),
+          onPressed: () async {
+            final range = await showDateRangePicker(
+              context: context,
+              firstDate: DateTime(2020),
+              lastDate: DateTime.now().add(const Duration(days: 730)),
+              initialDateRange:
+                  controller.dateFrom != null && controller.dateTo != null
+                  ? DateTimeRange(
+                      start: controller.dateFrom!,
+                      end: controller.dateTo!,
+                    )
+                  : null,
+            );
+            if (range == null) return;
+            await controller.applyFilters(
+              types: controller.typeFilter,
+              from: range.start,
+              to: range.end,
+            );
+          },
+        ),
+        if (controller.typeFilter.isNotEmpty || hasDateRange)
+          TextButton.icon(
+            onPressed: () => controller.applyFilters(types: const {}),
+            icon: const Icon(Icons.filter_alt_off_rounded),
+            label: const Text('Clear'),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _showHistoryDetail(
+    BuildContext context,
+    HealthHistoryController controller,
+    HistoryEntryModel entry,
+  ) async {
+    final detail = await controller.getDetail(entry);
+    if (!context.mounted) return;
+    if (detail == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not load this health record.')),
+      );
+      return;
+    }
+    String label(String key) => key
+        .split('_')
+        .map(
+          (word) => word.isEmpty
+              ? word
+              : '${word[0].toUpperCase()}${word.substring(1)}',
+        )
+        .join(' ');
+    String value(dynamic raw) {
+      if (raw == null || raw.toString().trim().isEmpty) return 'Not set';
+      return raw.toString();
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(entry.title),
+        content: SizedBox(
+          width: 520,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final field in detail.fields.entries) ...[
+                  Text(
+                    label(field.key),
+                    style: const TextStyle(
+                      color: AppTheme.mutedText,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  SelectableText(value(field.value)),
+                  const SizedBox(height: 12),
+                ],
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _PetHealthCard extends StatelessWidget {
@@ -294,6 +437,16 @@ class _PetHealthCard extends StatelessWidget {
             _HealthCardFact('Recent activity', card.recentActivity!.title),
           ],
         ],
+        if (card.profileUpdatedAt != null) ...[
+          const Divider(height: 24, color: Colors.white24),
+          Text(
+            'Health profile updated '
+            '${card.profileUpdatedAt!.day}/${card.profileUpdatedAt!.month}/${card.profileUpdatedAt!.year} '
+            '${card.profileUpdatedAt!.hour.toString().padLeft(2, '0')}:'
+            '${card.profileUpdatedAt!.minute.toString().padLeft(2, '0')}',
+            style: const TextStyle(color: Colors.white70, fontSize: 11),
+          ),
+        ],
       ],
     ),
   );
@@ -321,8 +474,9 @@ class _HealthCardFact extends StatelessWidget {
 }
 
 class _HealthTimelineCard extends StatelessWidget {
-  const _HealthTimelineCard(this.entry);
+  const _HealthTimelineCard(this.entry, {required this.onTap});
   final HistoryEntryModel entry;
+  final VoidCallback onTap;
 
   IconData get _icon => switch (entry.type) {
     'assessment' => Icons.auto_awesome_rounded,
@@ -336,6 +490,7 @@ class _HealthTimelineCard extends StatelessWidget {
   Widget build(BuildContext context) => Card(
     margin: const EdgeInsets.only(bottom: 10),
     child: ListTile(
+      onTap: onTap,
       leading: CircleAvatar(child: Icon(_icon)),
       title: Text(
         entry.title,
