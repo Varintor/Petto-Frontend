@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -43,7 +41,6 @@ class OwnerConsultationScreen extends StatefulWidget {
 class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
   final _messageController = TextEditingController();
   final _conversationScrollController = ScrollController();
-  Timer? _refreshTimer;
   int? _visibleConsultationId;
   int _visibleConversationItemCount = -1;
   bool _sending = false;
@@ -62,14 +59,6 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
     super.initState();
     _includeLatestAssessment = widget.latestAssessmentId != null;
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadWorkspace());
-    _refreshTimer = Timer.periodic(const Duration(seconds: 6), (_) {
-      if (mounted) {
-        final controller = context.read<ConsultationController>();
-        if (!controller.realtimeConnected) {
-          controller.refreshNewMessages();
-        }
-      }
-    });
   }
 
   @override
@@ -90,7 +79,6 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
 
   @override
   void dispose() {
-    _refreshTimer?.cancel();
     _conversationScrollController.dispose();
     _messageController.dispose();
     super.dispose();
@@ -538,7 +526,7 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
                     Text(
                       controller.realtimeConnected
                           ? '● Realtime connected'
-                          : '● Reconnecting • polling active',
+                          : '● Realtime reconnecting • refresh available',
                       key: const Key('owner-chat-connection-status'),
                       style: TextStyle(
                         color: controller.realtimeConnected

@@ -941,7 +941,6 @@ class _BackendConversationPanel extends StatefulWidget {
 class _BackendConversationPanelState extends State<_BackendConversationPanel> {
   final _message = TextEditingController();
   final _conversationScrollController = ScrollController();
-  Timer? _refreshTimer;
   int? _visibleConsultationId;
   int _visibleConversationItemCount = -1;
   bool _sending = false;
@@ -949,21 +948,7 @@ class _BackendConversationPanelState extends State<_BackendConversationPanel> {
   int? _changingAppointmentId;
 
   @override
-  void initState() {
-    super.initState();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 6), (_) {
-      if (mounted) {
-        final controller = context.read<ConsultationController>();
-        if (!controller.realtimeConnected) {
-          controller.refreshNewMessages();
-        }
-      }
-    });
-  }
-
-  @override
   void dispose() {
-    _refreshTimer?.cancel();
     _conversationScrollController.dispose();
     _message.dispose();
     super.dispose();
@@ -1181,7 +1166,7 @@ class _BackendConversationPanelState extends State<_BackendConversationPanel> {
                         Text(
                           controller.realtimeConnected
                               ? '● Realtime connected'
-                              : '● Reconnecting • polling active',
+                              : '● Realtime reconnecting • refresh available',
                           key: const Key('vet-chat-connection-status'),
                           style: TextStyle(
                             color: controller.realtimeConnected

@@ -190,8 +190,8 @@ class AuthController extends ChangeNotifier {
           _watchSupabaseTokenRefresh();
         }
       } catch (_) {
-        // The backend-issued access token is still usable; Realtime falls back
-        // to polling if the local Supabase session cannot be established.
+        // The backend-issued access token remains usable. Consultation
+        // Realtime authenticates its channel directly with this token.
       }
     }
     _token = accessToken;

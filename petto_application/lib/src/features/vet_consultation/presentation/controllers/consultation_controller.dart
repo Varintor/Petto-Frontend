@@ -40,6 +40,7 @@ class ConsultationController extends ChangeNotifier {
   bool _loading = false;
   bool _refreshingMessages = false;
   bool _realtimeConnected = false;
+  bool _hasRealtimeSubscribed = false;
   String? _error;
   String? _retryContent;
   String? _retryClientMessageId;
@@ -113,6 +114,9 @@ class ConsultationController extends ChangeNotifier {
     int? assessmentId,
     String? realtimeAccessToken,
   }) async {
+    await realtimeGateway.stop();
+    _realtimeConnected = false;
+    _hasRealtimeSubscribed = false;
     await _guard(() async {
       _active = await repository.createConsultation(
         petId: petId,
@@ -155,6 +159,7 @@ class ConsultationController extends ChangeNotifier {
   }) async {
     await realtimeGateway.stop();
     _realtimeConnected = false;
+    _hasRealtimeSubscribed = false;
     _active = consultation;
     _messages = [];
     _appointments = [];
@@ -202,8 +207,17 @@ class ConsultationController extends ChangeNotifier {
   }
 
   void _setRealtimeConnected(bool connected) {
-    if (_realtimeConnected == connected) return;
+    final wasConnected = _realtimeConnected;
+    if (wasConnected == connected) return;
     _realtimeConnected = connected;
+    if (connected) {
+      if (_hasRealtimeSubscribed && !wasConnected) {
+        // Supabase reconnects its socket automatically. Reconcile once after
+        // reconnect so rows created during the outage cannot be missed.
+        unawaited(_refreshMessagesFromRealtime());
+      }
+      _hasRealtimeSubscribed = true;
+    }
     notifyListeners();
   }
 
@@ -252,8 +266,8 @@ class ConsultationController extends ChangeNotifier {
       notifyListeners();
       if (hasNewMessage) await _markReadBestEffort(active.id);
     } catch (_) {
-      // A disconnected Realtime channel enables the polling fallback, which
-      // will reconcile the thread without continuously querying while online.
+      // Realtime will continue reconnecting. The user can also request an
+      // explicit refresh; no periodic REST polling is performed.
     } finally {
       _refreshingMessages = false;
     }
@@ -285,34 +299,6 @@ class ConsultationController extends ChangeNotifier {
         _sharedHealthCards = results[3] as List<SharedHealthCardModel>;
       }
     });
-  }
-
-  Future<void> refreshNewMessages() async {
-    final active = _active;
-    if (active == null || _refreshingMessages) return;
-    _refreshingMessages = true;
-    try {
-      final afterId = _messages.isEmpty ? null : _messages.last.id;
-      // Polling is only a fallback for chat delivery. Appointments and shared
-      // cards change far less often and are loaded on open/manual refresh.
-      final incoming = await repository.listMessages(
-        active.id,
-        afterId: afterId,
-      );
-      if (_active?.id != active.id) return;
-      final knownIds = _messages.map((message) => message.id).toSet();
-      _messages = [
-        ..._messages,
-        ...incoming.where((message) => knownIds.add(message.id)),
-      ];
-      notifyListeners();
-      if (incoming.isNotEmpty) await _markReadBestEffort(active.id);
-    } catch (_) {
-      // Background refresh is best-effort. The explicit refresh action still
-      // reports errors through [_guard].
-    } finally {
-      _refreshingMessages = false;
-    }
   }
 
   Future<bool> shareAssessment(int assessmentId) async {
@@ -352,6 +338,7 @@ class ConsultationController extends ChangeNotifier {
   void closeActiveConsultation() {
     unawaited(realtimeGateway.stop());
     _realtimeConnected = false;
+    _hasRealtimeSubscribed = false;
     _active = null;
     _messages = [];
     _appointments = [];
@@ -533,6 +520,7 @@ class ConsultationController extends ChangeNotifier {
     _loading = false;
     _refreshingMessages = false;
     _realtimeConnected = false;
+    _hasRealtimeSubscribed = false;
     unawaited(realtimeGateway.stop());
     _error = null;
     _retryContent = null;

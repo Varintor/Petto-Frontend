@@ -308,6 +308,10 @@ class _FakeRealtimeGateway implements ConsultationRealtimeGateway {
   Future<void> stop() async {
     stopped = true;
   }
+
+  void emitConnection(bool connected) {
+    onConnectionChanged?.call(connected);
+  }
 }
 
 void main() {
@@ -432,27 +436,30 @@ void main() {
     expect(controller.sharedAssessments, isEmpty);
   });
 
-  test(
-    'background polling fetches messages without reloading health cards',
-    () async {
-      final repository = _FakeConsultationRepository();
-      final sharing = _FakeHealthCardSharingRepository();
-      final controller = ConsultationController(
-        repository: repository,
-        healthCardRepository: sharing,
-      );
-      await controller.openConsultation(repository.consultation);
-      await sharing.shareHealthCard(repository.consultation.id);
+  test('realtime reconnect reconciles messages exactly once', () async {
+    final repository = _FakeConsultationRepository();
+    final realtime = _FakeRealtimeGateway();
+    final controller = ConsultationController(
+      repository: repository,
+      realtimeGateway: realtime,
+    );
+    await controller.openConsultation(
+      repository.consultation,
+      realtimeAccessToken: 'supabase-access-token',
+    );
 
-      await controller.refreshNewMessages();
+    expect(repository.listMessagesCalls, 1);
+    realtime.emitConnection(false);
+    realtime.emitConnection(true);
+    await Future<void>.delayed(Duration.zero);
 
-      expect(controller.sharedHealthCards, isEmpty);
-      expect(repository.listMessagesCalls, 2);
+    expect(controller.realtimeConnected, isTrue);
+    expect(repository.listMessagesCalls, 2);
 
-      await controller.refreshMessages();
-      expect(controller.sharedHealthCards.single.petName, 'Milo');
-    },
-  );
+    realtime.emitConnection(true);
+    await Future<void>.delayed(Duration.zero);
+    expect(repository.listMessagesCalls, 2);
+  });
 
   test(
     'realtime event applies a message without an extra REST request',
