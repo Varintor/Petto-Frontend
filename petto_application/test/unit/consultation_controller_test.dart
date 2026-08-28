@@ -20,6 +20,8 @@ class _FakeConsultationRepository implements ConsultationRepository {
   bool markedRead = false;
   bool failNextSend = false;
   int listMessagesCalls = 0;
+  int listAppointmentsCalls = 0;
+  int listSharedAssessmentsCalls = 0;
   final appointments = <AppointmentModel>[];
   final sharedAssessments = <SharedAssessmentModel>[];
 
@@ -83,7 +85,10 @@ class _FakeConsultationRepository implements ConsultationRepository {
   @override
   Future<List<SharedAssessmentModel>> listSharedAssessments(
     int consultationId,
-  ) async => List.of(sharedAssessments);
+  ) async {
+    listSharedAssessmentsCalls += 1;
+    return List.of(sharedAssessments);
+  }
 
   @override
   Future<void> revokeAssessment(int consultationId, int assessmentId) async {
@@ -91,8 +96,10 @@ class _FakeConsultationRepository implements ConsultationRepository {
   }
 
   @override
-  Future<List<AppointmentModel>> listAppointments(int consultationId) async =>
-      List.of(appointments);
+  Future<List<AppointmentModel>> listAppointments(int consultationId) async {
+    listAppointmentsCalls += 1;
+    return List.of(appointments);
+  }
 
   @override
   Future<AppointmentModel> proposeAppointment(
@@ -252,11 +259,15 @@ class _ControlledOpenRepository extends _FakeConsultationRepository {
 
 class _FakeHealthCardSharingRepository implements HealthCardSharingRepository {
   final cards = <SharedHealthCardModel>[];
+  int listCalls = 0;
 
   @override
   Future<List<SharedHealthCardModel>> listSharedHealthCards(
     int consultationId,
-  ) async => List.of(cards);
+  ) async {
+    listCalls += 1;
+    return List.of(cards);
+  }
 
   @override
   Future<SharedHealthCardModel> shareHealthCard(int consultationId) async {
@@ -284,6 +295,9 @@ class _FakeHealthCardSharingRepository implements HealthCardSharingRepository {
 
 class _FakeRealtimeGateway implements ConsultationRealtimeGateway {
   Future<void> Function(Map<String, dynamic> record)? onMessageChanged;
+  Future<void> Function()? onAppointmentsChanged;
+  Future<void> Function()? onSharedAssessmentsChanged;
+  Future<void> Function()? onSharedHealthCardsChanged;
   void Function(bool connected)? onConnectionChanged;
   int? consultationId;
   String? accessToken;
@@ -295,11 +309,17 @@ class _FakeRealtimeGateway implements ConsultationRealtimeGateway {
     required String accessToken,
     required Future<void> Function(Map<String, dynamic> record)
     onMessageChanged,
+    required Future<void> Function() onAppointmentsChanged,
+    required Future<void> Function() onSharedAssessmentsChanged,
+    required Future<void> Function() onSharedHealthCardsChanged,
     required void Function(bool connected) onConnectionChanged,
   }) async {
     this.consultationId = consultationId;
     this.accessToken = accessToken;
     this.onMessageChanged = onMessageChanged;
+    this.onAppointmentsChanged = onAppointmentsChanged;
+    this.onSharedAssessmentsChanged = onSharedAssessmentsChanged;
+    this.onSharedHealthCardsChanged = onSharedHealthCardsChanged;
     this.onConnectionChanged = onConnectionChanged;
     onConnectionChanged(true);
   }
@@ -311,6 +331,18 @@ class _FakeRealtimeGateway implements ConsultationRealtimeGateway {
 
   void emitConnection(bool connected) {
     onConnectionChanged?.call(connected);
+  }
+
+  Future<void> emitAppointmentsChanged() async {
+    await onAppointmentsChanged?.call();
+  }
+
+  Future<void> emitSharedAssessmentsChanged() async {
+    await onSharedAssessmentsChanged?.call();
+  }
+
+  Future<void> emitSharedHealthCardsChanged() async {
+    await onSharedHealthCardsChanged?.call();
   }
 }
 
@@ -436,30 +468,75 @@ void main() {
     expect(controller.sharedAssessments, isEmpty);
   });
 
-  test('realtime reconnect reconciles messages exactly once', () async {
-    final repository = _FakeConsultationRepository();
-    final realtime = _FakeRealtimeGateway();
-    final controller = ConsultationController(
-      repository: repository,
-      realtimeGateway: realtime,
-    );
-    await controller.openConsultation(
-      repository.consultation,
-      realtimeAccessToken: 'supabase-access-token',
-    );
+  test(
+    'realtime reconnect reconciles conversation state exactly once',
+    () async {
+      final repository = _FakeConsultationRepository();
+      final realtime = _FakeRealtimeGateway();
+      final controller = ConsultationController(
+        repository: repository,
+        realtimeGateway: realtime,
+      );
+      await controller.openConsultation(
+        repository.consultation,
+        realtimeAccessToken: 'supabase-access-token',
+      );
 
-    expect(repository.listMessagesCalls, 1);
-    realtime.emitConnection(false);
-    realtime.emitConnection(true);
-    await Future<void>.delayed(Duration.zero);
+      expect(repository.listMessagesCalls, 1);
+      realtime.emitConnection(false);
+      realtime.emitConnection(true);
+      await Future<void>.delayed(Duration.zero);
 
-    expect(controller.realtimeConnected, isTrue);
-    expect(repository.listMessagesCalls, 2);
+      expect(controller.realtimeConnected, isTrue);
+      expect(repository.listMessagesCalls, 2);
+      expect(repository.listAppointmentsCalls, 2);
+      expect(repository.listSharedAssessmentsCalls, 2);
 
-    realtime.emitConnection(true);
-    await Future<void>.delayed(Duration.zero);
-    expect(repository.listMessagesCalls, 2);
-  });
+      realtime.emitConnection(true);
+      await Future<void>.delayed(Duration.zero);
+      expect(repository.listMessagesCalls, 2);
+      expect(repository.listAppointmentsCalls, 2);
+      expect(repository.listSharedAssessmentsCalls, 2);
+    },
+  );
+
+  test(
+    'realtime events refresh remote appointment and shared records',
+    () async {
+      final repository = _FakeConsultationRepository();
+      final sharing = _FakeHealthCardSharingRepository();
+      final realtime = _FakeRealtimeGateway();
+      final controller = ConsultationController(
+        repository: repository,
+        healthCardRepository: sharing,
+        realtimeGateway: realtime,
+      );
+      await controller.openConsultation(
+        repository.consultation,
+        realtimeAccessToken: 'supabase-access-token',
+      );
+
+      await repository.proposeAppointment(
+        repository.consultation.id,
+        startsAt: DateTime(2026, 8, 30, 9),
+        reason: 'Remote proposal',
+      );
+      await realtime.emitAppointmentsChanged();
+      expect(controller.appointments.single.reason, 'Remote proposal');
+
+      await repository.shareAssessment(repository.consultation.id, 91);
+      await realtime.emitSharedAssessmentsChanged();
+      expect(controller.sharedAssessments.single.assessmentId, 91);
+
+      await sharing.shareHealthCard(repository.consultation.id);
+      await realtime.emitSharedHealthCardsChanged();
+      expect(controller.sharedHealthCards.single.petName, 'Milo');
+
+      expect(repository.listAppointmentsCalls, 2);
+      expect(repository.listSharedAssessmentsCalls, 2);
+      expect(sharing.listCalls, 2);
+    },
+  );
 
   test(
     'realtime event applies a message without an extra REST request',
