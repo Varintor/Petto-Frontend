@@ -220,6 +220,7 @@ class _PetAvatarPainter extends CustomPainter {
       canvas.save();
       canvas.translate(0, bounce);
       _paintHead(canvas);
+      _paintAccessories(canvas);
       canvas.restore();
       canvas.restore();
       return;
@@ -879,46 +880,400 @@ class _PetAvatarPainter extends CustomPainter {
   }
 
   void _paintAccessories(Canvas canvas) {
+    final equippedSet = equipped.toSet();
+
+    if (equippedSet.contains('acc_hat')) {
+      _paintBeanie(canvas);
+    }
+    if (equippedSet.contains('acc_diploma')) {
+      _paintGraduateCap(canvas);
+    }
+    if (equippedSet.contains('acc_glasses')) {
+      _paintGlasses(canvas);
+    }
+    if (equippedSet.contains('acc_ear_tag')) {
+      _paintEarTag(canvas);
+    }
+    if (headOnly) return;
+
     if (equipped.contains('acc_collar')) {
-      final collar = Path()
-        ..moveTo(68, 136)
-        ..quadraticBezierTo(100, 146, 132, 136);
-      canvas.drawPath(
-        collar,
+      _paintCollar(canvas, charm: _collarCharmFor(equippedSet));
+    }
+    if (equippedSet.contains('acc_doctor_coat')) {
+      _paintDoctorBib(canvas);
+    }
+    if (equippedSet.contains('acc_friendship')) {
+      _paintBandana(canvas);
+    }
+    if (equippedSet.contains('acc_brush')) {
+      _paintHairClip(canvas);
+    }
+    if (equippedSet.contains('acc_water_bowl') ||
+        equippedSet.contains('acc_bowl')) {
+      _paintBowl(canvas, premium: equippedSet.contains('acc_bowl'));
+    }
+    if (equippedSet.contains('acc_ball')) {
+      _paintBall(canvas);
+    }
+    if (equippedSet.contains('acc_camera')) {
+      _paintCameraCharm(canvas);
+    }
+    if (equippedSet.contains('acc_toothbrush')) {
+      _paintToothbrush(canvas);
+    }
+    if (equippedSet.contains('acc_nail_file')) {
+      _paintNailFile(canvas);
+    }
+  }
+
+  String _collarCharmFor(Set<String> equippedSet) {
+    if (equippedSet.contains('acc_heart')) return 'heart';
+    if (equippedSet.contains('acc_scale')) return 'scale';
+    return 'bell';
+  }
+
+  void _paintCollar(Canvas canvas, {required String charm}) {
+    final collar = Path()
+      ..moveTo(68, 136)
+      ..quadraticBezierTo(100, 146, 132, 136);
+    canvas.drawPath(
+      collar,
+      Paint()
+        ..color = const Color(0xFFFF6D86)
+        ..strokeWidth = 8
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round,
+    );
+
+    final charmPaint = Paint()
+      ..color = charm == 'scale'
+          ? const Color(0xFFCFA348)
+          : charm == 'heart'
+          ? const Color(0xFFFF8EA3)
+          : const Color(0xFFFFD54A);
+    if (charm == 'heart') {
+      _paintHeart(canvas, const Offset(100, 144), 7.5, charmPaint.color);
+    } else if (charm == 'scale') {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          const Rect.fromLTWH(92, 137, 16, 13),
+          const Radius.circular(5),
+        ),
+        charmPaint,
+      );
+      canvas.drawLine(
+        const Offset(96, 141),
+        const Offset(104, 141),
         Paint()
-          ..color = const Color(0xFFFF667C)
-          ..strokeWidth = 8
-          ..style = PaintingStyle.stroke
+          ..color = Colors.white.withValues(alpha: 0.9)
+          ..strokeWidth = 1.4
           ..strokeCap = StrokeCap.round,
       );
-      canvas.drawCircle(
-        const Offset(100, 144),
-        7.5,
-        Paint()..color = const Color(0xFFFFD54A),
-      );
+    } else {
+      canvas.drawCircle(const Offset(100, 144), 7.5, charmPaint);
       canvas.drawCircle(
         const Offset(98, 142),
         2,
         Paint()..color = Colors.white,
       );
     }
+  }
 
-    if (equipped.contains('acc_hat')) {
-      final hat = Path()
-        ..moveTo(72, 46)
-        ..quadraticBezierTo(76, 18, 100, 18)
-        ..quadraticBezierTo(124, 18, 128, 46)
-        ..close();
-      canvas.drawPath(hat, Paint()..color = const Color(0xFF4CB7A7));
-      canvas.drawLine(
-        const Offset(64, 46),
-        const Offset(136, 46),
-        Paint()
-          ..color = const Color(0xFF1E6071)
-          ..strokeWidth = 6
-          ..strokeCap = StrokeCap.round,
+  void _paintBeanie(Canvas canvas) {
+    final hat = Path()
+      ..moveTo(72, 48)
+      ..quadraticBezierTo(78, 22, 100, 20)
+      ..quadraticBezierTo(122, 22, 128, 48)
+      ..close();
+    canvas.drawPath(hat, Paint()..color = const Color(0xFF70B8A7));
+    canvas.drawLine(
+      const Offset(64, 48),
+      const Offset(136, 48),
+      Paint()
+        ..color = const Color(0xFF3F7E83)
+        ..strokeWidth = 6
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.drawCircle(const Offset(100, 19), 6, Paint()..color = Colors.white);
+  }
+
+  void _paintGraduateCap(Canvas canvas) {
+    final top = Path()
+      ..moveTo(74, 42)
+      ..lineTo(100, 30)
+      ..lineTo(126, 42)
+      ..lineTo(100, 54)
+      ..close();
+    final capPaint = Paint()..color = const Color(0xFF6F3438);
+    canvas.drawPath(top, capPaint);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(86, 45, 28, 9),
+        const Radius.circular(5),
+      ),
+      capPaint,
+    );
+    canvas.drawLine(
+      const Offset(119, 44),
+      const Offset(125, 58),
+      Paint()
+        ..color = const Color(0xFFFFD46B)
+        ..strokeWidth = 1.8
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.drawCircle(
+      const Offset(125, 59),
+      2.8,
+      Paint()..color = const Color(0xFFFFD46B),
+    );
+  }
+
+  void _paintGlasses(Canvas canvas) {
+    final lens = Paint()
+      ..color = const Color(0xFF4B2B2D).withValues(alpha: 0.92)
+      ..style = PaintingStyle.fill;
+    final shine = Paint()..color = Colors.white.withValues(alpha: 0.42);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(68, 88, 24, 17),
+        const Radius.circular(9),
+      ),
+      lens,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(108, 88, 24, 17),
+        const Radius.circular(9),
+      ),
+      lens,
+    );
+    canvas.drawLine(
+      const Offset(92, 96),
+      const Offset(108, 96),
+      Paint()
+        ..color = const Color(0xFF4B2B2D)
+        ..strokeWidth = 2
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.drawCircle(const Offset(75, 92), 2, shine);
+    canvas.drawCircle(const Offset(115, 92), 2, shine);
+  }
+
+  void _paintEarTag(Canvas canvas) {
+    final tagCenter = isDog ? const Offset(57, 102) : const Offset(79, 50);
+    canvas.drawCircle(tagCenter, 7, Paint()..color = const Color(0xFFFFC85F));
+    canvas.drawCircle(
+      tagCenter.translate(-2, -2),
+      1.8,
+      Paint()..color = Colors.white,
+    );
+  }
+
+  void _paintDoctorBib(Canvas canvas) {
+    final bib = RRect.fromRectAndRadius(
+      const Rect.fromLTWH(78, 134, 44, 40),
+      const Radius.circular(17),
+    );
+    canvas.drawRRect(bib, Paint()..color = Colors.white.withValues(alpha: 0.9));
+    canvas.drawLine(
+      const Offset(100, 142),
+      const Offset(100, 166),
+      Paint()
+        ..color = const Color(0xFFE8D8D4)
+        ..strokeWidth = 1.6,
+    );
+    canvas.drawLine(
+      const Offset(94, 152),
+      const Offset(106, 152),
+      Paint()
+        ..color = const Color(0xFFC84F62)
+        ..strokeWidth = 2.8
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.drawLine(
+      const Offset(100, 146),
+      const Offset(100, 158),
+      Paint()
+        ..color = const Color(0xFFC84F62)
+        ..strokeWidth = 2.8
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+
+  void _paintBandana(Canvas canvas) {
+    final bandana = Path()
+      ..moveTo(78, 136)
+      ..quadraticBezierTo(100, 150, 122, 136)
+      ..lineTo(104, 166)
+      ..quadraticBezierTo(100, 171, 96, 166)
+      ..close();
+    canvas.drawPath(bandana, Paint()..color = const Color(0xFFFF9AA9));
+    canvas.drawCircle(
+      const Offset(100, 151),
+      2.4,
+      Paint()..color = Colors.white.withValues(alpha: 0.8),
+    );
+  }
+
+  void _paintHairClip(Canvas canvas) {
+    canvas.save();
+    canvas.translate(75, 61);
+    canvas.rotate(-0.36);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(-13, -4, 26, 8),
+        const Radius.circular(5),
+      ),
+      Paint()..color = const Color(0xFFFFB86F),
+    );
+    canvas.drawCircle(const Offset(-7, 0), 2, Paint()..color = Colors.white);
+    canvas.drawCircle(const Offset(7, 0), 2, Paint()..color = Colors.white);
+    canvas.restore();
+  }
+
+  void _paintBowl(Canvas canvas, {required bool premium}) {
+    final base = premium ? const Color(0xFFFFC8A8) : const Color(0xFFBFE2D5);
+    canvas.drawOval(
+      const Rect.fromLTWH(132, 170, 42, 10),
+      Paint()..color = Colors.black.withValues(alpha: 0.08),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(130, 158, 46, 19),
+        const Radius.circular(9),
+      ),
+      Paint()..color = base,
+    );
+    canvas.drawOval(
+      const Rect.fromLTWH(130, 154, 46, 13),
+      Paint()..color = _shade(base, 0.08),
+    );
+    if (premium) {
+      canvas.drawCircle(
+        const Offset(153, 165),
+        2.3,
+        Paint()..color = Colors.white,
       );
     }
+  }
+
+  void _paintBall(Canvas canvas) {
+    canvas.drawCircle(
+      const Offset(43, 166),
+      13,
+      Paint()..color = const Color(0xFFFFD66E),
+    );
+    canvas.drawArc(
+      const Rect.fromLTWH(31, 154, 24, 24),
+      -0.9,
+      2.1,
+      false,
+      Paint()
+        ..color = const Color(0xFFFF8B98)
+        ..strokeWidth = 3
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.drawCircle(
+      const Offset(38, 160),
+      2,
+      Paint()..color = Colors.white.withValues(alpha: 0.8),
+    );
+  }
+
+  void _paintCameraCharm(Canvas canvas) {
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(136, 126, 24, 18),
+        const Radius.circular(6),
+      ),
+      Paint()..color = const Color(0xFF8F4A50),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(141, 121, 10, 7),
+        const Radius.circular(4),
+      ),
+      Paint()..color = const Color(0xFF8F4A50),
+    );
+    canvas.drawCircle(const Offset(148, 135), 5, Paint()..color = Colors.white);
+    canvas.drawCircle(
+      const Offset(148, 135),
+      2.5,
+      Paint()..color = const Color(0xFF8F4A50),
+    );
+  }
+
+  void _paintToothbrush(Canvas canvas) {
+    canvas.save();
+    canvas.translate(145, 118);
+    canvas.rotate(-0.58);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(-2, -4, 30, 5),
+        const Radius.circular(3),
+      ),
+      Paint()..color = const Color(0xFF79C9C0),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(23, -8, 10, 10),
+        const Radius.circular(3),
+      ),
+      Paint()..color = Colors.white,
+    );
+    canvas.restore();
+  }
+
+  void _paintNailFile(Canvas canvas) {
+    canvas.save();
+    canvas.translate(57, 156);
+    canvas.rotate(-0.42);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(-4, -18, 8, 36),
+        const Radius.circular(5),
+      ),
+      Paint()..color = const Color(0xFFE9A1AE),
+    );
+    canvas.drawLine(
+      const Offset(0, -11),
+      const Offset(0, 10),
+      Paint()
+        ..color = Colors.white.withValues(alpha: 0.55)
+        ..strokeWidth = 1.2,
+    );
+    canvas.restore();
+  }
+
+  void _paintHeart(Canvas canvas, Offset center, double size, Color color) {
+    final path = Path();
+    final s = size / 10;
+    path
+      ..moveTo(center.dx, center.dy + 5.5 * s)
+      ..cubicTo(
+        center.dx - 11 * s,
+        center.dy - 1 * s,
+        center.dx - 6 * s,
+        center.dy - 9 * s,
+        center.dx,
+        center.dy - 4 * s,
+      )
+      ..cubicTo(
+        center.dx + 6 * s,
+        center.dy - 9 * s,
+        center.dx + 11 * s,
+        center.dy - 1 * s,
+        center.dx,
+        center.dy + 5.5 * s,
+      )
+      ..close();
+    canvas.drawPath(path, Paint()..color = color);
+    canvas.drawCircle(
+      center.translate(-2.2, -1.6),
+      1.4,
+      Paint()..color = Colors.white.withValues(alpha: 0.75),
+    );
   }
 
   Color _shade(Color base, double delta) {

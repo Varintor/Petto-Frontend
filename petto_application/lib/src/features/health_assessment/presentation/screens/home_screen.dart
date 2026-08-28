@@ -1241,7 +1241,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return species.toLowerCase() == 'dog'
         ? const _PetAppearanceData(
             species: 'Dog',
-            colorHex: '#C47A45',
+            colorHex: '#D88F62',
             eyeType: 'default',
             mouthType: 'smile',
             pattern: 'none',
@@ -1249,7 +1249,7 @@ class _HomeScreenState extends State<HomeScreen> {
           )
         : const _PetAppearanceData(
             species: 'Cat',
-            colorHex: '#9F3E43',
+            colorHex: '#D87986',
             eyeType: 'default',
             mouthType: 'smile',
             pattern: 'none',

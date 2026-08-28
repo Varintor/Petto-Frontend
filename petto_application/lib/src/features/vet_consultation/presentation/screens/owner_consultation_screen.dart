@@ -206,44 +206,20 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
     if (!mounted) return;
     await showModalBottomSheet<void>(
       context: context,
-      showDragHandle: true,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      showDragHandle: false,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.42),
       builder: (sheetContext) {
         final vets = controller.providerVets;
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  provider.name,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 4),
-                const Text('Choose an available Petto veterinarian'),
-                const SizedBox(height: 14),
-                if (vets.isEmpty)
-                  const _EmptyCard(
-                    message: 'No veterinarian is available for consultation.',
-                  )
-                else
-                  for (final vet in vets)
-                    ListTile(
-                      leading: const CircleAvatar(
-                        child: Icon(Icons.medical_services_rounded),
-                      ),
-                      title: Text(vet.name),
-                      subtitle: Text(vet.specialty ?? 'Veterinarian'),
-                      trailing: const Icon(Icons.chevron_right_rounded),
-                      onTap: () {
-                        Navigator.of(sheetContext).pop();
-                        _startConsultation(vet, provider: provider);
-                      },
-                    ),
-              ],
-            ),
-          ),
+        return _VetPickerSheet(
+          provider: provider,
+          vets: vets,
+          onVetSelected: (vet) {
+            Navigator.of(sheetContext).pop();
+            _startConsultation(vet, provider: provider);
+          },
         );
       },
     );
@@ -324,48 +300,33 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
     if (controller.loading &&
         controller.vets.isEmpty &&
         controller.consultations.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: _AssistantLoading());
     }
     return RefreshIndicator(
       onRefresh: _loadWorkspace,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(24, 12, 24, 150),
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(24, 10, 24, 150),
         children: [
-          const Text(
-            'Veterinary Consultation',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w900,
-              color: AppTheme.secondaryText,
-            ),
+          _AssistantHero(
+            petName: widget.petName,
+            consultationCount: controller.consultations.length,
+            onlineCount: controller.vets.where((vet) => vet.isOnline).length,
           ),
-          const SizedBox(height: 6),
-          Text(
-            'Persistent conversations for ${widget.petName}',
-            style: const TextStyle(color: AppTheme.mutedText),
-          ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: OutlinedButton.icon(
-              onPressed: _locating ? null : _useCurrentLocation,
-              icon: _locating
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.my_location_rounded),
-              label: const Text('Use my location'),
-            ),
+          const SizedBox(height: 16),
+          _AssistantQuickActions(
+            locating: _locating,
+            showMap: _showMap,
+            hasProviders: controller.providers.isNotEmpty,
+            onUseLocation: _useCurrentLocation,
+            onToggleMap: controller.providers.isEmpty
+                ? null
+                : () => setState(() => _showMap = !_showMap),
           ),
           if (_locationHint != null)
             Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text(
-                _locationHint!,
-                style: const TextStyle(color: AppTheme.mutedText),
-              ),
+              padding: const EdgeInsets.only(top: 10),
+              child: _SoftNotice(text: _locationHint!),
             ),
           if (controller.error != null) ...[
             const SizedBox(height: 12),
@@ -373,24 +334,18 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
           ],
           if (widget.latestAssessmentId != null) ...[
             const SizedBox(height: 14),
-            SwitchListTile.adaptive(
+            _ShareAssessmentCard(
               value: _includeLatestAssessment,
               onChanged: (value) =>
                   setState(() => _includeLatestAssessment = value),
-              title: const Text('Share latest AI health assessment'),
-              subtitle: const Text(
-                'The selected veterinarian receives the complete saved result.',
-              ),
-              secondary: const Icon(Icons.auto_awesome_rounded),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              tileColor: AppTheme.primaryColor.withValues(alpha: 0.06),
             ),
           ],
           if (controller.consultations.isNotEmpty) ...[
-            const SizedBox(height: 22),
-            const _SectionLabel('Existing consultations'),
+            const SizedBox(height: 24),
+            _SectionLabel(
+              'Recent conversations',
+              action: '${controller.consultations.length} active',
+            ),
             const SizedBox(height: 10),
             for (final consultation in controller.consultations)
               _ConsultationCard(
@@ -398,43 +353,36 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
                 onTap: () => _openConsultation(consultation),
               ),
           ],
-          const SizedBox(height: 22),
-          const _SectionLabel('Nearby hospitals and clinics'),
+          const SizedBox(height: 24),
+          _SectionLabel(
+            'Care team',
+            action: _showMap && controller.providers.isNotEmpty
+                ? 'Map view'
+                : 'Ready',
+          ),
           const SizedBox(height: 10),
-          if (controller.providers.isNotEmpty) ...[
-            SegmentedButton<bool>(
-              segments: const [
-                ButtonSegment(
-                  value: false,
-                  icon: Icon(Icons.view_list_rounded),
-                  label: Text('List'),
-                ),
-                ButtonSegment(
-                  value: true,
-                  icon: Icon(Icons.map_rounded),
-                  label: Text('Map'),
-                ),
-              ],
-              selected: {_showMap},
-              onSelectionChanged: (selection) {
-                setState(() => _showMap = selection.first);
-              },
-            ),
-            const SizedBox(height: 12),
-          ],
           if (controller.providers.isEmpty && controller.vets.isEmpty)
             const _EmptyCard(
               message: 'No veterinary provider is listed right now.',
             )
           else if (_showMap && controller.providers.isNotEmpty)
-            SizedBox(
+            Container(
               height: 430,
-              child: ProviderMapView(
-                providers: controller.providers,
-                userLatitude: _userLatitude,
-                userLongitude: _userLongitude,
-                loadTiles: widget.loadMapTiles,
-                onProviderTap: _showProviderDetails,
+              margin: const EdgeInsets.only(bottom: 12),
+              clipBehavior: Clip.antiAlias,
+              decoration: AppTheme.glassCardDecoration(
+                borderRadius: BorderRadius.circular(34),
+                borderColor: AppTheme.primaryColor.withValues(alpha: 0.08),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(32),
+                child: ProviderMapView(
+                  providers: controller.providers,
+                  userLatitude: _userLatitude,
+                  userLongitude: _userLongitude,
+                  loadTiles: widget.loadMapTiles,
+                  onProviderTap: _showProviderDetails,
+                ),
               ),
             )
           else if (controller.providers.isNotEmpty)
@@ -471,161 +419,758 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-          child: Row(
-            children: [
-              IconButton(
-                tooltip: 'Back to consultations',
-                onPressed: controller.closeActiveConsultation,
-                icon: const Icon(Icons.arrow_back_rounded),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      consultation.vetName ??
-                          'Veterinarian #${consultation.vetId}',
-                      style: const TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.w900,
+          padding: const EdgeInsets.fromLTRB(18, 10, 18, 8),
+          child: _ChatHeaderCard(
+            consultation: consultation,
+            petName: widget.petName,
+            realtimeConnected: controller.realtimeConnected,
+            sharingHealthCard: controller.sharingHealthCard,
+            onBack: controller.closeActiveConsultation,
+            onRefresh: controller.loading ? null : controller.refreshMessages,
+            onShareHealthCard: controller.sharingHealthCard
+                ? null
+                : () async {
+                    final shared = await controller.shareHealthCard();
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          shared
+                              ? 'Pet Health ID shared with this veterinarian.'
+                              : 'Could not share Pet Health ID.',
+                        ),
                       ),
-                    ),
-                    Text(
-                      '${widget.petName} • ${consultation.status}',
-                      style: const TextStyle(color: AppTheme.mutedText),
-                    ),
-                    Text(
-                      controller.realtimeConnected
-                          ? '● Realtime connected'
-                          : '● Reconnecting • polling active',
-                      key: const Key('owner-chat-connection-status'),
-                      style: TextStyle(
-                        color: controller.realtimeConnected
-                            ? Colors.green.shade700
-                            : Colors.orange.shade800,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                tooltip: 'Share Pet Health ID',
-                onPressed: controller.sharingHealthCard
-                    ? null
-                    : () async {
-                        final shared = await controller.shareHealthCard();
-                        if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              shared
-                                  ? 'Pet Health ID shared with this veterinarian.'
-                                  : 'Could not share Pet Health ID.',
-                            ),
-                          ),
-                        );
-                      },
-                icon: controller.sharingHealthCard
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.badge_rounded),
-              ),
-              IconButton(
-                tooltip: 'Refresh messages',
-                onPressed: controller.loading
-                    ? null
-                    : controller.refreshMessages,
-                icon: const Icon(Icons.refresh_rounded),
-              ),
-            ],
+                    );
+                  },
           ),
+        ),
+        KeyedSubtree(
+          key: const Key('owner-chat-connection-status'),
+          child: const SizedBox.shrink(),
         ),
         if (controller.error != null)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18),
-            child: Text(
-              controller.error!,
-              style: const TextStyle(color: Colors.redAccent),
+            child: _SoftNotice(
+              text: controller.error!,
+              icon: Icons.error_outline_rounded,
+              tint: AppTheme.dangerColor,
             ),
           ),
         Expanded(
-          child:
-              controller.loading &&
-                  controller.messages.isEmpty &&
-                  controller.appointments.isEmpty
-              ? const Center(child: CircularProgressIndicator())
-              : controller.messages.isEmpty && controller.appointments.isEmpty
-              ? const _EmptyCard(message: 'No messages yet. Say hello.')
-              : ListView(
-                  controller: _conversationScrollController,
-                  padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
-                  children: [
-                    for (final sharedCard in controller.sharedHealthCards)
-                      SharedHealthCardPanel(
-                        card: sharedCard,
-                        onRevoke: () =>
-                            controller.revokeHealthCard(sharedCard.id),
-                      ),
-                    for (final appointment in controller.appointments)
-                      ConsultationAppointmentCard(
-                        appointment: appointment,
-                        busy: _respondingAppointmentId == appointment.id,
-                        onAccept: appointment.isPending
-                            ? () => _decideAppointment(appointment, 'accepted')
-                            : null,
-                        onDecline: appointment.isPending
-                            ? () => _decideAppointment(appointment, 'declined')
-                            : null,
-                      ),
-                    for (final message in controller.messages)
-                      _OwnerMessageBubble(message),
-                  ],
-                ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 8, 18, 4),
+            child: _ChatSurface(
+              child:
+                  controller.loading &&
+                      controller.messages.isEmpty &&
+                      controller.appointments.isEmpty
+                  ? const Center(
+                      child: _AssistantLoading(label: 'Opening chat'),
+                    )
+                  : controller.messages.isEmpty &&
+                        controller.appointments.isEmpty
+                  ? _ChatEmptyState(petName: widget.petName)
+                  : ListView(
+                      controller: _conversationScrollController,
+                      physics: const ClampingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
+                      children: [
+                        for (final sharedCard in controller.sharedHealthCards)
+                          SharedHealthCardPanel(
+                            card: sharedCard,
+                            onRevoke: () =>
+                                controller.revokeHealthCard(sharedCard.id),
+                          ),
+                        for (final appointment in controller.appointments)
+                          ConsultationAppointmentCard(
+                            appointment: appointment,
+                            busy: _respondingAppointmentId == appointment.id,
+                            onAccept: appointment.isPending
+                                ? () => _decideAppointment(
+                                    appointment,
+                                    'accepted',
+                                  )
+                                : null,
+                            onDecline: appointment.isPending
+                                ? () => _decideAppointment(
+                                    appointment,
+                                    'declined',
+                                  )
+                                : null,
+                          ),
+                        for (final message in controller.messages)
+                          _OwnerMessageBubble(message),
+                      ],
+                    ),
+            ),
+          ),
         ),
         SafeArea(
           top: false,
           child: Padding(
-            // HomeScreen draws its persistent navigation bar above the active
-            // feature view. Keep the composer above that bar so sending a
-            // message remains possible on phones and the web demo.
-            padding: const EdgeInsets.fromLTRB(18, 8, 18, 104),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    enabled: !_sending,
-                    textInputAction: TextInputAction.send,
-                    onSubmitted: (_) => _sendMessage(),
-                    decoration: const InputDecoration(
-                      hintText: 'Type a message...',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                IconButton.filled(
-                  onPressed: _sending ? null : _sendMessage,
-                  icon: _sending
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.send_rounded),
-                ),
-              ],
+            padding: const EdgeInsets.fromLTRB(18, 8, 18, 100),
+            child: _MessageComposer(
+              controller: _messageController,
+              sending: _sending,
+              onSend: _sendMessage,
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _AssistantHero extends StatelessWidget {
+  const _AssistantHero({
+    required this.petName,
+    required this.consultationCount,
+    required this.onlineCount,
+  });
+
+  final String petName;
+  final int consultationCount;
+  final int onlineCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryColor,
+        borderRadius: BorderRadius.circular(34),
+        boxShadow: AppTheme.cardShadow,
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            right: -8,
+            top: -10,
+            child: _SoftCircle(
+              size: 82,
+              color: Colors.white.withValues(alpha: 0.08),
+            ),
+          ),
+          Positioned(
+            right: 58,
+            bottom: -16,
+            child: _SoftCircle(
+              size: 34,
+              color: AppTheme.accentColor.withValues(alpha: 0.22),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const _SoftPulse(child: _HeroIcon()),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Assistant',
+                          style: Theme.of(context).textTheme.headlineMedium
+                              ?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Care support for $petName',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Colors.white.withValues(alpha: 0.76),
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: _HeroStat(
+                      label: 'Online vets',
+                      value: '$onlineCount',
+                      icon: Icons.support_agent_rounded,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _HeroStat(
+                      label: 'Chats',
+                      value: '$consultationCount',
+                      icon: Icons.forum_rounded,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeroIcon extends StatelessWidget {
+  const _HeroIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 58,
+      height: 58,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: const Icon(
+        Icons.health_and_safety_rounded,
+        color: AppTheme.primaryColor,
+        size: 28,
+      ),
+    );
+  }
+}
+
+class _HeroStat extends StatelessWidget {
+  const _HeroStat({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white, size: 18),
+          const SizedBox(width: 8),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: Colors.white.withValues(alpha: 0.72),
+                letterSpacing: 0,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AssistantQuickActions extends StatelessWidget {
+  const _AssistantQuickActions({
+    required this.locating,
+    required this.showMap,
+    required this.hasProviders,
+    required this.onUseLocation,
+    required this.onToggleMap,
+  });
+
+  final bool locating;
+  final bool showMap;
+  final bool hasProviders;
+  final VoidCallback onUseLocation;
+  final VoidCallback? onToggleMap;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final stacked = constraints.maxWidth < 360;
+        final locationPill = _MiniActionPill(
+          icon: Icons.my_location_rounded,
+          label: locating ? 'Locating' : 'Use my location',
+          tint: AppTheme.primaryColor,
+          busy: locating,
+          onTap: locating ? null : onUseLocation,
+        );
+        final mapPill = _MiniActionPill(
+          icon: showMap ? Icons.view_list_rounded : Icons.map_rounded,
+          label: showMap ? 'List' : 'Map',
+          tint: AppTheme.accentColor,
+          muted: !hasProviders,
+          onTap: onToggleMap,
+        );
+
+        if (stacked) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [locationPill, const SizedBox(height: 10), mapPill],
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: locationPill),
+            const SizedBox(width: 10),
+            Expanded(child: mapPill),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _MiniActionPill extends StatelessWidget {
+  const _MiniActionPill({
+    required this.icon,
+    required this.label,
+    required this.tint,
+    this.onTap,
+    this.busy = false,
+    this.muted = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color tint;
+  final VoidCallback? onTap;
+  final bool busy;
+  final bool muted;
+
+  @override
+  Widget build(BuildContext context) {
+    final active = onTap != null && !muted;
+    return OutlinedButton(
+      onPressed: onTap,
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(0, 58),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        backgroundColor: active
+            ? AppTheme.surfaceColor.withValues(alpha: 0.98)
+            : AppTheme.surfaceColor.withValues(alpha: 0.68),
+        side: BorderSide(color: tint.withValues(alpha: active ? 0.18 : 0.08)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: tint.withValues(alpha: active ? 0.12 : 0.06),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: busy
+                  ? SizedBox(
+                      width: 15,
+                      height: 15,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: tint,
+                      ),
+                    )
+                  : Icon(icon, color: tint, size: 18),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: active ? AppTheme.secondaryText : AppTheme.mutedText,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShareAssessmentCard extends StatelessWidget {
+  const _ShareAssessmentCard({required this.value, required this.onChanged});
+
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: AppTheme.motionNormal,
+      curve: AppTheme.motionCurve,
+      padding: const EdgeInsets.fromLTRB(14, 13, 12, 13),
+      decoration: AppTheme.glassCardDecoration(
+        color: value
+            ? AppTheme.primaryColor.withValues(alpha: 0.08)
+            : AppTheme.surfaceColor.withValues(alpha: 0.96),
+        borderRadius: BorderRadius.circular(28),
+        borderColor: AppTheme.primaryColor.withValues(
+          alpha: value ? 0.22 : 0.1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: value
+                  ? AppTheme.primaryColor
+                  : AppTheme.primaryColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Icon(
+              Icons.assignment_turned_in_rounded,
+              color: value ? Colors.white : AppTheme.primaryColor,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Share latest AI check',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: AppTheme.secondaryText,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Send the saved result as context.',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: AppTheme.mutedText),
+                ),
+              ],
+            ),
+          ),
+          Switch.adaptive(
+            value: value,
+            activeThumbColor: AppTheme.primaryColor,
+            activeTrackColor: AppTheme.primaryColor.withValues(alpha: 0.22),
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SoftNotice extends StatelessWidget {
+  const _SoftNotice({
+    required this.text,
+    this.icon = Icons.info_outline_rounded,
+    this.tint = AppTheme.primaryColor,
+  });
+
+  final String text;
+  final IconData icon;
+  final Color tint;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      decoration: BoxDecoration(
+        color: tint.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: tint.withValues(alpha: 0.12)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: tint),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Text(
+              text,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppTheme.secondaryText.withValues(alpha: 0.76),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SoftCircle extends StatelessWidget {
+  const _SoftCircle({required this.size, required this.color});
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    );
+  }
+}
+
+class _SoftPulse extends StatefulWidget {
+  const _SoftPulse({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_SoftPulse> createState() => _SoftPulseState();
+}
+
+class _SoftPulseState extends State<_SoftPulse>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    );
+    _scale = Tween<double>(
+      begin: 0.985,
+      end: 1.025,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+    _controller.forward().then((_) {
+      if (!mounted) return;
+      _controller.reverse();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(scale: _scale, child: widget.child);
+  }
+}
+
+class _VetPickerSheet extends StatelessWidget {
+  const _VetPickerSheet({
+    required this.provider,
+    required this.vets,
+    required this.onVetSelected,
+  });
+
+  final VeterinaryProviderModel provider;
+  final List<VetModel> vets;
+  final ValueChanged<VetModel> onVetSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(14, 0, 14, bottomInset + 14),
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: Container(
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceColor,
+                borderRadius: BorderRadius.circular(34),
+                border: Border.all(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.12),
+                  width: 1.4,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.18),
+                    blurRadius: 28,
+                    offset: const Offset(0, -8),
+                  ),
+                ],
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(18, 10, 18, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 54,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Container(
+                          width: 58,
+                          height: 58,
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor,
+                            borderRadius: BorderRadius.circular(22),
+                          ),
+                          child: const Icon(
+                            Icons.local_hospital_rounded,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 13),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                provider.name,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(
+                                      color: AppTheme.secondaryText,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                'Choose an available Petto veterinarian',
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color: AppTheme.mutedText,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    if (vets.isEmpty)
+                      const _EmptyCard(
+                        message:
+                            'No veterinarian is available for consultation.',
+                      )
+                    else
+                      for (final vet in vets)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: _VetChoiceTile(
+                            vet: vet,
+                            onTap: () => onVetSelected(vet),
+                          ),
+                        ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _VetChoiceTile extends StatelessWidget {
+  const _VetChoiceTile({required this.vet, required this.onTap});
+
+  final VetModel vet;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: AppTheme.glassCardDecoration(
+        color: AppTheme.primaryColor.withValues(alpha: 0.055),
+        borderRadius: BorderRadius.circular(24),
+        borderColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+        hasShadow: false,
+      ),
+      child: ListTile(
+        onTap: onTap,
+        contentPadding: const EdgeInsets.fromLTRB(12, 8, 10, 8),
+        leading: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: AppTheme.primaryColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: const Icon(
+            Icons.medical_services_rounded,
+            color: AppTheme.primaryColor,
+          ),
+        ),
+        title: Text(
+          vet.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: AppTheme.secondaryText,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        subtitle: Text(
+          vet.specialty ?? 'Veterinarian',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: AppTheme.mutedText,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        trailing: Container(
+          width: 38,
+          height: 38,
+          decoration: const BoxDecoration(
+            color: AppTheme.primaryColor,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.chevron_right_rounded, color: Colors.white),
+        ),
+      ),
     );
   }
 }
@@ -649,18 +1194,35 @@ class _ProviderCard extends StatelessWidget {
       if (provider.phone?.trim().isNotEmpty == true) provider.phone!,
       if (provider.todayHours != null) 'Today ${provider.todayHours}',
     ];
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
+      decoration: AppTheme.glassCardDecoration(
+        color: AppTheme.surfaceColor.withValues(alpha: 0.98),
+        borderRadius: BorderRadius.circular(30),
+        borderColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(15),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                CircleAvatar(
-                  backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-                  child: const Icon(Icons.local_hospital_rounded),
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: provider.consultationEnabled
+                        ? AppTheme.primaryColor
+                        : AppTheme.primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Icon(
+                    Icons.local_hospital_rounded,
+                    color: provider.consultationEnabled
+                        ? Colors.white
+                        : AppTheme.primaryColor,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -669,7 +1231,10 @@ class _ProviderCard extends StatelessWidget {
                     children: [
                       Text(
                         provider.name,
-                        style: const TextStyle(fontWeight: FontWeight.w900),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w900),
                       ),
                       Text(
                         provider.consultationEnabled
@@ -677,7 +1242,7 @@ class _ProviderCard extends StatelessWidget {
                             : 'Information only',
                         style: TextStyle(
                           color: provider.consultationEnabled
-                              ? Colors.green
+                              ? AppTheme.successColor
                               : AppTheme.mutedText,
                           fontWeight: FontWeight.w800,
                         ),
@@ -702,18 +1267,19 @@ class _ProviderCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton.icon(
+                  child: _CompactActionButton(
                     onPressed: onDirections,
                     icon: const Icon(Icons.directions_rounded),
-                    label: const Text('Directions'),
+                    label: 'Directions',
+                    outlined: true,
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: FilledButton.icon(
+                  child: _CompactActionButton(
                     onPressed: onConsult,
                     icon: const Icon(Icons.forum_rounded),
-                    label: Text(onConsult == null ? 'Unavailable' : 'Consult'),
+                    label: onConsult == null ? 'Unavailable' : 'Consult',
                   ),
                 ),
               ],
@@ -726,14 +1292,51 @@ class _ProviderCard extends StatelessWidget {
 }
 
 class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
+  const _SectionLabel(this.text, {this.action});
   final String text;
+  final String? action;
 
   @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
-  );
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 5,
+          height: 26,
+          decoration: BoxDecoration(
+            color: AppTheme.primaryColor,
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: AppTheme.secondaryText,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        if (action != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              action!,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 }
 
 class _ConsultationCard extends StatelessWidget {
@@ -742,19 +1345,61 @@ class _ConsultationCard extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Card(
-    child: ListTile(
+  Widget build(BuildContext context) {
+    return InkWell(
       onTap: onTap,
-      leading: const CircleAvatar(child: Icon(Icons.forum_rounded)),
-      title: Text(
-        consultation.vetName ?? 'Veterinarian #${consultation.vetId}',
+      borderRadius: BorderRadius.circular(28),
+      child: Ink(
+        padding: const EdgeInsets.all(14),
+        decoration: AppTheme.glassCardDecoration(
+          color: AppTheme.surfaceColor.withValues(alpha: 0.98),
+          borderRadius: BorderRadius.circular(28),
+          borderColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(19),
+              ),
+              child: const Icon(
+                Icons.forum_rounded,
+                color: AppTheme.primaryColor,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    consultation.vetName ??
+                        'Veterinarian #${consultation.vetId}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${consultation.status} • ${consultation.providerName ?? 'Petto'}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: AppTheme.mutedText),
+          ],
+        ),
       ),
-      subtitle: Text(
-        '${consultation.status} • ${consultation.providerName ?? 'Petto'}',
-      ),
-      trailing: const Icon(Icons.chevron_right_rounded),
-    ),
-  );
+    );
+  }
 }
 
 class _VetCard extends StatelessWidget {
@@ -768,26 +1413,492 @@ class _VetCard extends StatelessWidget {
   final VoidCallback onStart;
 
   @override
-  Widget build(BuildContext context) => Card(
-    margin: const EdgeInsets.only(bottom: 10),
-    child: ListTile(
-      leading: CircleAvatar(
-        backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-        child: const Icon(Icons.medical_services_rounded),
+  Widget build(BuildContext context) {
+    final details = [
+      vet.specialty,
+      vet.clinicName,
+    ].whereType<String>().join(' • ');
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: AppTheme.glassCardDecoration(
+        color: AppTheme.surfaceColor.withValues(alpha: 0.98),
+        borderRadius: BorderRadius.circular(30),
+        borderColor: AppTheme.primaryColor.withValues(alpha: 0.1),
       ),
-      title: Text(
-        vet.name,
-        style: const TextStyle(fontWeight: FontWeight.w900),
+      child: ListTile(
+        onTap: busy ? null : onStart,
+        contentPadding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        leading: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(
+                Icons.medical_services_rounded,
+                color: AppTheme.primaryColor,
+              ),
+            ),
+            Positioned(
+              right: -2,
+              bottom: -2,
+              child: Container(
+                width: 13,
+                height: 13,
+                decoration: BoxDecoration(
+                  color: vet.isOnline
+                      ? AppTheme.successColor
+                      : AppTheme.mutedText.withValues(alpha: 0.42),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppTheme.surfaceColor, width: 2),
+                ),
+              ),
+            ),
+          ],
+        ),
+        title: Text(
+          vet.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+        ),
+        subtitle: Text(
+          details.isEmpty ? 'Petto veterinarian' : details,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        trailing: SizedBox(
+          width: 104,
+          child: _CompactActionButton(
+            onPressed: busy ? null : onStart,
+            icon: const Icon(Icons.chat_bubble_rounded),
+            label: 'Consult',
+          ),
+        ),
       ),
-      subtitle: Text(
-        [vet.specialty, vet.clinicName].whereType<String>().join(' • '),
+    );
+  }
+}
+
+class _CompactActionButton extends StatelessWidget {
+  const _CompactActionButton({
+    required this.onPressed,
+    required this.icon,
+    required this.label,
+    this.outlined = false,
+  });
+
+  final VoidCallback? onPressed;
+  final Widget icon;
+  final String label;
+  final bool outlined;
+
+  @override
+  Widget build(BuildContext context) {
+    final child = Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconTheme.merge(data: const IconThemeData(size: 17), child: icon),
+        const SizedBox(width: 7),
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w900),
+          ),
+        ),
+      ],
+    );
+    final style = outlined
+        ? OutlinedButton.styleFrom(
+            minimumSize: const Size(0, 48),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+            ),
+          )
+        : FilledButton.styleFrom(
+            minimumSize: const Size(0, 48),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+            ),
+          );
+    return outlined
+        ? OutlinedButton(onPressed: onPressed, style: style, child: child)
+        : FilledButton(onPressed: onPressed, style: style, child: child);
+  }
+}
+
+class _ChatHeaderCard extends StatelessWidget {
+  const _ChatHeaderCard({
+    required this.consultation,
+    required this.petName,
+    required this.realtimeConnected,
+    required this.sharingHealthCard,
+    required this.onBack,
+    required this.onRefresh,
+    required this.onShareHealthCard,
+  });
+
+  final ConsultationModel consultation;
+  final String petName;
+  final bool realtimeConnected;
+  final bool sharingHealthCard;
+  final VoidCallback onBack;
+  final VoidCallback? onRefresh;
+  final VoidCallback? onShareHealthCard;
+
+  @override
+  Widget build(BuildContext context) {
+    final statusText = realtimeConnected ? 'Online now' : 'Manual refresh';
+    final statusColor = realtimeConnected
+        ? AppTheme.successColor
+        : AppTheme.accentColor;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 8, 10, 8),
+      decoration: AppTheme.glassCardDecoration(
+        color: AppTheme.surfaceColor.withValues(alpha: 0.98),
+        borderRadius: BorderRadius.circular(28),
+        borderColor: AppTheme.primaryColor.withValues(alpha: 0.12),
+        hasShadow: false,
       ),
-      trailing: FilledButton(
-        onPressed: busy ? null : onStart,
-        child: const Text('Consult'),
+      child: Row(
+        children: [
+          _RoundIconButton(
+            icon: Icons.arrow_back_rounded,
+            onTap: onBack,
+            tooltip: 'Back',
+          ),
+          const SizedBox(width: 8),
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.18),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: const Icon(Icons.support_agent_rounded, color: Colors.white),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  consultation.vetName ?? 'Petto Assistant',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: AppTheme.secondaryText,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: statusColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        statusText,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: AppTheme.mutedText,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 6),
+          _RoundIconButton(
+            icon: sharingHealthCard
+                ? Icons.hourglass_top_rounded
+                : Icons.health_and_safety_rounded,
+            onTap: onShareHealthCard,
+            tooltip: 'Share health card',
+          ),
+          const SizedBox(width: 6),
+          _RoundIconButton(
+            icon: Icons.refresh_rounded,
+            onTap: onRefresh,
+            tooltip: 'Refresh',
+          ),
+        ],
       ),
-    ),
-  );
+    );
+  }
+}
+
+class _RoundIconButton extends StatelessWidget {
+  const _RoundIconButton({
+    required this.icon,
+    required this.onTap,
+    required this.tooltip,
+  });
+
+  final IconData icon;
+  final VoidCallback? onTap;
+  final String tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(18),
+        child: Ink(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: enabled
+                ? AppTheme.primaryColor.withValues(alpha: 0.08)
+                : AppTheme.primaryColor.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: AppTheme.primaryColor.withValues(
+                alpha: enabled ? 0.12 : 0.06,
+              ),
+            ),
+          ),
+          child: Icon(
+            icon,
+            color: enabled ? AppTheme.primaryColor : AppTheme.mutedText,
+            size: 22,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MessageComposer extends StatelessWidget {
+  const _MessageComposer({
+    required this.controller,
+    required this.sending,
+    required this.onSend,
+  });
+
+  final TextEditingController controller;
+  final bool sending;
+  final VoidCallback onSend;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor,
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(
+          color: AppTheme.primaryColor.withValues(alpha: 0.16),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryColor.withValues(alpha: 0.09),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.chat_bubble_outline_rounded,
+              color: AppTheme.primaryColor,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              minLines: 1,
+              maxLines: 4,
+              textInputAction: TextInputAction.newline,
+              decoration: const InputDecoration(
+                hintText: 'Type a message...',
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(vertical: 10),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilledButton(
+            onPressed: sending ? null : onSend,
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(46, 46),
+              padding: EdgeInsets.zero,
+              shape: const CircleBorder(),
+            ),
+            child: sending
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.send_rounded, size: 20),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChatSurface extends StatelessWidget {
+  const _ChatSurface({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor.withValues(alpha: 0.24),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(
+          color: AppTheme.primaryColor.withValues(alpha: 0.035),
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: 18,
+            right: 18,
+            child: _SoftCircle(
+              size: 42,
+              color: AppTheme.primaryColor.withValues(alpha: 0.026),
+            ),
+          ),
+          Positioned.fill(child: child),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChatEmptyState extends StatelessWidget {
+  const _ChatEmptyState({required this.petName});
+
+  final String petName;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 320),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 15),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceColor.withValues(alpha: 0.98),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: AppTheme.primaryColor.withValues(alpha: 0.075),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.06),
+                  blurRadius: 22,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Semantics(
+              label: 'No messages yet. Say hello.',
+              child: Row(
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Icon(
+                      Icons.mark_unread_chat_alt_rounded,
+                      color: AppTheme.primaryColor,
+                      size: 25,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Start a calm chat',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                color: AppTheme.secondaryText,
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'Ask about $petName or share symptoms.',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: AppTheme.mutedText,
+                                fontWeight: FontWeight.w700,
+                                height: 1.28,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _OwnerMessageBubble extends StatelessWidget {
@@ -806,29 +1917,56 @@ class _OwnerMessageBubble extends StatelessWidget {
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         constraints: const BoxConstraints(maxWidth: 520),
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
         decoration: BoxDecoration(
-          color: mine ? AppTheme.primaryColor : Colors.white,
-          borderRadius: BorderRadius.circular(18),
+          color: mine
+              ? AppTheme.primaryColor
+              : AppTheme.surfaceColor.withValues(alpha: 0.98),
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(22),
+            topRight: const Radius.circular(22),
+            bottomLeft: Radius.circular(mine ? 22 : 8),
+            bottomRight: Radius.circular(mine ? 8 : 22),
+          ),
+          border: mine
+              ? null
+              : Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.1)),
+          boxShadow: mine
+              ? [
+                  BoxShadow(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.16),
+                    blurRadius: 16,
+                    offset: const Offset(0, 8),
+                  ),
+                ]
+              : null,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (message.isAiBriefing)
-              const Text(
+              Text(
                 'AI briefing',
-                style: TextStyle(fontWeight: FontWeight.w900),
+                style: TextStyle(
+                  color: mine ? Colors.white : AppTheme.primaryColor,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             Text(
               message.content ?? 'Shared attachment',
-              style: TextStyle(color: mine ? Colors.white : null),
+              style: TextStyle(
+                color: mine ? Colors.white : AppTheme.secondaryText,
+                fontWeight: FontWeight.w600,
+                height: 1.35,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
               mine ? status : message.senderType.toUpperCase(),
               style: TextStyle(
-                fontSize: 10,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
                 color: mine ? Colors.white70 : AppTheme.mutedText,
               ),
             ),
@@ -844,10 +1982,38 @@ class _EmptyCard extends StatelessWidget {
   final String message;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.all(24),
-    child: Center(
-      child: Text(message, style: const TextStyle(color: AppTheme.mutedText)),
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    margin: const EdgeInsets.symmetric(vertical: 10),
+    padding: const EdgeInsets.fromLTRB(18, 22, 18, 22),
+    decoration: AppTheme.glassCardDecoration(
+      color: AppTheme.surfaceColor.withValues(alpha: 0.88),
+      borderRadius: BorderRadius.circular(28),
+      borderColor: AppTheme.primaryColor.withValues(alpha: 0.08),
+      hasShadow: false,
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            color: AppTheme.primaryColor.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Icon(Icons.forum_outlined, color: AppTheme.primaryColor),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          message,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: AppTheme.mutedText,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
     ),
   );
 }
@@ -858,12 +2024,121 @@ class _ErrorCard extends StatelessWidget {
   final Future<void> Function() onRetry;
 
   @override
-  Widget build(BuildContext context) => Card(
-    color: Colors.red.withValues(alpha: 0.06),
-    child: ListTile(
-      leading: const Icon(Icons.error_outline_rounded, color: Colors.redAccent),
-      title: Text(message, maxLines: 3, overflow: TextOverflow.ellipsis),
-      trailing: TextButton(onPressed: onRetry, child: const Text('Retry')),
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(12),
+    decoration: AppTheme.glassCardDecoration(
+      color: AppTheme.dangerColor.withValues(alpha: 0.07),
+      borderRadius: BorderRadius.circular(24),
+      borderColor: AppTheme.dangerColor.withValues(alpha: 0.14),
+      hasShadow: false,
+    ),
+    child: Row(
+      children: [
+        const Icon(Icons.error_outline_rounded, color: AppTheme.dangerColor),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            message,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: AppTheme.secondaryText,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        TextButton(onPressed: onRetry, child: const Text('Retry')),
+      ],
     ),
   );
+}
+
+class _AssistantLoading extends StatefulWidget {
+  const _AssistantLoading({this.label = 'Finding the right care'});
+
+  final String label;
+
+  @override
+  State<_AssistantLoading> createState() => _AssistantLoadingState();
+}
+
+class _AssistantLoadingState extends State<_AssistantLoading>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _float;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+    _float = Tween<double>(
+      begin: -3,
+      end: 3,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+    _controller.forward().then((_) {
+      if (!mounted) return;
+      _controller.reverse();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _float,
+      builder: (context, child) =>
+          Transform.translate(offset: Offset(0, _float.value), child: child),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor,
+              borderRadius: BorderRadius.circular(26),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.18),
+                  blurRadius: 22,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.support_agent_rounded,
+              color: Colors.white,
+              size: 34,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            widget.label,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: AppTheme.secondaryText,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 6),
+          SizedBox(
+            width: 72,
+            child: LinearProgressIndicator(
+              minHeight: 5,
+              borderRadius: BorderRadius.circular(999),
+              backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.08),
+              color: AppTheme.primaryColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
