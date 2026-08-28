@@ -8,6 +8,9 @@ abstract class ConsultationRealtimeGateway {
     required String accessToken,
     required Future<void> Function(Map<String, dynamic> record)
     onMessageChanged,
+    required Future<void> Function() onAppointmentsChanged,
+    required Future<void> Function() onSharedAssessmentsChanged,
+    required Future<void> Function() onSharedHealthCardsChanged,
     required void Function(bool connected) onConnectionChanged,
   });
 
@@ -33,6 +36,9 @@ class SupabaseConsultationRealtimeGateway
     required String accessToken,
     required Future<void> Function(Map<String, dynamic> record)
     onMessageChanged,
+    required Future<void> Function() onAppointmentsChanged,
+    required Future<void> Function() onSharedAssessmentsChanged,
+    required Future<void> Function() onSharedHealthCardsChanged,
     required void Function(bool connected) onConnectionChanged,
   }) async {
     await stop();
@@ -43,7 +49,7 @@ class SupabaseConsultationRealtimeGateway
 
     await _supabase.realtime.setAuth(accessToken);
     final channel = _supabase
-        .channel('consultation-$consultationId-messages')
+        .channel('consultation-$consultationId')
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
@@ -59,6 +65,39 @@ class SupabaseConsultationRealtimeGateway
               unawaited(onMessageChanged(record));
             }
           },
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'appointments',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'consultation_id',
+            value: consultationId,
+          ),
+          callback: (_) => unawaited(onAppointmentsChanged()),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'consultation_shared_assessments',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'consultation_id',
+            value: consultationId,
+          ),
+          callback: (_) => unawaited(onSharedAssessmentsChanged()),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'consultation_shared_health_cards',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'consultation_id',
+            value: consultationId,
+          ),
+          callback: (_) => unawaited(onSharedHealthCardsChanged()),
         );
     _channel = channel;
     channel.subscribe((status, _) {

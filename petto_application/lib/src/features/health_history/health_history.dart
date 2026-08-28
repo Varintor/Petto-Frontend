@@ -41,6 +41,25 @@ class HistoryEntryModel {
       );
 }
 
+class HistoryDetailModel {
+  const HistoryDetailModel({
+    required this.type,
+    required this.refId,
+    required this.fields,
+  });
+
+  final String type;
+  final int refId;
+  final Map<String, dynamic> fields;
+
+  factory HistoryDetailModel.fromJson(Map<String, dynamic> json) =>
+      HistoryDetailModel(
+        type: json['type'] as String,
+        refId: json['ref_id'] as int,
+        fields: Map<String, dynamic>.from(json['fields'] as Map),
+      );
+}
+
 class HealthCardModel {
   const HealthCardModel({
     required this.petId,
@@ -58,6 +77,7 @@ class HealthCardModel {
     this.latestAssessment,
     this.latestVaccination,
     this.recentActivity,
+    this.profileUpdatedAt,
     this.generatedAt,
   });
 
@@ -76,6 +96,7 @@ class HealthCardModel {
   final HistoryEntryModel? latestAssessment;
   final HistoryEntryModel? latestVaccination;
   final HistoryEntryModel? recentActivity;
+  final DateTime? profileUpdatedAt;
   final DateTime? generatedAt;
 
   factory HealthCardModel.fromJson(Map<String, dynamic> json) =>
@@ -113,6 +134,9 @@ class HealthCardModel {
             : HistoryEntryModel.fromJson(
                 Map<String, dynamic>.from(json['recent_activity'] as Map),
               ),
+        profileUpdatedAt: json['profile_updated_at'] == null
+            ? null
+            : DateTime.parse(json['profile_updated_at'] as String),
         generatedAt: json['generated_at'] == null
             ? null
             : DateTime.parse(json['generated_at'] as String),
@@ -169,6 +193,10 @@ abstract class HealthHistoryRepository {
     DateTime? to,
     int limit,
   });
+  Future<HistoryDetailModel> getHistoryDetail(
+    int petId,
+    HistoryEntryModel entry,
+  );
 }
 
 class HealthHistoryRepositoryImpl implements HealthHistoryRepository {
@@ -228,6 +256,19 @@ class HealthHistoryRepositoryImpl implements HealthHistoryRepository {
         .map((j) => HistoryEntryModel.fromJson(j as Map<String, dynamic>))
         .toList();
   }
+
+  @override
+  Future<HistoryDetailModel> getHistoryDetail(
+    int petId,
+    HistoryEntryModel entry,
+  ) async {
+    final response = await dio.get(
+      '${AppConfig.apiPrefix}/pets/$petId/history/${entry.type}/${entry.refId}',
+    );
+    return HistoryDetailModel.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
+  }
 }
 
 /// Timeline state for the Health History screen. Same pattern as the other
@@ -242,6 +283,8 @@ class HealthHistoryController extends ChangeNotifier {
   List<HistoryEntryModel> _entries = [];
   HealthCardModel? _card;
   Set<String> _typeFilter = {};
+  DateTime? _dateFrom;
+  DateTime? _dateTo;
   bool _loading = false;
   bool _savingProfile = false;
   String? _error;
@@ -250,6 +293,8 @@ class HealthHistoryController extends ChangeNotifier {
   HealthCardModel? get card => _card;
   int? get loadedPetId => _petId;
   Set<String> get typeFilter => _typeFilter;
+  DateTime? get dateFrom => _dateFrom;
+  DateTime? get dateTo => _dateTo;
   bool get loading => _loading;
   bool get savingProfile => _savingProfile;
   String? get error => _error;
@@ -268,7 +313,12 @@ class HealthHistoryController extends ChangeNotifier {
     notifyListeners();
     try {
       final results = await Future.wait<Object?>([
-        repository.getHistory(id, types: _typeFilter),
+        repository.getHistory(
+          id,
+          types: _typeFilter,
+          from: _dateFrom,
+          to: _dateTo,
+        ),
         repository.getHealthCard(id),
       ]);
       if (_petId != id) return;
@@ -279,6 +329,49 @@ class HealthHistoryController extends ChangeNotifier {
     } finally {
       _loading = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> applyFilters({
+    required Set<String> types,
+    DateTime? from,
+    DateTime? to,
+  }) async {
+    _typeFilter = Set<String>.from(types);
+    _dateFrom = from;
+    _dateTo = to;
+    final id = _petId;
+    if (id == null) {
+      notifyListeners();
+      return;
+    }
+    _loading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      _entries = await repository.getHistory(
+        id,
+        types: _typeFilter,
+        from: _dateFrom,
+        to: _dateTo,
+      );
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<HistoryDetailModel?> getDetail(HistoryEntryModel entry) async {
+    final id = _petId;
+    if (id == null) return null;
+    try {
+      return await repository.getHistoryDetail(id, entry);
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return null;
     }
   }
 
@@ -317,6 +410,8 @@ class HealthHistoryController extends ChangeNotifier {
     _entries = [];
     _card = null;
     _typeFilter = {};
+    _dateFrom = null;
+    _dateTo = null;
     _loading = false;
     _savingProfile = false;
     _error = null;

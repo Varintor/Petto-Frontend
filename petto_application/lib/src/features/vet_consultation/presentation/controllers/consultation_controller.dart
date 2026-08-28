@@ -34,11 +34,20 @@ class ConsultationController extends ChangeNotifier {
   ConsultationModel? _active;
   List<ChatMessageModel> _messages = [];
   List<AppointmentModel> _appointments = [];
+  List<SharedAssessmentModel> _sharedAssessments = [];
   List<SharedHealthCardModel> _sharedHealthCards = [];
   bool _sharingHealthCard = false;
   bool _loading = false;
   bool _refreshingMessages = false;
+  bool _messagesRefreshPending = false;
+  bool _refreshingAppointments = false;
+  bool _appointmentsRefreshPending = false;
+  bool _refreshingSharedAssessments = false;
+  bool _sharedAssessmentsRefreshPending = false;
+  bool _refreshingSharedHealthCards = false;
+  bool _sharedHealthCardsRefreshPending = false;
   bool _realtimeConnected = false;
+  bool _hasRealtimeSubscribed = false;
   String? _error;
   String? _retryContent;
   String? _retryClientMessageId;
@@ -50,6 +59,7 @@ class ConsultationController extends ChangeNotifier {
   ConsultationModel? get active => _active;
   List<ChatMessageModel> get messages => _messages;
   List<AppointmentModel> get appointments => _appointments;
+  List<SharedAssessmentModel> get sharedAssessments => _sharedAssessments;
   List<SharedHealthCardModel> get sharedHealthCards => _sharedHealthCards;
   bool get sharingHealthCard => _sharingHealthCard;
   bool get loading => _loading;
@@ -111,6 +121,9 @@ class ConsultationController extends ChangeNotifier {
     int? assessmentId,
     String? realtimeAccessToken,
   }) async {
+    await realtimeGateway.stop();
+    _realtimeConnected = false;
+    _hasRealtimeSubscribed = false;
     await _guard(() async {
       _active = await repository.createConsultation(
         petId: petId,
@@ -133,14 +146,16 @@ class ConsultationController extends ChangeNotifier {
       final results = await Future.wait<Object?>([
         repository.listMessages(_active!.id),
         repository.listAppointments(_active!.id),
+        repository.listSharedAssessments(_active!.id),
         if (healthCardRepository != null)
           healthCardRepository!.listSharedHealthCards(_active!.id),
       ]);
       _messages = results[0] as List<ChatMessageModel>;
       _appointments = results[1] as List<AppointmentModel>;
+      _sharedAssessments = results[2] as List<SharedAssessmentModel>;
       _sharedHealthCards = healthCardRepository == null
           ? []
-          : results[2] as List<SharedHealthCardModel>;
+          : results[3] as List<SharedHealthCardModel>;
     });
     await _watchActiveConsultation(realtimeAccessToken);
   }
@@ -151,9 +166,11 @@ class ConsultationController extends ChangeNotifier {
   }) async {
     await realtimeGateway.stop();
     _realtimeConnected = false;
+    _hasRealtimeSubscribed = false;
     _active = consultation;
     _messages = [];
     _appointments = [];
+    _sharedAssessments = [];
     _sharedHealthCards = [];
     // A read receipt is best-effort and must never delay rendering the thread.
     unawaited(_markReadBestEffort(consultation.id));
@@ -161,6 +178,7 @@ class ConsultationController extends ChangeNotifier {
       final results = await Future.wait<Object?>([
         repository.listMessages(consultation.id),
         repository.listAppointments(consultation.id),
+        repository.listSharedAssessments(consultation.id),
         if (healthCardRepository != null)
           healthCardRepository!.listSharedHealthCards(consultation.id),
       ]);
@@ -168,9 +186,10 @@ class ConsultationController extends ChangeNotifier {
       if (_active?.id == consultation.id) {
         _messages = results[0] as List<ChatMessageModel>;
         _appointments = results[1] as List<AppointmentModel>;
+        _sharedAssessments = results[2] as List<SharedAssessmentModel>;
         _sharedHealthCards = healthCardRepository == null
             ? []
-            : results[2] as List<SharedHealthCardModel>;
+            : results[3] as List<SharedHealthCardModel>;
       }
     });
     await _watchActiveConsultation(realtimeAccessToken);
@@ -187,6 +206,9 @@ class ConsultationController extends ChangeNotifier {
         consultationId: consultation.id,
         accessToken: accessToken,
         onMessageChanged: _applyRealtimeMessage,
+        onAppointmentsChanged: _refreshAppointmentsFromRealtime,
+        onSharedAssessmentsChanged: _refreshSharedAssessmentsFromRealtime,
+        onSharedHealthCardsChanged: _refreshSharedHealthCardsFromRealtime,
         onConnectionChanged: _setRealtimeConnected,
       );
     } catch (_) {
@@ -195,8 +217,17 @@ class ConsultationController extends ChangeNotifier {
   }
 
   void _setRealtimeConnected(bool connected) {
-    if (_realtimeConnected == connected) return;
+    final wasConnected = _realtimeConnected;
+    if (wasConnected == connected) return;
     _realtimeConnected = connected;
+    if (connected) {
+      if (_hasRealtimeSubscribed && !wasConnected) {
+        // Supabase reconnects its socket automatically. Reconcile once after
+        // reconnect so rows created during the outage cannot be missed.
+        unawaited(_reconcileConversationFromRealtime());
+      }
+      _hasRealtimeSubscribed = true;
+    }
     notifyListeners();
   }
 
@@ -232,23 +263,101 @@ class ConsultationController extends ChangeNotifier {
 
   Future<void> _refreshMessagesFromRealtime() async {
     final active = _active;
-    if (active == null || _refreshingMessages) return;
+    if (active == null) return;
+    _messagesRefreshPending = true;
+    if (_refreshingMessages) return;
     _refreshingMessages = true;
     try {
-      final latest = await repository.listMessages(active.id);
-      if (_active?.id != active.id) return;
-      final knownIds = _messages.map((message) => message.id).toSet();
-      final hasNewMessage = latest.any(
-        (message) => !knownIds.contains(message.id),
-      );
-      _messages = latest;
-      notifyListeners();
-      if (hasNewMessage) await _markReadBestEffort(active.id);
+      while (_messagesRefreshPending && _active?.id == active.id) {
+        _messagesRefreshPending = false;
+        final latest = await repository.listMessages(active.id);
+        if (_active?.id != active.id) return;
+        final knownIds = _messages.map((message) => message.id).toSet();
+        final hasNewMessage = latest.any(
+          (message) => !knownIds.contains(message.id),
+        );
+        _messages = latest;
+        notifyListeners();
+        if (hasNewMessage) await _markReadBestEffort(active.id);
+      }
     } catch (_) {
-      // A disconnected Realtime channel enables the polling fallback, which
-      // will reconcile the thread without continuously querying while online.
+      // Realtime will continue reconnecting. The user can also request an
+      // explicit refresh; no periodic REST polling is performed.
     } finally {
       _refreshingMessages = false;
+    }
+  }
+
+  Future<void> _reconcileConversationFromRealtime() async {
+    await Future.wait<void>([
+      _refreshMessagesFromRealtime(),
+      _refreshAppointmentsFromRealtime(),
+      _refreshSharedAssessmentsFromRealtime(),
+      _refreshSharedHealthCardsFromRealtime(),
+    ]);
+  }
+
+  Future<void> _refreshAppointmentsFromRealtime() async {
+    final active = _active;
+    if (active == null) return;
+    _appointmentsRefreshPending = true;
+    if (_refreshingAppointments) return;
+    _refreshingAppointments = true;
+    try {
+      while (_appointmentsRefreshPending && _active?.id == active.id) {
+        _appointmentsRefreshPending = false;
+        final latest = await repository.listAppointments(active.id);
+        if (_active?.id != active.id) return;
+        _appointments = latest;
+        notifyListeners();
+      }
+    } catch (_) {
+      // The next database event, reconnect, or manual refresh will retry.
+    } finally {
+      _refreshingAppointments = false;
+    }
+  }
+
+  Future<void> _refreshSharedAssessmentsFromRealtime() async {
+    final active = _active;
+    if (active == null) return;
+    _sharedAssessmentsRefreshPending = true;
+    if (_refreshingSharedAssessments) return;
+    _refreshingSharedAssessments = true;
+    try {
+      while (_sharedAssessmentsRefreshPending && _active?.id == active.id) {
+        _sharedAssessmentsRefreshPending = false;
+        final latest = await repository.listSharedAssessments(active.id);
+        if (_active?.id != active.id) return;
+        _sharedAssessments = latest;
+        notifyListeners();
+      }
+    } catch (_) {
+      // The next database event, reconnect, or manual refresh will retry.
+    } finally {
+      _refreshingSharedAssessments = false;
+    }
+  }
+
+  Future<void> _refreshSharedHealthCardsFromRealtime() async {
+    final active = _active;
+    final repo = healthCardRepository;
+    if (active == null || repo == null) return;
+    _sharedHealthCardsRefreshPending = true;
+    if (_refreshingSharedHealthCards) return;
+    _refreshingSharedHealthCards = true;
+    try {
+      while (_sharedHealthCardsRefreshPending && _active?.id == active.id) {
+        _sharedHealthCardsRefreshPending = false;
+        final latest = await repo.listSharedHealthCards(active.id);
+        if (_active?.id != active.id) return;
+        _sharedHealthCards = latest;
+        notifyListeners();
+      }
+    } catch (_) {
+      // The next database event, reconnect, or manual refresh will retry.
+    } finally {
+      _refreshingSharedHealthCards = false;
     }
   }
 
@@ -267,43 +376,17 @@ class ConsultationController extends ChangeNotifier {
       final results = await Future.wait<Object?>([
         repository.listMessages(active.id),
         repository.listAppointments(active.id),
+        repository.listSharedAssessments(active.id),
         if (healthCardRepository != null)
           healthCardRepository!.listSharedHealthCards(active.id),
       ]);
       _messages = results[0] as List<ChatMessageModel>;
       _appointments = results[1] as List<AppointmentModel>;
+      _sharedAssessments = results[2] as List<SharedAssessmentModel>;
       if (healthCardRepository != null) {
-        _sharedHealthCards = results[2] as List<SharedHealthCardModel>;
+        _sharedHealthCards = results[3] as List<SharedHealthCardModel>;
       }
     });
-  }
-
-  Future<void> refreshNewMessages() async {
-    final active = _active;
-    if (active == null || _refreshingMessages) return;
-    _refreshingMessages = true;
-    try {
-      final afterId = _messages.isEmpty ? null : _messages.last.id;
-      // Polling is only a fallback for chat delivery. Appointments and shared
-      // cards change far less often and are loaded on open/manual refresh.
-      final incoming = await repository.listMessages(
-        active.id,
-        afterId: afterId,
-      );
-      if (_active?.id != active.id) return;
-      final knownIds = _messages.map((message) => message.id).toSet();
-      _messages = [
-        ..._messages,
-        ...incoming.where((message) => knownIds.add(message.id)),
-      ];
-      notifyListeners();
-      if (incoming.isNotEmpty) await _markReadBestEffort(active.id);
-    } catch (_) {
-      // Background refresh is best-effort. The explicit refresh action still
-      // reports errors through [_guard].
-    } finally {
-      _refreshingMessages = false;
-    }
   }
 
   Future<bool> shareAssessment(int assessmentId) async {
@@ -311,6 +394,27 @@ class ConsultationController extends ChangeNotifier {
     if (active == null) return false;
     try {
       await repository.shareAssessment(active.id, assessmentId);
+      _sharedAssessments = await repository.listSharedAssessments(active.id);
+      _error = null;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = ApiClient.describeError(e);
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> revokeAssessment(int assessmentId) async {
+    final active = _active;
+    if (active == null) return false;
+    try {
+      await repository.revokeAssessment(active.id, assessmentId);
+      _sharedAssessments = _sharedAssessments
+          .where((item) => item.assessmentId != assessmentId)
+          .toList();
+      _error = null;
+      notifyListeners();
       return true;
     } catch (e) {
       _error = ApiClient.describeError(e);
@@ -322,9 +426,11 @@ class ConsultationController extends ChangeNotifier {
   void closeActiveConsultation() {
     unawaited(realtimeGateway.stop());
     _realtimeConnected = false;
+    _hasRealtimeSubscribed = false;
     _active = null;
     _messages = [];
     _appointments = [];
+    _sharedAssessments = [];
     _sharedHealthCards = [];
     _error = null;
     notifyListeners();
@@ -448,6 +554,48 @@ class ConsultationController extends ChangeNotifier {
     }
   }
 
+  Future<bool> updateAppointment(
+    int appointmentId, {
+    required DateTime startsAt,
+    DateTime? endsAt,
+    String? reason,
+  }) async {
+    try {
+      final updated = await repository.updateAppointment(
+        appointmentId,
+        startsAt: startsAt,
+        endsAt: endsAt,
+        reason: reason,
+      );
+      _replaceAppointment(updated);
+      return true;
+    } catch (e) {
+      _error = ApiClient.describeError(e);
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> cancelAppointment(int appointmentId) async {
+    try {
+      final updated = await repository.cancelAppointment(appointmentId);
+      _replaceAppointment(updated);
+      return true;
+    } catch (e) {
+      _error = ApiClient.describeError(e);
+      notifyListeners();
+      return false;
+    }
+  }
+
+  void _replaceAppointment(AppointmentModel updated) {
+    _appointments = _appointments
+        .map((item) => item.id == updated.id ? updated : item)
+        .toList();
+    _error = null;
+    notifyListeners();
+  }
+
   void clearForAccount() {
     _vets = [];
     _providers = [];
@@ -456,9 +604,18 @@ class ConsultationController extends ChangeNotifier {
     _active = null;
     _messages = [];
     _appointments = [];
+    _sharedAssessments = [];
     _loading = false;
     _refreshingMessages = false;
+    _messagesRefreshPending = false;
+    _refreshingAppointments = false;
+    _appointmentsRefreshPending = false;
+    _refreshingSharedAssessments = false;
+    _sharedAssessmentsRefreshPending = false;
+    _refreshingSharedHealthCards = false;
+    _sharedHealthCardsRefreshPending = false;
     _realtimeConnected = false;
+    _hasRealtimeSubscribed = false;
     unawaited(realtimeGateway.stop());
     _error = null;
     _retryContent = null;

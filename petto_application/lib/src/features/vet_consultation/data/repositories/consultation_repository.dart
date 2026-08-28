@@ -36,6 +36,8 @@ abstract class ConsultationRepository {
   });
   Future<void> markMessagesRead(int consultationId);
   Future<void> shareAssessment(int consultationId, int assessmentId);
+  Future<List<SharedAssessmentModel>> listSharedAssessments(int consultationId);
+  Future<void> revokeAssessment(int consultationId, int assessmentId);
   Future<List<AppointmentModel>> listAppointments(int consultationId);
   Future<AppointmentModel> proposeAppointment(
     int consultationId, {
@@ -47,6 +49,13 @@ abstract class ConsultationRepository {
     int appointmentId,
     String decision,
   );
+  Future<AppointmentModel> updateAppointment(
+    int appointmentId, {
+    required DateTime startsAt,
+    DateTime? endsAt,
+    String? reason,
+  });
+  Future<AppointmentModel> cancelAppointment(int appointmentId);
 
   /// Posts a server-generated AI briefing (pet profile + latest assessment +
   /// activity totals + vaccination status) into the chat as sender 'ai'.
@@ -183,6 +192,25 @@ class ConsultationRepositoryImpl implements ConsultationRepository {
   }
 
   @override
+  Future<List<SharedAssessmentModel>> listSharedAssessments(
+    int consultationId,
+  ) async {
+    final response = await dio.get('$_base/$consultationId/shared-assessments');
+    return (response.data as List<dynamic>)
+        .map(
+          (item) => SharedAssessmentModel.fromJson(
+            Map<String, dynamic>.from(item as Map),
+          ),
+        )
+        .toList();
+  }
+
+  @override
+  Future<void> revokeAssessment(int consultationId, int assessmentId) async {
+    await dio.delete('$_base/$consultationId/shared-assessments/$assessmentId');
+  }
+
+  @override
   Future<List<AppointmentModel>> listAppointments(int consultationId) async {
     final response = await dio.get('$_base/$consultationId/appointments');
     return (response.data as List<dynamic>)
@@ -221,6 +249,36 @@ class ConsultationRepositoryImpl implements ConsultationRepository {
     final response = await dio.put(
       '${AppConfig.apiPrefix}/appointments/$appointmentId/decision',
       data: {'decision': decision},
+    );
+    return AppointmentModel.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
+  }
+
+  @override
+  Future<AppointmentModel> updateAppointment(
+    int appointmentId, {
+    required DateTime startsAt,
+    DateTime? endsAt,
+    String? reason,
+  }) async {
+    final response = await dio.put(
+      '${AppConfig.apiPrefix}/appointments/$appointmentId',
+      data: {
+        'starts_at': startsAt.toUtc().toIso8601String(),
+        'ends_at': endsAt?.toUtc().toIso8601String(),
+        'reason': reason?.trim(),
+      },
+    );
+    return AppointmentModel.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
+  }
+
+  @override
+  Future<AppointmentModel> cancelAppointment(int appointmentId) async {
+    final response = await dio.put(
+      '${AppConfig.apiPrefix}/appointments/$appointmentId/cancel',
     );
     return AppointmentModel.fromJson(
       Map<String, dynamic>.from(response.data as Map),

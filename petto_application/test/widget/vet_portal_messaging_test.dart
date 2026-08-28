@@ -75,6 +75,12 @@ class _MessagingRepository implements ConsultationRepository {
   @override
   Future<void> shareAssessment(int consultationId, int assessmentId) async {}
   @override
+  Future<List<SharedAssessmentModel>> listSharedAssessments(
+    int consultationId,
+  ) async => [];
+  @override
+  Future<void> revokeAssessment(int consultationId, int assessmentId) async {}
+  @override
   Future<List<AppointmentModel>> listAppointments(int consultationId) async =>
       [];
   @override
@@ -89,6 +95,16 @@ class _MessagingRepository implements ConsultationRepository {
     int appointmentId,
     String decision,
   ) => throw UnimplementedError();
+  @override
+  Future<AppointmentModel> updateAppointment(
+    int appointmentId, {
+    required DateTime startsAt,
+    DateTime? endsAt,
+    String? reason,
+  }) => throw UnimplementedError();
+  @override
+  Future<AppointmentModel> cancelAppointment(int appointmentId) =>
+      throw UnimplementedError();
   @override
   Future<ConsultationModel> createConsultation({
     required int petId,

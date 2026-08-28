@@ -9,6 +9,7 @@ import '../../../auth/presentation/screens/auth_gate.dart';
 import '../../../vet_consultation/data/models/consultation_models.dart';
 import '../../../vet_consultation/presentation/controllers/consultation_controller.dart';
 import '../../../vet_consultation/presentation/widgets/appointment_card.dart';
+import '../../../vet_consultation/presentation/widgets/shared_assessment_card.dart';
 import '../../../vet_consultation/presentation/widgets/shared_health_card.dart';
 
 enum _VetSection { dashboard, patients, messages, profile }
@@ -940,28 +941,14 @@ class _BackendConversationPanel extends StatefulWidget {
 class _BackendConversationPanelState extends State<_BackendConversationPanel> {
   final _message = TextEditingController();
   final _conversationScrollController = ScrollController();
-  Timer? _refreshTimer;
   int? _visibleConsultationId;
   int _visibleConversationItemCount = -1;
   bool _sending = false;
   bool _proposingAppointment = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 6), (_) {
-      if (mounted) {
-        final controller = context.read<ConsultationController>();
-        if (!controller.realtimeConnected) {
-          controller.refreshNewMessages();
-        }
-      }
-    });
-  }
+  int? _changingAppointmentId;
 
   @override
   void dispose() {
-    _refreshTimer?.cancel();
     _conversationScrollController.dispose();
     _message.dispose();
     super.dispose();
@@ -1064,6 +1051,77 @@ class _BackendConversationPanelState extends State<_BackendConversationPanel> {
     setState(() => _proposingAppointment = false);
   }
 
+  Future<void> _rescheduleAppointment(AppointmentModel appointment) async {
+    if (_changingAppointmentId != null) return;
+    final now = DateTime.now();
+    final date = await showDatePicker(
+      context: context,
+      initialDate: appointment.startsAt.isAfter(now)
+          ? appointment.startsAt
+          : now.add(const Duration(days: 1)),
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: DateTime(now.year + 2),
+    );
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(appointment.startsAt),
+    );
+    if (time == null || !mounted) return;
+    final startsAt = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+    if (!startsAt.isAfter(DateTime.now())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Choose a time in the future.')),
+      );
+      return;
+    }
+
+    setState(() => _changingAppointmentId = appointment.id);
+    await context.read<ConsultationController>().updateAppointment(
+      appointment.id,
+      startsAt: startsAt,
+      reason: appointment.reason,
+    );
+    if (!mounted) return;
+    setState(() => _changingAppointmentId = null);
+  }
+
+  Future<void> _cancelAppointment(AppointmentModel appointment) async {
+    if (_changingAppointmentId != null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Cancel appointment?'),
+        content: const Text(
+          'If accepted, it will also be removed from the owner’s Calendar.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Keep appointment'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Cancel appointment'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _changingAppointmentId = appointment.id);
+    await context.read<ConsultationController>().cancelAppointment(
+      appointment.id,
+    );
+    if (!mounted) return;
+    setState(() => _changingAppointmentId = null);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<ConsultationController>(
@@ -1078,6 +1136,7 @@ class _BackendConversationPanelState extends State<_BackendConversationPanel> {
           consultation.id,
           controller.messages.length +
               controller.appointments.length +
+              controller.sharedAssessments.length +
               controller.sharedHealthCards.length,
         );
         return Column(
@@ -1107,7 +1166,7 @@ class _BackendConversationPanelState extends State<_BackendConversationPanel> {
                         Text(
                           controller.realtimeConnected
                               ? '● Realtime connected'
-                              : '● Reconnecting • polling active',
+                              : '● Realtime reconnecting • refresh available',
                           key: const Key('vet-chat-connection-status'),
                           style: TextStyle(
                             color: controller.realtimeConnected
@@ -1122,7 +1181,7 @@ class _BackendConversationPanelState extends State<_BackendConversationPanel> {
                   ),
                   IconButton(
                     tooltip: 'Propose appointment',
-                    onPressed: _proposingAppointment
+                    onPressed: _proposingAppointment || consultation.isClosed
                         ? null
                         : _proposeAppointment,
                     icon: _proposingAppointment
@@ -1161,10 +1220,21 @@ class _BackendConversationPanelState extends State<_BackendConversationPanel> {
                       controller: _conversationScrollController,
                       padding: const EdgeInsets.all(18),
                       children: [
+                        for (final assessment in controller.sharedAssessments)
+                          SharedAssessmentPanel(assessment: assessment),
                         for (final sharedCard in controller.sharedHealthCards)
                           SharedHealthCardPanel(card: sharedCard),
                         for (final appointment in controller.appointments)
-                          ConsultationAppointmentCard(appointment: appointment),
+                          ConsultationAppointmentCard(
+                            appointment: appointment,
+                            busy: _changingAppointmentId == appointment.id,
+                            onReschedule: appointment.canBeChanged
+                                ? () => _rescheduleAppointment(appointment)
+                                : null,
+                            onCancel: appointment.canBeChanged
+                                ? () => _cancelAppointment(appointment)
+                                : null,
+                          ),
                         for (final message in controller.messages)
                           _ChatBubble(
                             text: message.content ?? 'Attachment',
@@ -1175,34 +1245,54 @@ class _BackendConversationPanelState extends State<_BackendConversationPanel> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _message,
-                      enabled: !_sending,
-                      textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => _send(),
-                      decoration: const InputDecoration(
-                        hintText: 'Type a reply...',
-                        border: OutlineInputBorder(),
+              child: consultation.isClosed
+                  ? const Card(
+                      child: Padding(
+                        padding: EdgeInsets.all(14),
+                        child: Row(
+                          children: [
+                            Icon(Icons.lock_outline_rounded),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'This consultation is closed. Messages are read-only.',
+                                style: TextStyle(fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                    )
+                  : Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _message,
+                            enabled: !_sending,
+                            textInputAction: TextInputAction.send,
+                            onSubmitted: (_) => _send(),
+                            decoration: const InputDecoration(
+                              hintText: 'Type a reply...',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        IconButton.filled(
+                          tooltip: 'Send message',
+                          onPressed: _sending ? null : _send,
+                          icon: _sending
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.send_rounded),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  IconButton.filled(
-                    tooltip: 'Send message',
-                    onPressed: _sending ? null : _send,
-                    icon: _sending
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.send_rounded),
-                  ),
-                ],
-              ),
             ),
           ],
         );

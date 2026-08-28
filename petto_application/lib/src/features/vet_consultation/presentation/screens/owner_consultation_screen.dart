@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -10,6 +8,7 @@ import '../../data/models/consultation_models.dart';
 import '../controllers/consultation_controller.dart';
 import '../widgets/appointment_card.dart';
 import '../widgets/provider_map_view.dart';
+import '../widgets/shared_assessment_card.dart';
 import '../widgets/shared_health_card.dart';
 
 /// Authenticated owner-side Feature 3 workspace. Guest presentation data stays
@@ -42,7 +41,6 @@ class OwnerConsultationScreen extends StatefulWidget {
 class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
   final _messageController = TextEditingController();
   final _conversationScrollController = ScrollController();
-  Timer? _refreshTimer;
   int? _visibleConsultationId;
   int _visibleConversationItemCount = -1;
   bool _sending = false;
@@ -61,14 +59,6 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
     super.initState();
     _includeLatestAssessment = widget.latestAssessmentId != null;
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadWorkspace());
-    _refreshTimer = Timer.periodic(const Duration(seconds: 6), (_) {
-      if (mounted) {
-        final controller = context.read<ConsultationController>();
-        if (!controller.realtimeConnected) {
-          controller.refreshNewMessages();
-        }
-      }
-    });
   }
 
   @override
@@ -89,7 +79,6 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
 
   @override
   void dispose() {
-    _refreshTimer?.cancel();
     _conversationScrollController.dispose();
     _messageController.dispose();
     super.dispose();
@@ -283,6 +272,43 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
     setState(() => _respondingAppointmentId = null);
   }
 
+  Future<void> _cancelAppointment(AppointmentModel appointment) async {
+    if (_respondingAppointmentId != null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Cancel appointment?'),
+        content: const Text(
+          'The appointment will also be removed from the pet Calendar.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Keep appointment'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Cancel appointment'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _respondingAppointmentId = appointment.id);
+    final updated = await context
+        .read<ConsultationController>()
+        .cancelAppointment(appointment.id);
+    if (updated) {
+      try {
+        await widget.onAppointmentAccepted?.call();
+      } catch (_) {
+        // The cancellation is persisted; Calendar refresh can recover later.
+      }
+    }
+    if (!mounted) return;
+    setState(() => _respondingAppointmentId = null);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<ConsultationController>(
@@ -410,10 +436,17 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
     ConsultationController controller,
     ConsultationModel consultation,
   ) {
+    final hasConversationContent =
+        controller.messages.isNotEmpty ||
+        controller.appointments.isNotEmpty ||
+        controller.sharedAssessments.isNotEmpty ||
+        controller.sharedHealthCards.isNotEmpty;
+
     _scheduleScrollToLatest(
       consultation.id,
       controller.messages.length +
           controller.appointments.length +
+          controller.sharedAssessments.length +
           controller.sharedHealthCards.length,
     );
     return Column(
@@ -427,7 +460,26 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
             sharingHealthCard: controller.sharingHealthCard,
             onBack: controller.closeActiveConsultation,
             onRefresh: controller.loading ? null : controller.refreshMessages,
-            onShareHealthCard: controller.sharingHealthCard
+            onShareAssessment:
+                widget.latestAssessmentId == null || consultation.isClosed
+                ? null
+                : () async {
+                    final shared = await controller.shareAssessment(
+                      widget.latestAssessmentId!,
+                    );
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          shared
+                              ? 'Assessment shared with this veterinarian.'
+                              : 'Could not share the assessment.',
+                        ),
+                      ),
+                    );
+                  },
+            onShareHealthCard:
+                controller.sharingHealthCard || consultation.isClosed
                 ? null
                 : () async {
                     final shared = await controller.shareHealthCard();
@@ -461,21 +513,24 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(18, 8, 18, 4),
             child: _ChatSurface(
-              child:
-                  controller.loading &&
-                      controller.messages.isEmpty &&
-                      controller.appointments.isEmpty
+              child: controller.loading && !hasConversationContent
                   ? const Center(
                       child: _AssistantLoading(label: 'Opening chat'),
                     )
-                  : controller.messages.isEmpty &&
-                        controller.appointments.isEmpty
+                  : !hasConversationContent
                   ? _ChatEmptyState(petName: widget.petName)
                   : ListView(
                       controller: _conversationScrollController,
                       physics: const ClampingScrollPhysics(),
                       padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
                       children: [
+                        for (final assessment in controller.sharedAssessments)
+                          SharedAssessmentPanel(
+                            assessment: assessment,
+                            onRevoke: () => controller.revokeAssessment(
+                              assessment.assessmentId,
+                            ),
+                          ),
                         for (final sharedCard in controller.sharedHealthCards)
                           SharedHealthCardPanel(
                             card: sharedCard,
@@ -498,6 +553,9 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
                                     'declined',
                                   )
                                 : null,
+                            onCancel: appointment.isAccepted
+                                ? () => _cancelAppointment(appointment)
+                                : null,
                           ),
                         for (final message in controller.messages)
                           _OwnerMessageBubble(message),
@@ -510,11 +568,13 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
           top: false,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(18, 8, 18, 100),
-            child: _MessageComposer(
-              controller: _messageController,
-              sending: _sending,
-              onSend: _sendMessage,
-            ),
+            child: consultation.isClosed
+                ? const _ClosedConsultationComposer()
+                : _MessageComposer(
+                    controller: _messageController,
+                    sending: _sending,
+                    onSend: _sendMessage,
+                  ),
           ),
         ),
       ],
@@ -1545,6 +1605,7 @@ class _ChatHeaderCard extends StatelessWidget {
     required this.sharingHealthCard,
     required this.onBack,
     required this.onRefresh,
+    required this.onShareAssessment,
     required this.onShareHealthCard,
   });
 
@@ -1554,6 +1615,7 @@ class _ChatHeaderCard extends StatelessWidget {
   final bool sharingHealthCard;
   final VoidCallback onBack;
   final VoidCallback? onRefresh;
+  final VoidCallback? onShareAssessment;
   final VoidCallback? onShareHealthCard;
 
   @override
@@ -1640,6 +1702,12 @@ class _ChatHeaderCard extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           _RoundIconButton(
+            icon: Icons.auto_awesome_rounded,
+            onTap: onShareAssessment,
+            tooltip: 'Share selected assessment',
+          ),
+          const SizedBox(width: 6),
+          _RoundIconButton(
             icon: sharingHealthCard
                 ? Icons.hourglass_top_rounded
                 : Icons.health_and_safety_rounded,
@@ -1697,6 +1765,58 @@ class _RoundIconButton extends StatelessWidget {
             size: 22,
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ClosedConsultationComposer extends StatelessWidget {
+  const _ClosedConsultationComposer();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor,
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(
+          color: AppTheme.primaryColor.withValues(alpha: 0.13),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryColor.withValues(alpha: 0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.lock_outline_rounded,
+              color: AppTheme.primaryColor,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              'This consultation is closed. Messages are read-only.',
+              style: TextStyle(
+                color: AppTheme.mutedText,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

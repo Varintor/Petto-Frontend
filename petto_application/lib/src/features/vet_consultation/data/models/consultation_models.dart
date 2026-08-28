@@ -110,6 +110,11 @@ class ConsultationModel {
   final DateTime createdAt;
   final DateTime? updatedAt;
 
+  bool get isClosed {
+    final normalized = status.toUpperCase();
+    return normalized == 'COMPLETED' || normalized == 'CANCELLED';
+  }
+
   ConsultationModel({
     required this.id,
     required this.petId,
@@ -224,6 +229,7 @@ class AppointmentModel {
 
   bool get isPending => status == 'proposed';
   bool get isAccepted => status == 'accepted';
+  bool get canBeChanged => isPending || isAccepted;
 
   factory AppointmentModel.fromJson(Map<String, dynamic> json) =>
       AppointmentModel(
@@ -244,6 +250,53 @@ class AppointmentModel {
         createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
         updatedAt: DateTime.parse(json['updated_at'] as String).toLocal(),
       );
+}
+
+class SharedAssessmentModel {
+  const SharedAssessmentModel({
+    required this.id,
+    required this.consultationId,
+    required this.assessmentId,
+    required this.symptomDescription,
+    required this.status,
+    required this.sharedAt,
+    required this.createdAt,
+    this.imageUri,
+    this.riskLevel,
+    this.aiRawResponse,
+    this.errorCode,
+  });
+
+  final int id;
+  final int consultationId;
+  final int assessmentId;
+  final String symptomDescription;
+  final String? imageUri;
+  final String? riskLevel;
+  final String? aiRawResponse;
+  final String status;
+  final String? errorCode;
+  final DateTime sharedAt;
+  final DateTime createdAt;
+
+  bool get failed => status == 'failed';
+
+  factory SharedAssessmentModel.fromJson(Map<String, dynamic> json) {
+    final assessment = Map<String, dynamic>.from(json['assessment'] as Map);
+    return SharedAssessmentModel(
+      id: json['id'] as int,
+      consultationId: json['consultation_id'] as int,
+      assessmentId: json['assessment_id'] as int,
+      symptomDescription: assessment['symptom_description'] as String,
+      imageUri: assessment['image_uri'] as String?,
+      riskLevel: assessment['risk_level'] as String?,
+      aiRawResponse: assessment['ai_raw_response'] as String?,
+      status: assessment['status'] as String,
+      errorCode: assessment['error_code'] as String?,
+      sharedAt: DateTime.parse(json['shared_at'] as String).toLocal(),
+      createdAt: DateTime.parse(assessment['created_at'] as String).toLocal(),
+    );
+  }
 }
 
 class SharedHealthCardModel {
@@ -270,6 +323,9 @@ class SharedHealthCardModel {
       List<String>.from(snapshot['chronic_conditions'] as List? ?? const []);
   List<String> get currentMedications =>
       List<String>.from(snapshot['current_medications'] as List? ?? const []);
+  DateTime? get profileUpdatedAt => snapshot['profile_updated_at'] == null
+      ? null
+      : DateTime.parse(snapshot['profile_updated_at'] as String).toLocal();
 
   factory SharedHealthCardModel.fromJson(Map<String, dynamic> json) =>
       SharedHealthCardModel(
