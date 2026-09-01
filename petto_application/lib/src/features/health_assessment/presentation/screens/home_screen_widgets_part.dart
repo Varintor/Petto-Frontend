@@ -552,6 +552,50 @@ class _NotificationTile extends StatelessWidget {
   }
 }
 
+class _HomeNoticeEmptyState extends StatelessWidget {
+  const _HomeNoticeEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: AppTheme.glassCardDecoration(
+        color: AppTheme.surfaceColor.withValues(alpha: 0.96),
+        borderRadius: BorderRadius.circular(28),
+        borderColor: AppTheme.primaryColor.withValues(alpha: 0.10),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.notifications_none_rounded,
+            color: AppTheme.primaryColor.withValues(alpha: 0.72),
+            size: 36,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'No upcoming notices',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: AppTheme.secondaryText,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Calendar plans for this pet will appear here. Device reminders '
+            'are delivered separately by the operating system.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppTheme.mutedText,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _DockNotchClipper extends CustomClipper<Path> {
   const _DockNotchClipper();
 

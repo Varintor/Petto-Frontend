@@ -113,31 +113,38 @@ class _HomeScreenState extends State<HomeScreen> {
   /// (or stale mock) pet list.
   bool _petsLoading = true;
 
-  static const List<_NotificationData> _notifications = [
-    _NotificationData(
-      title: 'Daily mission',
-      message: 'Water Log is ready for Milo.',
-      time: 'Now',
-      icon: Icons.flag_rounded,
-      tint: AppTheme.primaryColor,
-      unread: true,
-    ),
-    _NotificationData(
-      title: 'Health reminder',
-      message: 'Skin check follow-up in 2 days.',
-      time: '10m',
-      icon: Icons.favorite_rounded,
-      tint: AppTheme.secondaryColor,
-      unread: true,
-    ),
-    _NotificationData(
-      title: 'Walk summary',
-      message: 'Buddy completed a short walk.',
-      time: '1h',
-      icon: Icons.directions_walk_rounded,
-      tint: AppTheme.accentColor,
-    ),
-  ];
+  /// The Notice Center is derived from the selected pet's persisted Calendar.
+  /// It intentionally has no presentation-only seed data for authenticated
+  /// users. Push messages will be added here only after a server-backed inbox
+  /// exists; until then OS notifications remain separate from this view.
+  List<_NotificationData> get _notifications {
+    if (_pets.isEmpty) return const [];
+    final now = DateTime.now();
+    final events =
+        _calendarEvents.where((event) {
+          final occurrence = event.startsAt ?? event.date;
+          return !event.completed && !occurrence.isBefore(now);
+        }).toList()..sort((a, b) {
+          final aTime = a.startsAt ?? a.date;
+          final bTime = b.startsAt ?? b.date;
+          return aTime.compareTo(bTime);
+        });
+    return events
+        .take(10)
+        .map((event) {
+          final occurrence = event.startsAt ?? event.date;
+          final dateLabel =
+              '${occurrence.day}/${occurrence.month} ${event.timeLabel}';
+          return _NotificationData(
+            title: event.title,
+            message: 'Upcoming ${event.type} plan for ${_activePet.name}.',
+            time: dateLabel,
+            icon: event.icon,
+            tint: event.color,
+          );
+        })
+        .toList(growable: false);
+  }
 
   /// Seed events for the current month — shown until the user (a) loads their
   /// own persisted plans from SharedPreferences or (b) adds their first event.
@@ -481,20 +488,27 @@ class _HomeScreenState extends State<HomeScreen> {
       // skip the per-pet wiring (would otherwise RangeError on _pets[0]).
       if (_pets.isEmpty) return;
 
-      _seedVetConversationsIfNeeded();
-      _loadDraftForPet(_activePetIndex);
-      await _loadScopedHomeFeatureState();
-      if (!mounted) return;
-
       // Re-key every pet-scoped feature to the user's REAL active pet. The
       // controllers skip loading until this runs — there is no seed-pet
       // fallback anymore (it used to leak one user's data to everyone).
       final activeId = _pets[_activePetIndex].id;
       await context.read<AuthController>().setPetId(activeId);
       if (!mounted) return;
-      context.read<MissionsController>().loadAll(petId: activeId);
-      context.read<ActivityTrackingController>().loadStats(petId: activeId);
-      context.read<HealthAssessmentController>().loadPetHistory(activeId);
+      _seedVetConversationsIfNeeded();
+      _loadDraftForPet(_activePetIndex);
+
+      // Pet identity is the critical Home dependency. Calendar, Wardrobe,
+      // missions, activity, and assessment history are independent secondary
+      // panels: load them concurrently and let each controller expose its own
+      // error/empty state instead of turning one failure into "pets failed".
+      unawaited(_loadScopedHomeFeatureState());
+      unawaited(context.read<MissionsController>().loadAll(petId: activeId));
+      unawaited(
+        context.read<ActivityTrackingController>().loadStats(petId: activeId),
+      );
+      unawaited(
+        context.read<HealthAssessmentController>().loadPetHistory(activeId),
+      );
     } catch (e) {
       debugPrint('Failed to load pets: $e');
       if (mounted) {
@@ -679,9 +693,15 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_pets.isEmpty) return;
     final auth = context.read<AuthController>();
     final petId = _activePet.id;
-    await Future.wait([
-      _calendarController.load(userId: auth.userId, petId: petId),
-      _wardrobeController.load(userId: auth.userId, petId: petId),
+    await Future.wait<void>([
+      _loadOptionalHomeFeature(
+        'Calendar',
+        () => _calendarController.load(userId: auth.userId, petId: petId),
+      ),
+      _loadOptionalHomeFeature(
+        'Wardrobe',
+        () => _wardrobeController.load(userId: auth.userId, petId: petId),
+      ),
     ]);
     if (!mounted) return;
     _loadDraftForPet(_activePetIndex);
@@ -695,6 +715,20 @@ class _HomeScreenState extends State<HomeScreen> {
           body: 'Upcoming for ${_activePet.name}',
         );
       }
+    }
+  }
+
+  Future<void> _loadOptionalHomeFeature(
+    String feature,
+    Future<void> Function() load,
+  ) async {
+    try {
+      await load();
+    } catch (error) {
+      // Optional panels keep any local cache already restored by their
+      // controller. A remote failure must not clear the selected pet or block
+      // the rest of Home.
+      debugPrint('$feature load failed: $error');
     }
   }
 
@@ -1221,13 +1255,16 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          for (final entry in _notifications.indexed) ...[
-            _SoftReveal(
-              delay: 0.08 + (entry.$1 * 0.05),
-              child: _NotificationTile(item: entry.$2, large: true),
-            ),
-            const SizedBox(height: 12),
-          ],
+          if (_notifications.isEmpty)
+            const _HomeNoticeEmptyState()
+          else
+            for (final entry in _notifications.indexed) ...[
+              _SoftReveal(
+                delay: 0.08 + (entry.$1 * 0.05),
+                child: _NotificationTile(item: entry.$2, large: true),
+              ),
+              const SizedBox(height: 12),
+            ],
         ],
       ),
     );
