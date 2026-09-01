@@ -129,7 +129,10 @@ class _EmptyConsultationRepository implements ConsultationRepository {
     required int vetId,
     int? providerId,
     int? assessmentId,
+    String? subject,
     String? notes,
+    String priority = 'normal',
+    bool urgentHelpAcknowledged = false,
   }) => throw UnimplementedError();
   @override
   Future<List<ConsultationModel>> listPetConsultations(int petId) async => [];

@@ -18,6 +18,8 @@ class _OwnerMessagingRepository implements ConsultationRepository {
   final messages = <ChatMessageModel>[];
   String? sentClientMessageId;
   int? createdProviderId;
+  String? createdPriority;
+  bool? urgentAcknowledged;
 
   @override
   Future<List<VetModel>> listVets({bool onlineOnly = false}) async => [vet];
@@ -40,15 +42,22 @@ class _OwnerMessagingRepository implements ConsultationRepository {
     required int vetId,
     int? providerId,
     int? assessmentId,
+    String? subject,
     String? notes,
+    String priority = 'normal',
+    bool urgentHelpAcknowledged = false,
   }) async {
     createdProviderId = providerId;
+    createdPriority = priority;
+    urgentAcknowledged = urgentHelpAcknowledged;
     return ConsultationModel(
       id: 12,
       petId: petId,
       vetId: vetId,
       status: 'ACTIVE',
+      priority: priority,
       assessmentId: assessmentId,
+      subject: subject,
       petName: 'Milo',
       vetName: vet.name,
       createdAt: DateTime(2026, 8, 14),
@@ -385,6 +394,54 @@ void main() {
     expect(find.byType(TextField), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('urgent help requires acknowledgement and a Petto provider', (
+    tester,
+  ) async {
+    final repository = _ProviderDiscoveryRepository();
+    final controller = ConsultationController(repository: repository);
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<ConsultationController>.value(
+        value: controller,
+        child: const MaterialApp(
+          home: Scaffold(
+            body: OwnerConsultationScreen(
+              petId: 5,
+              petName: 'Milo',
+              loadMapTiles: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    final urgentButton = find.byKey(const Key('urgent-help-provider-21'));
+    expect(urgentButton, findsOneWidget);
+    expect(find.byKey(const Key('urgent-help-provider-22')), findsNothing);
+    await tester.ensureVisible(urgentButton);
+    await tester.tap(urgentButton);
+    await tester.pumpAndSettle();
+    expect(find.text('Request Urgent Help?'), findsOneWidget);
+    expect(
+      find.textContaining('response time is not guaranteed'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('acknowledge-urgent-help')));
+    await tester.pumpAndSettle();
+    expect(find.text('Choose a veterinarian for Urgent Help'), findsOneWidget);
+    await tester.tap(find.text('Dr. Test'));
+    await tester.pump();
+    await tester.pump();
+
+    expect(repository.createdProviderId, 21);
+    expect(repository.createdPriority, 'urgent');
+    expect(repository.urgentAcknowledged, isTrue);
+    expect(controller.active?.priority, 'urgent');
   });
 
   testWidgets('location denial explains the issue and does not leave loading', (

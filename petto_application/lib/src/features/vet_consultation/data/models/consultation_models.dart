@@ -100,7 +100,9 @@ class ConsultationModel {
   final int petId;
   final int vetId;
   final String status; // Pending | Active | Completed | Cancelled
+  final String priority; // normal | urgent
   final int? assessmentId;
+  final String? subject;
   final String? notes;
   final String? petName;
   final String? petSpecies;
@@ -120,7 +122,9 @@ class ConsultationModel {
     required this.petId,
     required this.vetId,
     required this.status,
+    this.priority = 'normal',
     this.assessmentId,
+    this.subject,
     this.notes,
     this.petName,
     this.petSpecies,
@@ -137,7 +141,9 @@ class ConsultationModel {
         petId: json['pet_id'] as int,
         vetId: json['vet_id'] as int,
         status: json['status'] as String? ?? 'Pending',
+        priority: json['priority'] as String? ?? 'normal',
         assessmentId: json['assessment_id'] as int?,
+        subject: json['subject'] as String?,
         notes: json['notes'] as String?,
         petName: json['pet_name'] as String?,
         petSpecies: json['pet_species'] as String?,

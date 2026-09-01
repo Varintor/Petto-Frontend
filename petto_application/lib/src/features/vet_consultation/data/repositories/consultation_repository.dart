@@ -21,7 +21,10 @@ abstract class ConsultationRepository {
     required int vetId,
     int? providerId,
     int? assessmentId,
+    String? subject,
     String? notes,
+    String priority,
+    bool urgentHelpAcknowledged,
   });
   Future<List<ConsultationModel>> listPetConsultations(int petId);
   Future<List<ConsultationModel>> listVetConsultations();
@@ -118,7 +121,10 @@ class ConsultationRepositoryImpl implements ConsultationRepository {
     required int vetId,
     int? providerId,
     int? assessmentId,
+    String? subject,
     String? notes,
+    String priority = 'normal',
+    bool urgentHelpAcknowledged = false,
   }) async {
     final response = await dio.post(
       _base,
@@ -127,7 +133,11 @@ class ConsultationRepositoryImpl implements ConsultationRepository {
         'vet_id': vetId,
         if (providerId != null) 'provider_id': providerId,
         if (assessmentId != null) 'assessment_id': assessmentId,
+        if (subject != null) 'subject': subject,
         if (notes != null) 'notes': notes,
+        'priority': priority,
+        if (priority == 'urgent')
+          'urgent_help_acknowledged': urgentHelpAcknowledged,
       },
     );
     return ConsultationModel.fromJson(response.data as Map<String, dynamic>);

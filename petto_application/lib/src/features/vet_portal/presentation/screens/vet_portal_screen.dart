@@ -51,10 +51,14 @@ class _VetPortalScreenState extends State<VetPortalScreen> {
   }
 
   void _openPatient(int index, bool compact) {
+    final patients = _patientsFromConsultations(
+      context.read<ConsultationController>().consultations,
+    );
+    if (index < 0 || index >= patients.length) return;
     if (compact) {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => _PatientDetailsScreen(patient: _patients[index]),
+          builder: (_) => _PatientDetailsScreen(patient: patients[index]),
         ),
       );
       return;
@@ -566,72 +570,106 @@ class _DashboardView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _VetScroll(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _PageTitle(
-            title: 'Good afternoon, $vetName',
-            subtitle: 'A calm workspace for today\'s patient care.',
-          ),
-          const SizedBox(height: 18),
-          _HeroPanel(
-            title: 'Today\'s Clinic',
-            subtitle: '3 appointments, 2 active chats, 1 high-risk follow-up.',
-            actionText: 'Open messages',
-            onAction: onOpenMessages,
-          ),
-          const SizedBox(height: 16),
-          GridView.count(
-            crossAxisCount: compact ? 2 : 4,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: compact ? 1.42 : 1.55,
-            children: const [
-              _MetricCard(
-                label: 'Patients',
-                value: '24',
-                icon: Icons.pets_rounded,
+    return Consumer<ConsultationController>(
+      builder: (context, controller, _) {
+        final consultations = controller.consultations;
+        final patients = _patientsFromConsultations(consultations);
+        final activeCount = consultations
+            .where((item) => !item.isClosed)
+            .length;
+        final pendingCount = consultations
+            .where((item) => item.status.toUpperCase() == 'PENDING')
+            .length;
+        return _VetScroll(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _PageTitle(
+                title: 'Good afternoon, $vetName',
+                subtitle: 'Assigned Petto consultations and shared records.',
               ),
-              _MetricCard(
-                label: 'Consults',
-                value: '8',
-                icon: Icons.event_note_rounded,
+              const SizedBox(height: 18),
+              _HeroPanel(
+                title: 'Consultation Workspace',
+                subtitle: consultations.isEmpty
+                    ? 'No owner has started a consultation with you yet.'
+                    : '$activeCount open consultation${activeCount == 1 ? '' : 's'} '
+                          'across ${patients.length} patient${patients.length == 1 ? '' : 's'}.',
+                actionText: 'Open messages',
+                onAction: onOpenMessages,
               ),
-              _MetricCard(
-                label: 'Unread',
-                value: '5',
-                icon: Icons.mark_chat_unread_rounded,
+              const SizedBox(height: 16),
+              GridView.count(
+                crossAxisCount: compact ? 2 : 4,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: compact ? 1.42 : 1.55,
+                children: [
+                  _MetricCard(
+                    label: 'Patients',
+                    value: '${patients.length}',
+                    icon: Icons.pets_rounded,
+                  ),
+                  _MetricCard(
+                    label: 'Assigned',
+                    value: '${consultations.length}',
+                    icon: Icons.event_note_rounded,
+                  ),
+                  _MetricCard(
+                    label: 'Open',
+                    value: '$activeCount',
+                    icon: Icons.forum_rounded,
+                  ),
+                  _MetricCard(
+                    label: 'Pending',
+                    value: '$pendingCount',
+                    icon: Icons.hourglass_top_rounded,
+                  ),
+                ],
               ),
-              _MetricCard(
-                label: 'Alerts',
-                value: '2',
-                icon: Icons.monitor_heart_rounded,
+              const SizedBox(height: 20),
+              _SectionHeader(
+                title: 'Assigned Patients',
+                action: 'View all',
+                onAction: onOpenPatients,
               ),
+              const SizedBox(height: 10),
+              if (controller.loading && consultations.isEmpty)
+                const Center(child: CircularProgressIndicator())
+              else if (controller.error != null && consultations.isEmpty)
+                _VetLoadState(
+                  message: controller.error!,
+                  onRetry: controller.loadVetConsultations,
+                )
+              else if (patients.isEmpty)
+                const _VetLoadState(message: 'No assigned patients yet.')
+              else
+                for (var i = 0; i < patients.length && i < 2; i++)
+                  _PatientRow(
+                    patient: patients[i],
+                    onTap: () => onOpenPatient(i),
+                  ),
+              if (consultations.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                _SectionHeader(
+                  title: 'Recent Consultations',
+                  action: 'Open',
+                  onAction: onOpenMessages,
+                ),
+                const SizedBox(height: 10),
+                for (var i = 0; i < consultations.length && i < 2; i++)
+                  _ConsultationRow(
+                    consultation: consultations[i],
+                    selected: false,
+                    onTap: () => onOpenMessage(i),
+                  ),
+              ],
             ],
           ),
-          const SizedBox(height: 20),
-          _SectionHeader(
-            title: 'Priority Patients',
-            action: 'View all',
-            onAction: onOpenPatients,
-          ),
-          const SizedBox(height: 10),
-          for (var i = 0; i < 2; i++)
-            _PatientRow(patient: _patients[i], onTap: () => onOpenPatient(i)),
-          const SizedBox(height: 14),
-          _SectionHeader(
-            title: 'Care Team Inbox',
-            action: 'Open',
-            onAction: onOpenMessages,
-          ),
-          const SizedBox(height: 10),
-          for (var i = 0; i < 2; i++)
-            _ThreadRow(thread: _threads[i], onTap: () => onOpenMessage(i)),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -649,111 +687,53 @@ class _PatientsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (compact) {
-      return _VetScroll(
-        child: Column(
+    return Consumer<ConsultationController>(
+      builder: (context, controller, _) {
+        final patients = _patientsFromConsultations(controller.consultations);
+        if (controller.loading && patients.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (controller.error != null && patients.isEmpty) {
+          return _VetLoadState(
+            message: controller.error!,
+            onRetry: controller.loadVetConsultations,
+          );
+        }
+        if (patients.isEmpty) {
+          return const _VetLoadState(
+            message:
+                'No assigned patients yet. Patients appear after an owner starts a consultation.',
+          );
+        }
+        final safeIndex = selectedIndex.clamp(0, patients.length - 1);
+        final list = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const _PageTitle(
               title: 'Patients',
-              subtitle: 'Recent cases and active care plans.',
+              subtitle: 'Pets assigned through Petto consultations.',
             ),
             const SizedBox(height: 14),
-            for (var i = 0; i < _patients.length; i++)
-              _PatientRow(patient: _patients[i], onTap: () => onSelect(i)),
+            for (var i = 0; i < patients.length; i++)
+              _PatientRow(
+                patient: patients[i],
+                selected: !compact && i == safeIndex,
+                onTap: () => onSelect(i),
+              ),
           ],
-        ),
-      );
-    }
-
-    return Row(
-      children: [
-        SizedBox(
-          width: 390,
-          child: _VetScroll(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _PageTitle(
-                  title: 'Patients',
-                  subtitle: 'Recent cases and active care plans.',
-                ),
-                const SizedBox(height: 14),
-                for (var i = 0; i < _patients.length; i++)
-                  _PatientRow(
-                    patient: _patients[i],
-                    selected: i == selectedIndex,
-                    onTap: () => onSelect(i),
-                  ),
-              ],
-            ),
-          ),
-        ),
-        Expanded(
-          child: _VetScroll(
-            child: _PatientDetails(patient: _patients[selectedIndex]),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _MessagesView extends StatelessWidget {
-  const _MessagesView({
-    required this.selectedIndex,
-    required this.compact,
-    required this.onSelect,
-  });
-
-  final int selectedIndex;
-  final bool compact;
-  final ValueChanged<int> onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    if (compact) {
-      return _VetScroll(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        );
+        if (compact) return _VetScroll(child: list);
+        return Row(
           children: [
-            const _PageTitle(
-              title: 'Messages',
-              subtitle: 'Owner updates and follow-up conversations.',
+            SizedBox(width: 390, child: _VetScroll(child: list)),
+            Expanded(
+              child: _VetScroll(
+                child: _PatientDetails(patient: patients[safeIndex]),
+              ),
             ),
-            const SizedBox(height: 14),
-            for (var i = 0; i < _threads.length; i++)
-              _ThreadRow(thread: _threads[i], onTap: () => onSelect(i)),
           ],
-        ),
-      );
-    }
-
-    return Row(
-      children: [
-        SizedBox(
-          width: 390,
-          child: _VetScroll(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _PageTitle(
-                  title: 'Messages',
-                  subtitle: 'Owner updates and follow-up conversations.',
-                ),
-                const SizedBox(height: 14),
-                for (var i = 0; i < _threads.length; i++)
-                  _ThreadRow(
-                    thread: _threads[i],
-                    selected: i == selectedIndex,
-                    onTap: () => onSelect(i),
-                  ),
-              ],
-            ),
-          ),
-        ),
-        Expanded(child: _ConversationPanel(thread: _threads[selectedIndex])),
-      ],
+        );
+      },
     );
   }
 }
@@ -861,17 +841,25 @@ class _ConsultationRow extends StatelessWidget {
         color: selected ? const Color(0xFFF4E8E6) : const Color(0xFFFFFCF9),
         borderRadius: BorderRadius.circular(22),
         child: ListTile(
+          key: Key('vet-consultation-${consultation.id}'),
           onTap: onTap,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(22),
           ),
-          leading: const _InitialBadge(initial: 'P'),
+          leading: consultation.priority == 'urgent'
+              ? const CircleAvatar(
+                  backgroundColor: Color(0xFFFFE7E7),
+                  child: Icon(Icons.sos_rounded, color: Colors.redAccent),
+                )
+              : const _InitialBadge(initial: 'P'),
           title: Text(
             consultation.petName ?? 'Pet #${consultation.petId}',
             style: const TextStyle(fontWeight: FontWeight.w900),
           ),
           subtitle: Text(
-            consultation.notes?.trim().isNotEmpty == true
+            consultation.subject?.trim().isNotEmpty == true
+                ? consultation.subject!
+                : consultation.notes?.trim().isNotEmpty == true
                 ? consultation.notes!
                 : 'Veterinary consultation',
             maxLines: 2,
@@ -1425,55 +1413,6 @@ class _PatientDetailsScreen extends StatelessWidget {
   }
 }
 
-class _ConversationScreen extends StatelessWidget {
-  const _ConversationScreen({required this.thread});
-
-  final _Thread thread;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      body: Stack(
-        children: [
-          const Positioned.fill(child: _VetBackground()),
-          SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
-                  child: Row(
-                    children: [
-                      IconButton.filledTonal(
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.arrow_back_rounded),
-                        color: AppTheme.primaryColor,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          thread.owner,
-                          style: const TextStyle(
-                            color: AppTheme.secondaryText,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w900,
-                            fontFamily: AppTheme.displayFontFamily,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(child: _ConversationPanel(thread: thread)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _VetScroll extends StatelessWidget {
   const _VetScroll({required this.child});
 
@@ -1709,36 +1648,6 @@ class _PatientRow extends StatelessWidget {
   }
 }
 
-class _ThreadRow extends StatelessWidget {
-  const _ThreadRow({
-    required this.thread,
-    required this.onTap,
-    this.selected = false,
-  });
-
-  final _Thread thread;
-  final VoidCallback onTap;
-  final bool selected;
-
-  @override
-  Widget build(BuildContext context) {
-    return _ListCard(
-      selected: selected,
-      onTap: onTap,
-      leading: _TintIcon(icon: Icons.forum_rounded),
-      title: thread.owner,
-      subtitle: '${thread.petName} • ${thread.time}',
-      trailing: thread.unread
-          ? const _SmallDot()
-          : const Icon(
-              Icons.chevron_right_rounded,
-              color: AppTheme.primaryColor,
-            ),
-      footer: thread.preview,
-    );
-  }
-}
-
 class _ListCard extends StatelessWidget {
   const _ListCard({
     required this.leading,
@@ -1926,83 +1835,6 @@ class _PatientDetails extends StatelessWidget {
                   ),
                 ),
             ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ConversationPanel extends StatelessWidget {
-  const _ConversationPanel({required this.thread});
-
-  final _Thread thread;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Expanded(
-          child: _VetScroll(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _PageTitle(
-                  title: thread.owner,
-                  subtitle: '${thread.petName} • ${thread.topic}',
-                ),
-                const SizedBox(height: 18),
-                _ChatBubble(text: thread.preview, mine: false),
-                _ChatBubble(
-                  text:
-                      'Thanks for the update. I will review the recent notes.',
-                  mine: true,
-                ),
-                _ChatBubble(
-                  text: 'Please send a photo if the symptom changes today.',
-                  mine: false,
-                ),
-              ],
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(22, 0, 22, 18),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFFCF9),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: AppTheme.primaryColor.withValues(alpha: 0.18),
-              ),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.chat_bubble_outline_rounded,
-                  color: AppTheme.primaryColor,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Type a reply...',
-                    style: TextStyle(
-                      color: AppTheme.mutedText,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                IconButton.filled(
-                  onPressed: () {},
-                  icon: const Icon(Icons.arrow_forward_rounded),
-                  style: IconButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor,
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-              ],
-            ),
           ),
         ),
       ],
@@ -2316,102 +2148,44 @@ class _Patient {
   final List<String> timeline;
 }
 
-class _Thread {
-  const _Thread({
-    required this.owner,
-    required this.petName,
-    required this.topic,
-    required this.preview,
-    required this.time,
-    required this.unread,
-  });
-
-  final String owner;
-  final String petName;
-  final String topic;
-  final String preview;
-  final String time;
-  final bool unread;
+List<_Patient> _patientsFromConsultations(
+  List<ConsultationModel> consultations,
+) {
+  final patients = <int, _Patient>{};
+  for (final consultation in consultations) {
+    // The endpoint is ordered newest first, so the first consultation for a
+    // pet is the summary displayed in the patient workspace.
+    patients.putIfAbsent(consultation.petId, () {
+      final created = consultation.updatedAt ?? consultation.createdAt;
+      final status = consultation.status.toLowerCase();
+      final subject = consultation.subject?.trim().isNotEmpty == true
+          ? consultation.subject!.trim()
+          : consultation.notes?.trim().isNotEmpty == true
+          ? consultation.notes!.trim()
+          : 'Veterinary consultation';
+      return _Patient(
+        name: consultation.petName ?? 'Pet #${consultation.petId}',
+        species: consultation.petSpecies ?? 'Pet',
+        owner: consultation.ownerName ?? 'Owner not available',
+        age: 'Not shared',
+        weight: 'Not shared',
+        blood: 'Not shared',
+        risk: consultation.priority == 'urgent'
+            ? 'Urgent'
+            : status == 'pending'
+            ? 'Pending'
+            : consultation.status,
+        lastVisit: '${created.day}/${created.month}/${created.year}',
+        plan: consultation.providerName ?? 'Petto consultation',
+        note: subject,
+        timeline: [
+          'Consultation #${consultation.id} is ${consultation.status.toLowerCase()}.',
+          if (consultation.providerName != null)
+            'Provider: ${consultation.providerName}.',
+          'Open Messages to review only the Health Card or records explicitly shared by the owner.',
+        ],
+      );
+    });
+  }
+  return patients.values.toList(growable: false);
 }
-
-const _patients = [
-  _Patient(
-    name: 'Milo',
-    species: 'Cat',
-    owner: 'Warit',
-    age: '4 years',
-    weight: '4.8 kg',
-    blood: 'A',
-    risk: 'High risk',
-    lastVisit: 'Today',
-    plan: 'Skin care',
-    note: 'Skin irritation review with persistent scratching.',
-    timeline: [
-      'AI check flagged redness and scratching around the left ear.',
-      'Owner reports appetite remains normal with mild sleep changes.',
-      'Recommended follow-up photo in 24 hours if redness persists.',
-    ],
-  ),
-  _Patient(
-    name: 'Buddy',
-    species: 'Dog',
-    owner: 'Aom',
-    age: '2 years',
-    weight: '9.2 kg',
-    blood: 'DEA 1.1',
-    risk: 'Normal',
-    lastVisit: 'Yesterday',
-    plan: 'Activity',
-    note: 'Short walk completed. Resting heart pattern looks calm.',
-    timeline: [
-      'Walk summary reviewed with stable pace and normal recovery.',
-      'Hydration reminder sent after activity.',
-      'Next wellness check scheduled for next week.',
-    ],
-  ),
-  _Patient(
-    name: 'Luna',
-    species: 'Cat',
-    owner: 'Mint',
-    age: '1 year',
-    weight: '3.9 kg',
-    blood: 'B',
-    risk: 'Watch',
-    lastVisit: '2 days',
-    plan: 'Diet',
-    note: 'Digestive discomfort follow-up after diet change.',
-    timeline: [
-      'No vomiting reported today.',
-      'Recommend smaller meals and water tracking.',
-      'Escalate if appetite drops or lethargy appears.',
-    ],
-  ),
-];
-
-const _threads = [
-  _Thread(
-    owner: 'Warit',
-    petName: 'Milo',
-    topic: 'Skin follow-up',
-    preview:
-        'Milo is still scratching near the ear. Should I send another photo?',
-    time: '09:24',
-    unread: true,
-  ),
-  _Thread(
-    owner: 'Aom',
-    petName: 'Buddy',
-    topic: 'Walk recovery',
-    preview: 'Buddy finished the short walk and is resting now.',
-    time: '10:10',
-    unread: true,
-  ),
-  _Thread(
-    owner: 'Mint',
-    petName: 'Luna',
-    topic: 'Diet check',
-    preview: 'She ate half of the new food this morning.',
-    time: 'Yesterday',
-    unread: false,
-  ),
-];

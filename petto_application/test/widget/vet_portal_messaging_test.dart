@@ -111,7 +111,10 @@ class _MessagingRepository implements ConsultationRepository {
     required int vetId,
     int? providerId,
     int? assessmentId,
+    String? subject,
     String? notes,
+    String priority = 'normal',
+    bool urgentHelpAcknowledged = false,
   }) => throw UnimplementedError();
   @override
   Future<List<ConsultationModel>> listPetConsultations(int petId) =>
@@ -163,7 +166,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Milo'), findsWidgets);
 
-    await tester.tap(find.widgetWithText(ListTile, 'Milo'));
+    await tester.tap(find.byKey(const Key('vet-consultation-1')).last);
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Milo is still scratching.'), findsOneWidget);
 

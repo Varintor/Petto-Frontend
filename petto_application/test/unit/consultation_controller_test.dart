@@ -210,7 +210,10 @@ class _FakeConsultationRepository implements ConsultationRepository {
     required int vetId,
     int? providerId,
     int? assessmentId,
+    String? subject,
     String? notes,
+    String priority = 'normal',
+    bool urgentHelpAcknowledged = false,
   }) => throw UnimplementedError();
 
   @override

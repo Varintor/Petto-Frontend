@@ -104,12 +104,14 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
   Future<void> _startConsultation(
     VetModel vet, {
     VeterinaryProviderModel? provider,
+    bool urgent = false,
   }) async {
     await context.read<ConsultationController>().startConsultation(
       petId: widget.petId,
       vetId: vet.id,
       providerId: provider?.id,
       assessmentId: _includeLatestAssessment ? widget.latestAssessmentId : null,
+      urgent: urgent,
       realtimeAccessToken: widget.realtimeAccessToken,
     );
   }
@@ -188,7 +190,10 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
-  Future<void> _chooseProviderVet(VeterinaryProviderModel provider) async {
+  Future<void> _chooseProviderVet(
+    VeterinaryProviderModel provider, {
+    bool urgent = false,
+  }) async {
     if (!provider.consultationEnabled) return;
     final controller = context.read<ConsultationController>();
     await controller.loadProviderVets(provider.id);
@@ -205,13 +210,45 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
         return _VetPickerSheet(
           provider: provider,
           vets: vets,
+          urgent: urgent,
           onVetSelected: (vet) {
             Navigator.of(sheetContext).pop();
-            _startConsultation(vet, provider: provider);
+            _startConsultation(vet, provider: provider, urgent: urgent);
           },
         );
       },
     );
+  }
+
+  Future<void> _requestUrgentHelp(VeterinaryProviderModel provider) async {
+    if (!provider.consultationEnabled) return;
+    final acknowledged = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        icon: const Icon(Icons.sos_rounded, color: Colors.redAccent),
+        title: const Text('Request Urgent Help?'),
+        content: const Text(
+          'Petto will open a high-priority chat with an available verified '
+          'veterinarian. This is not an emergency dispatch service and a '
+          'response time is not guaranteed. For immediate danger, contact or '
+          'travel to the nearest veterinary hospital directly.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            key: const Key('acknowledge-urgent-help'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            icon: const Icon(Icons.check_circle_outline_rounded),
+            label: const Text('I understand'),
+          ),
+        ],
+      ),
+    );
+    if (acknowledged != true || !mounted) return;
+    await _chooseProviderVet(provider, urgent: true);
   }
 
   Future<void> _showProviderDetails(VeterinaryProviderModel provider) async {
@@ -232,6 +269,12 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
                 ? () {
                     Navigator.of(sheetContext).pop();
                     _chooseProviderVet(provider);
+                  }
+                : null,
+            onUrgent: provider.consultationEnabled
+                ? () {
+                    Navigator.of(sheetContext).pop();
+                    _requestUrgentHelp(provider);
                   }
                 : null,
           ),
@@ -418,6 +461,9 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
                 onDirections: () => _openDirections(provider),
                 onConsult: provider.consultationEnabled
                     ? () => _chooseProviderVet(provider)
+                    : null,
+                onUrgent: provider.consultationEnabled
+                    ? () => _requestUrgentHelp(provider)
                     : null,
               )
           else
@@ -1052,11 +1098,13 @@ class _VetPickerSheet extends StatelessWidget {
   const _VetPickerSheet({
     required this.provider,
     required this.vets,
+    required this.urgent,
     required this.onVetSelected,
   });
 
   final VeterinaryProviderModel provider;
   final List<VetModel> vets;
+  final bool urgent;
   final ValueChanged<VetModel> onVetSelected;
 
   @override
@@ -1135,7 +1183,9 @@ class _VetPickerSheet extends StatelessWidget {
                               ),
                               const SizedBox(height: 3),
                               Text(
-                                'Choose an available Petto veterinarian',
+                                urgent
+                                    ? 'Choose a veterinarian for Urgent Help'
+                                    : 'Choose an available Petto veterinarian',
                                 style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(
                                       color: AppTheme.mutedText,
@@ -1240,11 +1290,13 @@ class _ProviderCard extends StatelessWidget {
     required this.provider,
     required this.onDirections,
     this.onConsult,
+    this.onUrgent,
   });
 
   final VeterinaryProviderModel provider;
   final VoidCallback onDirections;
   final VoidCallback? onConsult;
+  final VoidCallback? onUrgent;
 
   @override
   Widget build(BuildContext context) {
@@ -1312,6 +1364,19 @@ class _ProviderCard extends StatelessWidget {
                 ),
               ],
             ),
+            if (onUrgent != null) ...[
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: _CompactActionButton(
+                  key: Key('urgent-help-provider-${provider.id}'),
+                  onPressed: onUrgent,
+                  icon: const Icon(Icons.sos_rounded),
+                  label: 'Request Urgent Help',
+                  outlined: true,
+                ),
+              ),
+            ],
             if (provider.address?.trim().isNotEmpty == true) ...[
               const SizedBox(height: 10),
               Text(provider.address!),
@@ -1425,9 +1490,13 @@ class _ConsultationCard extends StatelessWidget {
                 color: AppTheme.primaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(19),
               ),
-              child: const Icon(
-                Icons.forum_rounded,
-                color: AppTheme.primaryColor,
+              child: Icon(
+                consultation.priority == 'urgent'
+                    ? Icons.sos_rounded
+                    : Icons.forum_rounded,
+                color: consultation.priority == 'urgent'
+                    ? Colors.redAccent
+                    : AppTheme.primaryColor,
               ),
             ),
             const SizedBox(width: 12),
@@ -1446,6 +1515,7 @@ class _ConsultationCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
+                    '${consultation.priority == 'urgent' ? 'URGENT • ' : ''}'
                     '${consultation.status} • ${consultation.providerName ?? 'Petto'}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1549,6 +1619,7 @@ class _VetCard extends StatelessWidget {
 
 class _CompactActionButton extends StatelessWidget {
   const _CompactActionButton({
+    super.key,
     required this.onPressed,
     required this.icon,
     required this.label,

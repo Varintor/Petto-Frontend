@@ -119,6 +119,7 @@ class ConsultationController extends ChangeNotifier {
     required int vetId,
     int? providerId,
     int? assessmentId,
+    bool urgent = false,
     String? realtimeAccessToken,
   }) async {
     await realtimeGateway.stop();
@@ -130,6 +131,9 @@ class ConsultationController extends ChangeNotifier {
         vetId: vetId,
         providerId: providerId,
         assessmentId: assessmentId,
+        subject: urgent ? 'Urgent Help' : null,
+        priority: urgent ? 'urgent' : 'normal',
+        urgentHelpAcknowledged: urgent,
       );
       _consultations = [
         _active!,
