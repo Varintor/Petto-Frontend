@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/services/notification_service.dart';
+import '../../../../core/services/location_service.dart';
+import '../../../../core/services/weather_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/assessment_entity.dart';
 import '../controllers/health_assessment_controller.dart';
@@ -15,6 +17,7 @@ import '../../../../core/widgets/top_alert.dart';
 import '../../../activity_tracking/presentation/controllers/activity_tracking_controller.dart';
 import '../../../activity_tracking/presentation/screens/live_walk_screen.dart';
 import '../../../missions/presentation/controllers/missions_controller.dart';
+import '../../../missions/data/models/mission_model.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../auth/presentation/screens/auth_gate.dart';
 import '../../../pet_management/data/repositories/pet_repository.dart';
@@ -55,7 +58,6 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime _selectedDate = DateTime.now();
   _VetFilter _vetFilter = _VetFilter.all;
 
-  bool _showActionMenu = false;
   bool _showNavActionMenu = false;
   bool _showAssessment = false;
   String _assessmentModalTitle = 'Smart AI Scan';
@@ -835,6 +837,62 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHeader(BuildContext context) {
+    if (_activeView == _View.dashboard) {
+      final now = DateTime.now();
+      const weekdays = [
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+        'Sunday',
+      ];
+      return Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor,
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: const Icon(
+              Icons.pets_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 11),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'PETTO',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppTheme.secondaryText,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  height: 1,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${weekdays[now.weekday - 1]}, ${now.day} ${_monthName(now.month)}',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: AppTheme.mutedText,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0,
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          _buildNotificationButton(context),
+        ],
+      );
+    }
+
     return Row(
       children: [
         Row(
@@ -879,7 +937,6 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: () {
         setState(() {
           _activeView = _View.notifications;
-          _showActionMenu = false;
           _showNavActionMenu = false;
         });
       },
@@ -991,14 +1048,12 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _activeView = view;
         _showNavActionMenu = false;
-        _showActionMenu = false;
       });
     }
 
     void openAssessment(String title) {
       setState(() {
         _showNavActionMenu = false;
-        _showActionMenu = false;
         _assessmentModalTitle = title;
         _showAssessment = true;
       });
@@ -1127,7 +1182,6 @@ class _HomeScreenState extends State<HomeScreen> {
               onTap: () {
                 setState(() {
                   _showNavActionMenu = !_showNavActionMenu;
-                  _showActionMenu = false;
                 });
               },
             ),

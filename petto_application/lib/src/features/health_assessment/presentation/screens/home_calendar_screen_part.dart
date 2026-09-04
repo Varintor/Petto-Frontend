@@ -3,6 +3,260 @@ part of 'home_screen.dart';
 bool _sameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
 
+class _HomeCalendarPreviewDay extends StatelessWidget {
+  const _HomeCalendarPreviewDay({
+    required this.date,
+    required this.selected,
+    required this.hasEvent,
+    required this.onTap,
+  });
+
+  final DateTime date;
+  final bool selected;
+  final bool hasEvent;
+  final VoidCallback onTap;
+
+  String get _weekday {
+    const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    return labels[date.weekday - 1];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 3),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          height: 78,
+          padding: const EdgeInsets.symmetric(vertical: 9),
+          decoration: BoxDecoration(
+            color: selected
+                ? AppTheme.primaryColor
+                : const Color(0xFFFFE7E4).withValues(alpha: 0.76),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: selected
+                  ? AppTheme.primaryColor
+                  : AppTheme.primaryColor.withValues(alpha: 0.10),
+            ),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.14),
+                      blurRadius: 16,
+                      spreadRadius: -10,
+                      offset: const Offset(0, 10),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                _weekday,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: selected
+                      ? Colors.white70
+                      : AppTheme.secondaryText.withValues(alpha: 0.52),
+                  fontWeight: FontWeight.w900,
+                  fontSize: 10,
+                  letterSpacing: 0,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${date.day}',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: selected ? Colors.white : AppTheme.secondaryText,
+                  fontWeight: FontWeight.w900,
+                  height: 1,
+                ),
+              ),
+              const SizedBox(height: 5),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                width: hasEvent ? 6 : 3,
+                height: hasEvent ? 6 : 3,
+                decoration: BoxDecoration(
+                  color: hasEvent
+                      ? (selected ? Colors.white : AppTheme.primaryColor)
+                      : Colors.transparent,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeScheduleEventLine extends StatelessWidget {
+  const _HomeScheduleEventLine({required this.event});
+
+  final CalendarEventData event;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBF2),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: event.color.withValues(alpha: 0.10)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: event.color.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Icon(event.icon, color: event.color, size: 22),
+          ),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  event.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: AppTheme.secondaryText,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  event.timeLabel,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: event.color,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppTheme.primaryColor.withValues(alpha: 0.20),
+                width: 2,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeScheduleEmpty extends StatelessWidget {
+  const _HomeScheduleEmpty({required this.petName, required this.onTap});
+
+  final String petName;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBF2),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: AppTheme.primaryColor.withValues(alpha: 0.08),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: const Icon(
+              Icons.event_available_rounded,
+              color: AppTheme.primaryColor,
+              size: 19,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '$petName has no plans yet',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: AppTheme.mutedText,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: onTap,
+            style: TextButton.styleFrom(
+              foregroundColor: AppTheme.primaryColor,
+              textStyle: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            child: const Text('Add plan'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CalendarCircleButton extends StatelessWidget {
+  const _CalendarCircleButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFEFB),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: AppTheme.primaryColor.withValues(alpha: 0.10),
+            width: 1.2,
+          ),
+        ),
+        child: Icon(icon, color: AppTheme.primaryColor, size: 22),
+      ),
+    );
+  }
+}
+
 extension _HomeCalendarScreenPart on _HomeScreenState {
   bool _eventOnDay(CalendarEventData event, int year, int month, int day) {
     return event.date.year == year &&
@@ -37,73 +291,46 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
         ? selectedEvents
         : upcomingEvents;
 
+    void openCalendar() {
+      _update(() {
+        _activeView = _View.calendar;
+        _showNavActionMenu = false;
+      });
+    }
+
     return _SoftReveal(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 5,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryColor,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Calendar',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: AppTheme.secondaryText,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              InkWell(
-                borderRadius: BorderRadius.circular(999),
-                onTap: () {
-                  _update(() {
-                    _activeView = _View.calendar;
-                    _showActionMenu = false;
-                    _showNavActionMenu = false;
-                  });
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 13,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    _monthName(_focusedMonth.month),
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          _HomeSectionTitle(
+            title: 'Calendar',
+            trailing: _monthName(_focusedMonth.month),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-            decoration: AppTheme.glassCardDecoration(
-              color: AppTheme.surfaceColor.withValues(alpha: 0.98),
-              borderRadius: BorderRadius.circular(28),
-              borderColor: AppTheme.primaryColor.withValues(alpha: 0.12),
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFEFB).withValues(alpha: 0.94),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                color: AppTheme.primaryColor.withValues(alpha: 0.13),
+                width: 1.4,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.06),
+                  blurRadius: 22,
+                  spreadRadius: -14,
+                  offset: const Offset(0, 16),
+                ),
+              ],
             ),
             child: Column(
               children: [
                 Row(
                   children: [
-                    _SquareIconButton(
+                    _CalendarCircleButton(
                       icon: Icons.chevron_left_rounded,
                       onTap: () {
                         _update(() {
@@ -111,22 +338,16 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
                             _focusedMonth.year,
                             _focusedMonth.month - 1,
                           );
-                          _selectedDate = DateTime(
-                            _focusedMonth.year,
-                            _focusedMonth.month,
-                            1,
-                          );
                         });
                       },
                     ),
-                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         children: [
                           Text(
                             '${_monthName(_focusedMonth.month)} ${_focusedMonth.year}',
                             textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.titleMedium
+                            style: Theme.of(context).textTheme.titleLarge
                                 ?.copyWith(
                                   color: AppTheme.secondaryText,
                                   fontWeight: FontWeight.w900,
@@ -134,18 +355,18 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            visibleEvents.isEmpty
-                                ? 'No upcoming care plans'
-                                : '${visibleEvents.length} care plan${visibleEvents.length == 1 ? '' : 's'} nearby',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.labelSmall
-                                ?.copyWith(color: AppTheme.mutedText),
+                            '${visibleEvents.length} care plans nearby',
+                            style: Theme.of(context).textTheme.labelMedium
+                                ?.copyWith(
+                                  color: AppTheme.mutedText,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0,
+                                ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    _SquareIconButton(
+                    _CalendarCircleButton(
                       icon: Icons.chevron_right_rounded,
                       onTap: () {
                         _update(() {
@@ -153,22 +374,17 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
                             _focusedMonth.year,
                             _focusedMonth.month + 1,
                           );
-                          _selectedDate = DateTime(
-                            _focusedMonth.year,
-                            _focusedMonth.month,
-                            1,
-                          );
                         });
                       },
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 15),
                 Row(
                   children: [
                     for (final day in days)
                       Expanded(
-                        child: _HomeCalendarDayChip(
+                        child: _HomeCalendarPreviewDay(
                           date: DateTime(
                             _focusedMonth.year,
                             _focusedMonth.month,
@@ -199,49 +415,72 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
                       ),
                   ],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 2),
                 if (visibleEvents.isEmpty)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 13,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppTheme.creamSurfaceColor.withValues(alpha: 0.58),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: AppTheme.surfaceColor,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: const Icon(
-                            Icons.event_available_rounded,
-                            color: AppTheme.primaryColor,
-                            size: 19,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'A calm day for ${_activePet.name}.',
-                            style: Theme.of(context).textTheme.labelMedium
-                                ?.copyWith(color: AppTheme.secondaryText),
-                          ),
-                        ),
-                      ],
-                    ),
+                  _HomeScheduleEmpty(
+                    petName: _activePet.name,
+                    onTap: _showAddCalendarPlanSheet,
                   )
                 else
-                  for (final event in visibleEvents) ...[
-                    _HomeCalendarEventTile(event: event),
-                    if (event != visibleEvents.last) const SizedBox(height: 10),
+                  for (final event in visibleEvents)
+                    _HomeScheduleEventLine(event: event),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    InkWell(
+                      onTap: _showAddCalendarPlanSheet,
+                      borderRadius: BorderRadius.circular(999),
+                      child: Container(
+                        height: 36,
+                        padding: const EdgeInsets.symmetric(horizontal: 13),
+                        decoration: BoxDecoration(
+                          color: const Color(
+                            0xFFFFE9B8,
+                          ).withValues(alpha: 0.78),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.add_rounded,
+                              color: Color(0xFFB98422),
+                              size: 18,
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              'Add',
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(
+                                    color: const Color(0xFFB98422),
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    InkWell(
+                      onTap: openCalendar,
+                      borderRadius: BorderRadius.circular(999),
+                      child: Container(
+                        height: 36,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: const Icon(
+                          Icons.arrow_forward_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                    ),
                   ],
+                ),
               ],
             ),
           ),
