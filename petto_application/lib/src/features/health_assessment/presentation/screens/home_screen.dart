@@ -837,95 +837,72 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHeader(BuildContext context) {
-    if (_activeView == _View.dashboard) {
-      final now = DateTime.now();
-      const weekdays = [
-        'Monday',
-        'Tuesday',
-        'Wednesday',
-        'Thursday',
-        'Friday',
-        'Saturday',
-        'Sunday',
-      ];
-      return Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppTheme.primaryColor,
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: const Icon(
-              Icons.pets_rounded,
-              color: Colors.white,
-              size: 20,
-            ),
+    final now = DateTime.now();
+    const weekdays = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 46,
+          height: 46,
+          decoration: BoxDecoration(
+            color: AppTheme.primaryColor,
+            borderRadius: BorderRadius.circular(17),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primaryColor.withValues(alpha: 0.12),
+                blurRadius: 18,
+                spreadRadius: -10,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
-          const SizedBox(width: 11),
-          Column(
+          child: const Icon(Icons.pets_rounded, color: Colors.white, size: 23),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 'PETTO',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   color: AppTheme.secondaryText,
-                  fontSize: 22,
+                  fontSize: 30,
                   fontWeight: FontWeight.w900,
-                  height: 1,
+                  height: 0.95,
+                  letterSpacing: 0,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 '${weekdays[now.weekday - 1]}, ${now.day} ${_monthName(now.month)}',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
                   color: AppTheme.mutedText,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
                   letterSpacing: 0,
+                  height: 1.05,
                 ),
               ),
             ],
           ),
-          const Spacer(),
-          _buildNotificationButton(context),
-        ],
-      );
-    }
-
-    return Row(
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: AppTheme.primaryColor,
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: AppTheme.cardShadow,
-              ),
-              child: const Icon(Icons.favorite_rounded, color: Colors.white),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'PETTO',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.headlineSmall?.copyWith(fontSize: 28),
-                ),
-                Text(
-                  'Healthy & Happy',
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
-              ],
-            ),
-          ],
         ),
-        const Spacer(),
+        const SizedBox(width: 12),
         _buildNotificationButton(context),
       ],
     );
@@ -944,22 +921,23 @@ class _HomeScreenState extends State<HomeScreen> {
       child: AnimatedContainer(
         duration: AppTheme.motionFast,
         curve: AppTheme.motionCurve,
-        width: 50,
-        height: 50,
+        width: 54,
+        height: 54,
         decoration: BoxDecoration(
-          color: AppTheme.surfaceColor.withValues(alpha: 0.96),
+          color: AppTheme.surfaceColor.withValues(alpha: 0.98),
           shape: BoxShape.circle,
           border: Border.all(
             color: AppTheme.primaryColor.withValues(
               alpha: _activeView == _View.notifications ? 0.22 : 0.10,
             ),
-            width: 1.2,
+            width: 1.3,
           ),
           boxShadow: [
             BoxShadow(
-              color: AppTheme.primaryColor.withValues(alpha: 0.07),
-              blurRadius: 14,
-              offset: const Offset(0, 7),
+              color: AppTheme.primaryColor.withValues(alpha: 0.08),
+              blurRadius: 16,
+              spreadRadius: -8,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
@@ -970,8 +948,8 @@ class _HomeScreenState extends State<HomeScreen> {
               child: AnimatedContainer(
                 duration: AppTheme.motionFast,
                 curve: AppTheme.motionCurve,
-                width: 36,
-                height: 36,
+                width: 38,
+                height: 38,
                 decoration: BoxDecoration(
                   color: _activeView == _View.notifications
                       ? AppTheme.blushSurfaceColor.withValues(alpha: 0.78)
@@ -983,14 +961,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       ? Icons.notifications_active_rounded
                       : Icons.notifications_none_rounded,
                   color: AppTheme.primaryColor,
-                  size: 20,
+                  size: 22,
                 ),
               ),
             ),
             if (unreadCount > 0)
               Positioned(
-                top: 5,
-                right: 5,
+                top: 6,
+                right: 7,
                 child: Container(
                   width: 16,
                   height: 16,
