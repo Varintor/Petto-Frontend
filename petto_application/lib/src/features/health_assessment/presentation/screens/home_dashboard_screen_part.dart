@@ -130,8 +130,7 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
                             ),
                             const SizedBox(height: 18),
                             _HomeTodayOverview(
-                              petName: _activePet.name,
-                              status: _activePet.status,
+                              pet: _activePet,
                               nextPlan: nextPlan,
                               completedMissions: mc.completedCount,
                               totalMissions: mc.totalCount,
@@ -2799,15 +2798,13 @@ class _HomeSectionTitle extends StatelessWidget {
 
 class _HomeTodayOverview extends StatelessWidget {
   const _HomeTodayOverview({
-    required this.petName,
-    required this.status,
+    required this.pet,
     required this.nextPlan,
     required this.completedMissions,
     required this.totalMissions,
   });
 
-  final String petName;
-  final String status;
+  final _PetData pet;
   final CalendarEventData? nextPlan;
   final int completedMissions;
   final int totalMissions;
@@ -2819,6 +2816,16 @@ class _HomeTodayOverview extends StatelessWidget {
     final missionLabel = totalMissions == 0
         ? 'No missions'
         : '$completedMissions/$totalMissions done';
+    final profileBits = <String>[
+      pet.species,
+      if (pet.breed.trim().isNotEmpty && pet.breed != 'Unknown') pet.breed,
+      if (pet.gender != null && pet.gender!.trim().isNotEmpty) pet.gender!,
+      if (pet.ageLabel.trim().isNotEmpty && pet.ageLabel != '—') pet.ageLabel,
+      if (pet.weightLabel.trim().isNotEmpty && pet.weightLabel != '—')
+        pet.weightLabel,
+      if (pet.bloodType != null && pet.bloodType!.trim().isNotEmpty)
+        '${pet.bloodType} blood',
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2849,8 +2856,8 @@ class _HomeTodayOverview extends StatelessWidget {
             children: [
               _HomeTodayInfoRow(
                 icon: Icons.favorite_rounded,
-                title: petName,
-                subtitle: status,
+                title: pet.name,
+                subtitle: profileBits.join(' • '),
                 color: AppTheme.primaryColor,
                 tint: const Color(0xFFFFE6E2),
               ),

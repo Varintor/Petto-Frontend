@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_theme.dart';
 import '../../data/models/consultation_models.dart';
 
 class SharedAssessmentPanel extends StatelessWidget {
@@ -15,75 +16,209 @@ class SharedAssessmentPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final failed = assessment.failed;
-    return Card(
-      color: failed ? const Color(0xFFFFF3E8) : const Color(0xFFF0F5FF),
+    final tint = failed ? AppTheme.dangerColor : AppTheme.primaryColor;
+    final risk = failed ? 'Unavailable' : assessment.riskLevel ?? 'Pending';
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      child: ExpansionTile(
-        leading: CircleAvatar(
-          child: Icon(
-            failed ? Icons.warning_amber_rounded : Icons.auto_awesome_rounded,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor.withValues(alpha: 0.98),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: tint.withValues(alpha: 0.13), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: tint.withValues(alpha: 0.055),
+            blurRadius: 18,
+            spreadRadius: -12,
+            offset: const Offset(0, 8),
           ),
-        ),
-        title: Text(
-          failed
-              ? 'AI assessment unavailable'
-              : 'Shared assessment • ${assessment.riskLevel ?? 'Pending'}',
-          style: const TextStyle(fontWeight: FontWeight.w900),
-        ),
-        subtitle: Text(assessment.symptomDescription),
-        trailing: onRevoke == null
-            ? null
-            : IconButton(
-                tooltip: 'Stop sharing assessment',
-                onPressed: onRevoke,
-                icon: const Icon(Icons.link_off_rounded),
-              ),
-        childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
-        expandedCrossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _row('Status', assessment.status),
-          _row('Symptoms', assessment.symptomDescription),
-          if (failed) ...[
-            _row('Failure', assessment.errorCode ?? 'AI analysis unavailable'),
-            const Padding(
-              padding: EdgeInsets.only(top: 8),
-              child: Text(
-                'No risk result was generated. This record must not be interpreted as a successful assessment.',
-                style: TextStyle(fontWeight: FontWeight.w700),
+        ],
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: EdgeInsets.zero,
+          childrenPadding: EdgeInsets.zero,
+          leading: Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: tint.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(17),
+            ),
+            child: Icon(
+              failed
+                  ? Icons.warning_amber_rounded
+                  : Icons.assignment_turned_in_rounded,
+              color: tint,
+            ),
+          ),
+          title: Text(
+            failed ? 'AI assessment unavailable' : 'Shared assessment',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: AppTheme.secondaryText,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              assessment.symptomDescription,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppTheme.mutedText,
+                fontWeight: FontWeight.w700,
+                height: 1.24,
               ),
             ),
-          ] else ...[
-            _row('Risk level', assessment.riskLevel ?? 'Not available'),
-            _row('AI result', assessment.aiRawResponse ?? 'Not available'),
-          ],
-          _row(
-            'Created',
-            '${assessment.createdAt.day}/${assessment.createdAt.month}/${assessment.createdAt.year} '
-                '${assessment.createdAt.hour.toString().padLeft(2, '0')}:'
-                '${assessment.createdAt.minute.toString().padLeft(2, '0')}',
           ),
-          if (assessment.imageUri != null) ...[
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                assessment.imageUri!,
-                height: 180,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => const Text(
-                  'The assessment image is temporarily unavailable.',
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _ShareChip(label: risk, color: tint),
+              if (onRevoke != null) ...[
+                const SizedBox(width: 4),
+                IconButton(
+                  tooltip: 'Stop sharing assessment',
+                  onPressed: onRevoke,
+                  icon: const Icon(Icons.link_off_rounded),
+                  color: AppTheme.primaryColor,
+                ),
+              ],
+            ],
+          ),
+          children: [
+            const SizedBox(height: 10),
+            _DetailGrid(
+              rows: [
+                _DetailData('Status', assessment.status),
+                _DetailData('Symptoms', assessment.symptomDescription),
+                if (failed)
+                  _DetailData(
+                    'Failure',
+                    assessment.errorCode ?? 'AI analysis unavailable',
+                  )
+                else ...[
+                  _DetailData('Risk level', assessment.riskLevel ?? 'Not set'),
+                  _DetailData(
+                    'AI result',
+                    assessment.aiRawResponse ?? 'Not available',
+                  ),
+                ],
+                _DetailData('Created', _dateTime(assessment.createdAt)),
+              ],
+            ),
+            if (assessment.imageUri != null) ...[
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Image.network(
+                  assessment.imageUri!,
+                  height: 160,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppTheme.blushSurfaceColor,
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: const Text(
+                      'The assessment image is temporarily unavailable.',
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
 
-  Widget _row(String label, String value) => Padding(
-    padding: const EdgeInsets.only(top: 8),
-    child: Text('$label: $value'),
-  );
+  String _dateTime(DateTime value) =>
+      '${value.day}/${value.month}/${value.year} '
+      '${value.hour.toString().padLeft(2, '0')}:'
+      '${value.minute.toString().padLeft(2, '0')}';
+}
+
+class _DetailData {
+  const _DetailData(this.label, this.value);
+  final String label;
+  final String value;
+}
+
+class _DetailGrid extends StatelessWidget {
+  const _DetailGrid({required this.rows});
+  final List<_DetailData> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.creamSurfaceColor.withValues(alpha: 0.76),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          for (final row in rows)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 96,
+                    child: Text(
+                      row.label,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: AppTheme.mutedText,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      row.value,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppTheme.secondaryText,
+                        fontWeight: FontWeight.w700,
+                        height: 1.25,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShareChip extends StatelessWidget {
+  const _ShareChip({required this.label, required this.color});
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0,
+        ),
+      ),
+    );
+  }
 }
