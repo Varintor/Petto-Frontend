@@ -8,6 +8,14 @@
 /generate_integration_test_docx.py
 /test_integration_example/
 
+### Local Codex/debug artifacts
+/.codex_*
+**/__pycache__/
+*.py[cod]
+
+### Generated Flutter build output
+/petto_application/**/build/
+
 ### Windows
 # Windows thumbnail cache files
 Thumbs.db
