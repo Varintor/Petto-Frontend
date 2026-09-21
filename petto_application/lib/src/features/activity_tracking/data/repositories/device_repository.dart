@@ -54,15 +54,122 @@ class DeviceModel {
         : null,
     lastSpeedKmh: (json['last_speed_kmh'] as num?)?.toDouble(),
     lastAccuracyM: (json['last_accuracy_m'] as num?)?.toDouble(),
-    lastMovedAt: json['last_moved_at'] == null ? null : DateTime.tryParse(json['last_moved_at'] as String),
+    lastMovedAt: json['last_moved_at'] == null
+        ? null
+        : DateTime.tryParse(json['last_moved_at'] as String),
     motionState: json['motion_state'] as String? ?? 'unknown',
   );
 }
 
 class DeviceAlertModel {
-  const DeviceAlertModel({required this.id, required this.deviceId, required this.type, required this.severity, required this.message, required this.detectedAt, this.acknowledgedAt, this.resolvedAt});
-  final int id, deviceId; final String type, severity, message; final DateTime detectedAt; final DateTime? acknowledgedAt, resolvedAt;
-  factory DeviceAlertModel.fromJson(Map<String, dynamic> json) => DeviceAlertModel(id: json['id'] as int, deviceId: json['device_id'] as int, type: json['alert_type'] as String, severity: json['severity'] as String, message: json['message'] as String, detectedAt: DateTime.parse(json['detected_at'] as String), acknowledgedAt: json['acknowledged_at'] == null ? null : DateTime.parse(json['acknowledged_at'] as String), resolvedAt: json['resolved_at'] == null ? null : DateTime.parse(json['resolved_at'] as String));
+  const DeviceAlertModel({
+    required this.id,
+    required this.deviceId,
+    required this.type,
+    required this.severity,
+    required this.message,
+    required this.detectedAt,
+    this.acknowledgedAt,
+    this.resolvedAt,
+  });
+  final int id, deviceId;
+  final String type, severity, message;
+  final DateTime detectedAt;
+  final DateTime? acknowledgedAt, resolvedAt;
+  factory DeviceAlertModel.fromJson(Map<String, dynamic> json) =>
+      DeviceAlertModel(
+        id: json['id'] as int,
+        deviceId: json['device_id'] as int,
+        type: json['alert_type'] as String,
+        severity: json['severity'] as String,
+        message: json['message'] as String,
+        detectedAt: DateTime.parse(json['detected_at'] as String),
+        acknowledgedAt: json['acknowledged_at'] == null
+            ? null
+            : DateTime.parse(json['acknowledged_at'] as String),
+        resolvedAt: json['resolved_at'] == null
+            ? null
+            : DateTime.parse(json['resolved_at'] as String),
+      );
+}
+
+class DeviceTelemetryPointModel {
+  const DeviceTelemetryPointModel({
+    required this.id,
+    required this.deviceId,
+    required this.lat,
+    required this.lng,
+    required this.motionState,
+    required this.recordedAt,
+    this.speedKmh,
+    this.accuracyM,
+  });
+
+  final int id;
+  final int deviceId;
+  final double lat;
+  final double lng;
+  final double? speedKmh;
+  final double? accuracyM;
+  final String motionState;
+  final DateTime recordedAt;
+
+  factory DeviceTelemetryPointModel.fromJson(Map<String, dynamic> json) =>
+      DeviceTelemetryPointModel(
+        id: json['id'] as int,
+        deviceId: json['device_id'] as int,
+        lat: (json['lat'] as num).toDouble(),
+        lng: (json['lng'] as num).toDouble(),
+        speedKmh: (json['speed_kmh'] as num?)?.toDouble(),
+        accuracyM: (json['accuracy_m'] as num?)?.toDouble(),
+        motionState: json['motion_state'] as String? ?? 'unknown',
+        recordedAt: DateTime.parse(json['recorded_at'] as String),
+      );
+}
+
+class MotionSummaryModel {
+  const MotionSummaryModel({
+    required this.sampleCount,
+    required this.movingMinutes,
+    required this.stationaryMinutes,
+    required this.distanceMeters,
+    required this.averageSpeedKmh,
+    required this.maximumSpeedKmh,
+    required this.trend,
+    required this.windowHours,
+  });
+
+  final int sampleCount;
+  final double movingMinutes;
+  final double stationaryMinutes;
+  final double distanceMeters;
+  final double averageSpeedKmh;
+  final double maximumSpeedKmh;
+  final String trend;
+  final int windowHours;
+
+  factory MotionSummaryModel.fromJson(Map<String, dynamic> json) =>
+      MotionSummaryModel(
+        sampleCount: json['sample_count'] as int? ?? 0,
+        movingMinutes: (json['moving_minutes'] as num? ?? 0).toDouble(),
+        stationaryMinutes: (json['stationary_minutes'] as num? ?? 0).toDouble(),
+        distanceMeters: (json['distance_meters'] as num? ?? 0).toDouble(),
+        averageSpeedKmh: (json['average_speed_kmh'] as num? ?? 0).toDouble(),
+        maximumSpeedKmh: (json['maximum_speed_kmh'] as num? ?? 0).toDouble(),
+        trend: json['trend'] as String? ?? 'insufficient_data',
+        windowHours: json['window_hours'] as int? ?? 24,
+      );
+
+  static const empty = MotionSummaryModel(
+    sampleCount: 0,
+    movingMinutes: 0,
+    stationaryMinutes: 0,
+    distanceMeters: 0,
+    averageSpeedKmh: 0,
+    maximumSpeedKmh: 0,
+    trend: 'insufficient_data',
+    windowHours: 24,
+  );
 }
 
 /// Pairing + live-position API for Mode B tracking (SRS-F4-035..038).
@@ -101,6 +208,11 @@ abstract class DeviceRepository {
   Future<void> unpairDevice(int deviceId);
   Future<List<DeviceAlertModel>> listAlerts(int petId);
   Future<DeviceAlertModel> acknowledgeAlert(int alertId);
+  Future<List<DeviceTelemetryPointModel>> telemetryHistory(
+    int deviceId, {
+    int minutes = 60,
+  });
+  Future<MotionSummaryModel> motionSummary(int deviceId, {int hours = 24});
   Future<TelemetryResultModel> ingestTelemetry({
     required int deviceId,
     required List<Map<String, dynamic>> samples,
@@ -146,14 +258,56 @@ class DeviceRepositoryImpl implements DeviceRepository {
 
   @override
   Future<List<DeviceAlertModel>> listAlerts(int petId) async {
-    final response = await dio.get('${AppConfig.apiPrefix}/pets/$petId/device-alerts');
-    return (response.data as List).map((e) => DeviceAlertModel.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+    final response = await dio.get(
+      '${AppConfig.apiPrefix}/pets/$petId/device-alerts',
+    );
+    return (response.data as List)
+        .map(
+          (e) => DeviceAlertModel.fromJson(Map<String, dynamic>.from(e as Map)),
+        )
+        .toList();
   }
 
   @override
   Future<DeviceAlertModel> acknowledgeAlert(int alertId) async {
-    final response = await dio.post('${AppConfig.apiPrefix}/device-alerts/$alertId/acknowledge');
-    return DeviceAlertModel.fromJson(Map<String, dynamic>.from(response.data as Map));
+    final response = await dio.post(
+      '${AppConfig.apiPrefix}/device-alerts/$alertId/acknowledge',
+    );
+    return DeviceAlertModel.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
+  }
+
+  @override
+  Future<List<DeviceTelemetryPointModel>> telemetryHistory(
+    int deviceId, {
+    int minutes = 60,
+  }) async {
+    final response = await dio.get(
+      '${AppConfig.apiPrefix}/devices/$deviceId/telemetry-history',
+      queryParameters: {'minutes': minutes},
+    );
+    return (response.data as List<dynamic>)
+        .map(
+          (json) => DeviceTelemetryPointModel.fromJson(
+            Map<String, dynamic>.from(json as Map),
+          ),
+        )
+        .toList();
+  }
+
+  @override
+  Future<MotionSummaryModel> motionSummary(
+    int deviceId, {
+    int hours = 24,
+  }) async {
+    final response = await dio.get(
+      '${AppConfig.apiPrefix}/devices/$deviceId/motion-summary',
+      queryParameters: {'hours': hours},
+    );
+    return MotionSummaryModel.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
   }
 
   @override

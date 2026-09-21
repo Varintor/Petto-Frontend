@@ -30,7 +30,20 @@ class _FakeDeviceRepository implements DeviceRepository {
   Future<List<DeviceAlertModel>> listAlerts(int petId) async => alerts;
 
   @override
-  Future<DeviceAlertModel> acknowledgeAlert(int alertId) async => alerts.firstWhere((a) => a.id == alertId);
+  Future<DeviceAlertModel> acknowledgeAlert(int alertId) async =>
+      alerts.firstWhere((a) => a.id == alertId);
+
+  @override
+  Future<List<DeviceTelemetryPointModel>> telemetryHistory(
+    int deviceId, {
+    int minutes = 60,
+  }) async => const [];
+
+  @override
+  Future<MotionSummaryModel> motionSummary(
+    int deviceId, {
+    int hours = 24,
+  }) async => MotionSummaryModel.empty;
 
   @override
   Future<DeviceModel> pairDevice({

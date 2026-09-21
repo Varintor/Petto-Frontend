@@ -7,6 +7,7 @@ import '../controllers/activity_tracking_controller.dart';
 import '../controllers/device_tracking_controller.dart';
 import '../../../missions/presentation/controllers/missions_controller.dart';
 import '../../data/repositories/device_repository.dart';
+import '../../data/services/ble_gps_service.dart';
 import 'live_walk_screen.dart';
 import 'live_device_tracking_screen.dart';
 
@@ -60,6 +61,50 @@ class _WellnessTrackingViewState extends State<WellnessTrackingView> {
           activityController.loadStats(petId: petId);
           missionsController.loadAll(petId: petId);
         });
+  }
+
+  Future<void> _scanAndConnectBle(int petId) async {
+    final controller = context.read<DeviceTrackingController>();
+    await controller.scanBleDevices();
+    if (!mounted || controller.bleCandidates.isEmpty) return;
+    final candidate = await showModalBottomSheet<BleDeviceCandidate>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.only(bottom: 16),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+              child: Text(
+                'Choose GPS collar',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ),
+            for (final item in controller.bleCandidates)
+              ListTile(
+                leading: const Icon(Icons.bluetooth),
+                title: Text(item.name),
+                subtitle: Text('${item.id} · signal ${item.rssi} dBm'),
+                onTap: () => Navigator.pop(context, item),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (candidate == null || !mounted) return;
+    final connected = await controller.connectBle(petId, candidate);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          connected
+              ? '${candidate.name} connected. Waiting for GPS data.'
+              : 'Could not connect to ${candidate.name}.',
+        ),
+      ),
+    );
   }
 
   @override
@@ -125,33 +170,47 @@ class _WellnessTrackingViewState extends State<WellnessTrackingView> {
             ),
             const SizedBox(height: 14),
 
-            // Mode B uses the real backend contract. Until physical hardware
-            // is selected, the clearly-labelled simulator validates pairing,
-            // telemetry, battery, location, anomaly and activity persistence.
+            // Mode B supports a physical BLE/GPS collar and retains the
+            // labelled simulator for development without hardware.
             _ModeCard(
               icon: Icons.sensors_rounded,
               iconColor: AppTheme.secondaryColor,
               title: 'Live Pet Tracking',
               subtitle: device == null
-                  ? 'No physical collar yet. Pair the labelled simulator to test the complete backend flow.'
-                  : 'Demo collar connected to the Staging device and telemetry APIs.',
-              actionLabel: device == null ? 'Pair demo' : 'Connected',
+                  ? 'Scan for a BLE/GPS collar, or use the simulator for development.'
+                  : deviceController.bleConnected
+                  ? 'BLE collar connected. GPS packets upload every 2 seconds.'
+                  : 'Cloud tracking is ready. Open the live map to follow location.',
+              actionLabel: device == null ? 'Scan BLE' : 'Connected',
               enabled: petId != null && !deviceController.loading,
               onTap: () async {
                 if (petId == null || device != null) return;
-                final paired = await deviceController.pairDemo(petId);
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      paired
-                          ? 'Simulated collar paired.'
-                          : 'Could not pair the simulated collar.',
-                    ),
-                  ),
-                );
+                await _scanAndConnectBle(petId);
               },
             ),
+            if (device == null && petId != null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: deviceController.loading
+                      ? null
+                      : () async {
+                          final paired = await deviceController.pairDemo(petId);
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                paired
+                                    ? 'Simulator paired.'
+                                    : 'Could not pair the simulator.',
+                              ),
+                            ),
+                          );
+                        },
+                  icon: const Icon(Icons.science_outlined),
+                  label: const Text('Use simulator instead'),
+                ),
+              ),
             if (deviceController.loading) ...[
               const SizedBox(height: 10),
               const LinearProgressIndicator(),
@@ -173,7 +232,11 @@ class _WellnessTrackingViewState extends State<WellnessTrackingView> {
                 onSimulateAlert: () =>
                     deviceController.simulateTelemetry(anomaly: true),
                 onUnpair: deviceController.unpair,
-                onViewMap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LiveDeviceTrackingScreen())),
+                onViewMap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const LiveDeviceTrackingScreen(),
+                  ),
+                ),
               ),
             ],
           ],
@@ -239,7 +302,13 @@ class _DeviceStatusCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Chip(label: Text('SIMULATED DEVICE')),
+              Chip(
+                label: Text(
+                  device.identifier.startsWith('PETTO-DEMO-')
+                      ? 'SIMULATED DEVICE'
+                      : 'BLE/GPS COLLAR',
+                ),
+              ),
               const Spacer(),
               Text('${device.batteryPercent ?? '--'}% battery'),
             ],
@@ -272,7 +341,11 @@ class _DeviceStatusCard extends StatelessWidget {
                 icon: const Icon(Icons.route_rounded),
                 label: const Text('Simulate walk'),
               ),
-              OutlinedButton.icon(onPressed: device.lastLat == null ? null : onViewMap, icon: const Icon(Icons.map), label: const Text('View Live Map')),
+              OutlinedButton.icon(
+                onPressed: device.lastLat == null ? null : onViewMap,
+                icon: const Icon(Icons.map),
+                label: const Text('View Live Map'),
+              ),
               OutlinedButton.icon(
                 onPressed: busy ? null : onSimulateAlert,
                 icon: const Icon(Icons.warning_amber_rounded),
@@ -286,7 +359,7 @@ class _DeviceStatusCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Raw GPS samples are discarded by the backend; only the latest position and activity aggregate are stored.',
+            'Precise route points are retained for 7 days, owner-only, then removed. Activity aggregates remain in Health History.',
             style: TextStyle(fontSize: 12, color: AppTheme.mutedText),
           ),
         ],
