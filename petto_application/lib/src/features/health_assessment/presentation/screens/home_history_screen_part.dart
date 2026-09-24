@@ -38,6 +38,25 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
                 onEdit: () =>
                     _editHealthProfile(context, controller.card!, controller),
               ),
+            if (controller.card != null) ...[
+              const SizedBox(height: 14),
+              _PublicHealthCardPanel(
+                card: controller.publicCard,
+                busy: controller.savingPublicCard,
+                hasCurrentLink: controller.publicCardToken != null,
+                onConfigure: () => _configurePublicCard(context, controller),
+                onShowQr: controller.publicCardToken == null
+                    ? null
+                    : () => _showPublicCardQr(
+                        context,
+                        controller.publicCardToken!,
+                      ),
+                onRotate: () => _rotatePublicCard(context, controller),
+                onRevoke: controller.publicCard?.isActive == true
+                    ? () => _revokePublicCard(context, controller)
+                    : null,
+              ),
+            ],
             const SizedBox(height: 26),
             _HealthSectionHeading(
               title: 'Health timeline',
@@ -188,6 +207,265 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
     conditions.dispose();
     medications.dispose();
     notes.dispose();
+  }
+
+  Future<void> _configurePublicCard(
+    BuildContext context,
+    HealthHistoryController controller,
+  ) async {
+    final existing = controller.publicCard;
+    final selected = Set<String>.from(
+      existing?.visibleFields ?? const {'name', 'species', 'allergies'},
+    );
+    final contact = TextEditingController(text: existing?.contactMethod ?? '');
+    final emergency = TextEditingController(
+      text: existing?.emergencyNotes ?? '',
+    );
+    const options = <(String, String)>[
+      ('name', 'Pet name'),
+      ('species', 'Species'),
+      ('breed', 'Breed'),
+      ('allergies', 'Allergies'),
+      ('chronic_conditions', 'Chronic conditions'),
+      ('current_medications', 'Current medications'),
+      ('contact_method', 'Owner contact'),
+      ('emergency_notes', 'Emergency notes'),
+    ];
+    final save = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: EdgeInsets.fromLTRB(
+            24,
+            20,
+            24,
+            24 + MediaQuery.viewInsetsOf(context).bottom,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Public Pet Health Card',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Only selected fields appear when someone scans the QR or NFC tag. Do not share the link publicly.',
+                ),
+                const SizedBox(height: 14),
+                for (final option in options)
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    value: selected.contains(option.$1),
+                    title: Text(option.$2),
+                    onChanged: (checked) => setSheetState(() {
+                      if (checked == true) {
+                        selected.add(option.$1);
+                      } else {
+                        selected.remove(option.$1);
+                      }
+                    }),
+                  ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: contact,
+                  maxLength: 255,
+                  decoration: const InputDecoration(
+                    labelText: 'Owner contact shown in an emergency',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: emergency,
+                  maxLength: 2000,
+                  minLines: 2,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    labelText: 'Emergency notes',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: selected.isEmpty
+                        ? null
+                        : () => Navigator.pop(sheetContext, true),
+                    icon: const Icon(Icons.qr_code_2_rounded),
+                    label: const Text('SAVE AND GENERATE LINK'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    if (save == true && context.mounted) {
+      final success = await controller.savePublicCard(
+        visibleFields: selected,
+        contactMethod: contact.text,
+        emergencyNotes: emergency.text,
+      );
+      if (context.mounted) {
+        final token = controller.publicCardToken;
+        if (success && token != null) {
+          await _showPublicCardQr(context, token);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                success
+                    ? 'Settings saved. Rotate the link to display its QR on this device.'
+                    : 'Could not save the public card.',
+              ),
+            ),
+          );
+        }
+      }
+    }
+    contact.dispose();
+    emergency.dispose();
+  }
+
+  Future<void> _rotatePublicCard(
+    BuildContext context,
+    HealthHistoryController controller,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Replace the public link?'),
+        content: const Text(
+          'The previous QR code and NFC link will stop working immediately.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('CANCEL'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('REPLACE LINK'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final success = await controller.rotatePublicCard();
+    if (!context.mounted) return;
+    final token = controller.publicCardToken;
+    if (success && token != null) {
+      await _showPublicCardQr(context, token);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not replace the public link.')),
+      );
+    }
+  }
+
+  Future<void> _revokePublicCard(
+    BuildContext context,
+    HealthHistoryController controller,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Disable public card?'),
+        content: const Text(
+          'Anyone using the current QR code or NFC tag will lose access immediately.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('CANCEL'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('DISABLE'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final success = await controller.revokePublicCard();
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success
+                ? 'Public card disabled.'
+                : 'Could not disable public card.',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _showPublicCardQr(BuildContext context, String token) async {
+    final url = AppConfig.publicPetCardUrl(token);
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Pet Health Card QR'),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 340),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              QrImageView(
+                data: url,
+                version: QrVersions.auto,
+                size: 230,
+                backgroundColor: Colors.white,
+                eyeStyle: const QrEyeStyle(
+                  eyeShape: QrEyeShape.square,
+                  color: AppTheme.primaryColor,
+                ),
+                dataModuleStyle: const QrDataModuleStyle(
+                  dataModuleShape: QrDataModuleShape.square,
+                  color: Color(0xFF402327),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'This is a private bearer link. Only place it on your pet\'s QR or NFC tag.',
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton.icon(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: url));
+              if (dialogContext.mounted) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(content: Text('Private link copied.')),
+                );
+              }
+            },
+            icon: const Icon(Icons.copy_rounded),
+            label: const Text('COPY'),
+          ),
+          TextButton.icon(
+            onPressed: () =>
+                launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
+            icon: const Icon(Icons.open_in_new_rounded),
+            label: const Text('OPEN'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('DONE'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _historyFilters(
@@ -1251,6 +1529,124 @@ class _HealthRecordFieldTile extends StatelessWidget {
       ],
     ),
   );
+}
+
+class _PublicHealthCardPanel extends StatelessWidget {
+  const _PublicHealthCardPanel({
+    required this.card,
+    required this.busy,
+    required this.hasCurrentLink,
+    required this.onConfigure,
+    required this.onShowQr,
+    required this.onRotate,
+    required this.onRevoke,
+  });
+
+  final PublicPetCardModel? card;
+  final bool busy;
+  final bool hasCurrentLink;
+  final VoidCallback onConfigure;
+  final VoidCallback? onShowQr;
+  final VoidCallback onRotate;
+  final VoidCallback? onRevoke;
+
+  @override
+  Widget build(BuildContext context) {
+    final active = card?.isActive == true;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: active ? const Color(0xFFF0F8F1) : AppTheme.blushSurfaceColor,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: active
+              ? const Color(0xFF9BC6A0)
+              : AppTheme.primaryColor.withValues(alpha: 0.16),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: active ? const Color(0xFF2E7D46) : AppTheme.primaryColor,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              active ? Icons.qr_code_2_rounded : Icons.nfc_rounded,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  active
+                      ? 'Public Health Card enabled'
+                      : 'QR / NFC Health Card',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  active
+                      ? hasCurrentLink
+                            ? 'The private link is ready on this device.'
+                            : 'Settings are active. Replace the secret link to display a new QR.'
+                      : 'Share only the emergency details you explicitly choose.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: busy ? null : onConfigure,
+                      icon: const Icon(Icons.tune_rounded, size: 18),
+                      label: Text(active ? 'EDIT FIELDS' : 'SET UP'),
+                    ),
+                    if (active && hasCurrentLink)
+                      FilledButton.icon(
+                        onPressed: busy ? null : onShowQr,
+                        icon: const Icon(Icons.qr_code_rounded, size: 18),
+                        label: const Text('SHOW QR'),
+                      ),
+                    if (active)
+                      TextButton.icon(
+                        onPressed: busy ? null : onRotate,
+                        icon: const Icon(Icons.refresh_rounded, size: 18),
+                        label: const Text('NEW LINK'),
+                      ),
+                    if (active)
+                      TextButton.icon(
+                        onPressed: busy ? null : onRevoke,
+                        icon: const Icon(Icons.link_off_rounded, size: 18),
+                        label: const Text('DISABLE'),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          if (busy)
+            const Padding(
+              padding: EdgeInsets.all(8),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _PetHealthCard extends StatelessWidget {

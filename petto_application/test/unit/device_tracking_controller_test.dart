@@ -22,9 +22,7 @@ class _FakeDeviceRepository implements DeviceRepository {
       );
 
   @override
-  Future<List<DeviceModel>> listDevices(int petId) async => [
-    if (device != null) device!,
-  ];
+  Future<List<DeviceModel>> listDevices(int petId) async => [?device];
 
   @override
   Future<List<DeviceAlertModel>> listAlerts(int petId) async => alerts;

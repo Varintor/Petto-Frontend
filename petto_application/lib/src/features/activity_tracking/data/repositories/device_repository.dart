@@ -323,12 +323,10 @@ class DeviceRepositoryImpl implements DeviceRepository {
       '${AppConfig.apiPrefix}/devices/$deviceId/telemetry',
       data: {
         'samples': samples,
-        if (batteryPercent != null) 'battery_percent': batteryPercent,
-        if (sessionDurationMinutes != null)
-          'session_duration_minutes': sessionDurationMinutes,
-        if (sessionDistanceMeters != null)
-          'session_distance_meters': sessionDistanceMeters,
-        if (sessionId != null) 'session_id': sessionId,
+        'battery_percent': ?batteryPercent,
+        'session_duration_minutes': ?sessionDurationMinutes,
+        'session_distance_meters': ?sessionDistanceMeters,
+        'session_id': ?sessionId,
       },
     );
     return TelemetryResultModel.fromJson(
