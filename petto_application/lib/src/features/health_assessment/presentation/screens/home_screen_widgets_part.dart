@@ -2931,7 +2931,7 @@ class _AssessmentHistoryCard extends StatelessWidget {
                       width: double.infinity,
                       height: 140,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _a, _b) => Container(
+                      errorBuilder: (_, a, b) => Container(
                         width: double.infinity,
                         height: 140,
                         color: color.withValues(alpha: 0.08),
@@ -3188,7 +3188,7 @@ class _AssessmentDetailScreen extends StatelessWidget {
                                 assessment.imageUri!,
                                 width: double.infinity,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
+                                errorBuilder: (_, _, _) => Container(
                                   width: double.infinity,
                                   height: 210,
                                   decoration: BoxDecoration(
@@ -3721,7 +3721,7 @@ class _AssessmentDetailSheet extends StatelessWidget {
                         assessment.imageUri!,
                         width: double.infinity,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
+                        errorBuilder: (_, _, _) => Container(
                           width: double.infinity,
                           height: 200,
                           decoration: BoxDecoration(

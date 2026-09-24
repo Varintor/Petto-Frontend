@@ -107,12 +107,7 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final response = await dio.post(
         AppConfig.registerEndpoint,
-        data: {
-          'email': email,
-          'password': password,
-          'name': name,
-          if (pet != null) 'pet': pet,
-        },
+        data: {'email': email, 'password': password, 'name': name, 'pet': ?pet},
       );
       return AuthResult.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
