@@ -1163,8 +1163,8 @@ class _GardenScenePainter extends CustomPainter {
       c2y: 0.76,
       y2: 0.64,
     );
-    _drawGardenTrees(canvas, size);
     _drawBushLine(canvas, size);
+    _drawGardenTrees(canvas, size);
 
     final path = Path()
       ..moveTo(size.width * 0.35, size.height)
@@ -1519,6 +1519,7 @@ class _GardenScenePainter extends CustomPainter {
       required Offset root,
       required double scale,
       required bool isForeground,
+      required double distanceFade,
       required double phase,
     }) {
       final storm = weather == _GardenWeather.stormy;
@@ -1581,6 +1582,14 @@ class _GardenScenePainter extends CustomPainter {
           : storm
           ? const Color(0xFF7F9F78)
           : const Color(0xFF7EA57A);
+      final distanceTone = isNight
+          ? const Color(0xFF41574F)
+          : weather == _GardenWeather.stormy
+          ? const Color(0xFF748477)
+          : const Color(0xFF789080);
+      final renderedDeep = Color.lerp(deep, distanceTone, distanceFade)!;
+      final renderedMid = Color.lerp(mid, distanceTone, distanceFade)!;
+      final renderedBright = Color.lerp(bright, distanceTone, distanceFade)!;
 
       Path pineTier(double top, double bottom, double halfWidth) {
         return Path()
@@ -1612,9 +1621,9 @@ class _GardenScenePainter extends CustomPainter {
       }
 
       final tiers = [
-        (pineTier(-154, -88, 38), bright),
-        (pineTier(-126, -50, 53), mid),
-        (pineTier(-92, -10, 67), deep),
+        (pineTier(-154, -92, 36), renderedBright),
+        (pineTier(-126, -58, 50), renderedMid),
+        (pineTier(-92, -28, 63), renderedDeep),
       ];
       canvas.drawOval(
         const Rect.fromLTWH(-58, -7, 116, 14),
@@ -1648,15 +1657,31 @@ class _GardenScenePainter extends CustomPainter {
     }
 
     drawPine(
-      root: Offset(size.width * 0.10, size.height * 0.72),
+      root: Offset(size.width * 0.27, size.height * 0.665),
+      scale: math.min(size.width / 760, 0.58),
+      isForeground: false,
+      distanceFade: 0.46,
+      phase: 2.1,
+    );
+    drawPine(
+      root: Offset(size.width * 0.74, size.height * 0.65),
+      scale: math.min(size.width / 820, 0.54),
+      isForeground: false,
+      distanceFade: 0.34,
+      phase: 2.8,
+    );
+    drawPine(
+      root: Offset(size.width * 0.08, size.height * 0.73),
       scale: math.min(size.width / 570, 0.88),
       isForeground: false,
+      distanceFade: 0.10,
       phase: 0.3,
     );
     drawPine(
-      root: Offset(size.width * 0.92, size.height * 0.71),
+      root: Offset(size.width * 0.94, size.height * 0.72),
       scale: math.min(size.width / 520, 0.96),
       isForeground: true,
+      distanceFade: 0,
       phase: 1.4,
     );
   }
@@ -1791,155 +1816,85 @@ class _GardenScenePainter extends CustomPainter {
               : const [Color(0xFF91D276), Color(0xFF63B461)],
         ),
     );
-
-    final backColor = isNight
-        ? const Color(0xFF345F49)
-        : weather == _GardenWeather.stormy
-        ? const Color(0xFF668E65)
-        : const Color(0xFF57945E);
-    final frontColor = isNight
-        ? const Color(0xFF4F7F5B)
-        : weather == _GardenWeather.stormy
-        ? const Color(0xFF7AAA6D)
-        : const Color(0xFF7FC775);
-
-    void drawShrub({
-      required Offset center,
-      required double width,
-      required double height,
-      required Color color,
-      required int seed,
-    }) {
-      final base = center.translate(0, height * 0.30);
-      final branchPaint = Paint()
-        ..color = const Color(
-          0xFF6C7250,
-        ).withValues(alpha: isNight ? 0.30 : 0.48)
-        ..strokeWidth = 1.6
-        ..strokeCap = StrokeCap.round;
-      for (final branch in [
-        Offset(-width * 0.18, -height * 0.22),
-        Offset(width * 0.02, -height * 0.34),
-        Offset(width * 0.21, -height * 0.18),
-      ]) {
-        canvas.drawLine(base, center + branch, branchPaint);
-      }
-
-      final leafClusters = [
-        (-0.31, 0.02, 0.34, 0.52),
-        (-0.20, -0.18, 0.40, 0.62),
-        (0.01, -0.28, 0.43, 0.70),
-        (0.22, -0.16, 0.39, 0.60),
-        (0.33, 0.04, 0.31, 0.48),
-        (0.02, 0.03, 0.50, 0.56),
-      ];
-      for (var i = 0; i < leafClusters.length; i++) {
-        final cluster = leafClusters[i];
-        final jitterX = math.sin(seed * 0.73 + i * 1.91) * width * 0.025;
-        final jitterY = math.cos(seed * 0.61 + i * 1.37) * height * 0.035;
-        final clusterColor = Color.lerp(
-          color,
-          i < 3 ? Colors.white : const Color(0xFF28533E),
-          isNight ? 0.035 + (i % 3) * 0.018 : 0.07 + (i % 3) * 0.025,
-        )!;
-        canvas.drawOval(
-          Rect.fromCenter(
-            center: center.translate(
-              width * cluster.$1 + jitterX,
-              height * cluster.$2 + jitterY,
-            ),
-            width: width * cluster.$3,
-            height: height * cluster.$4,
-          ),
-          Paint()..color = clusterColor,
-        );
-      }
-
-      final leafPaint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.15
-        ..strokeCap = StrokeCap.round
-        ..color = Colors.white.withValues(alpha: isNight ? 0.07 : 0.15);
-      for (var i = 0; i < 3; i++) {
-        final detail = center.translate(
-          width * (-0.18 + i * 0.18),
-          height * (-0.15 + (i % 2) * 0.10),
-        );
-        canvas.drawArc(
-          Rect.fromCenter(center: detail, width: 7, height: 4.5),
-          i.isEven ? math.pi * 0.08 : math.pi * 0.92,
-          math.pi * 0.82,
-          false,
-          leafPaint,
-        );
-      }
-    }
-
-    final backShrubs = [
-      (0.18, 0.26, 39.0, 11, 10.0),
-      (0.80, 0.28, 37.0, 23, 12.0),
-    ];
-    for (final shrub in backShrubs) {
-      drawShrub(
-        center: Offset(size.width * shrub.$1, baseY + shrub.$5),
-        width: size.width * shrub.$2,
-        height: shrub.$3,
-        color: backColor,
-        seed: shrub.$4,
-      );
-    }
-    final frontShrubs = [
-      (0.34, 0.19, 31.0, 6, 26.0),
-      (0.65, 0.17, 29.0, 31, 28.0),
-    ];
-    for (final shrub in frontShrubs) {
-      drawShrub(
-        center: Offset(size.width * shrub.$1, baseY + shrub.$5),
-        width: size.width * shrub.$2,
-        height: shrub.$3,
-        color: frontColor,
-        seed: shrub.$4,
-      );
-    }
   }
 
   void _drawGrassTexture(Canvas canvas, Size size) {
     final grass = Paint()
       ..color = (isNight ? const Color(0xFFB0C69A) : const Color(0xFF4F914E))
-          .withValues(alpha: isNight ? 0.18 : 0.25)
-      ..strokeWidth = 1.2
+          .withValues(alpha: isNight ? 0.20 : 0.30)
+      ..strokeWidth = 1.15
       ..strokeCap = StrokeCap.round;
-    for (var i = 0; i < 22; i++) {
-      final x = size.width * ((i * 29 % 101) / 100);
-      final y = size.height * (0.67 + ((i * 11) % 26) / 100);
-      final lean = math.sin(i * 1.7) * 2.5;
-      canvas.drawLine(Offset(x, y), Offset(x + lean, y - 7), grass);
-      if (i.isEven) {
-        canvas.drawLine(Offset(x, y), Offset(x - lean * 0.7, y - 5), grass);
+    const blades = [
+      (0.018, 0.82, 6.0, -1.8),
+      (0.052, 0.76, 8.0, 2.0),
+      (0.105, 0.87, 5.5, -1.2),
+      (0.145, 0.70, 6.5, 1.5),
+      (0.192, 0.83, 9.0, -2.5),
+      (0.238, 0.74, 5.0, 1.2),
+      (0.286, 0.89, 7.0, -1.7),
+      (0.326, 0.78, 6.0, 2.1),
+      (0.365, 0.69, 8.0, -2.0),
+      (0.405, 0.86, 5.5, 1.4),
+      (0.448, 0.75, 7.5, -1.6),
+      (0.492, 0.91, 6.0, 2.3),
+      (0.536, 0.82, 8.5, -2.1),
+      (0.574, 0.70, 5.0, 1.1),
+      (0.612, 0.88, 7.0, -1.8),
+      (0.655, 0.77, 6.0, 2.0),
+      (0.697, 0.92, 8.0, -2.3),
+      (0.738, 0.72, 5.5, 1.5),
+      (0.782, 0.84, 7.5, -1.9),
+      (0.825, 0.76, 6.0, 1.8),
+      (0.868, 0.90, 8.5, -2.4),
+      (0.912, 0.71, 5.0, 1.3),
+      (0.948, 0.83, 7.0, -1.6),
+      (0.982, 0.75, 6.0, 1.7),
+    ];
+    for (var i = 0; i < blades.length; i++) {
+      final blade = blades[i];
+      final pathHalfWidth = 0.04 + math.max(0, blade.$2 - 0.67) * 0.38;
+      if ((blade.$1 - 0.5).abs() < pathHalfWidth + 0.025) continue;
+      final base = Offset(size.width * blade.$1, size.height * blade.$2);
+      canvas.drawLine(base, base.translate(blade.$4, -blade.$3), grass);
+      if (i % 3 == 0) {
+        canvas.drawLine(
+          base.translate(1.3, 0),
+          base.translate(-blade.$4 * 0.65, -blade.$3 * 0.72),
+          grass,
+        );
       }
     }
   }
 
   void _drawFlowerMeadow(Canvas canvas, Size size) {
     final flowerColors = [
-      const Color(0xFFFFCA67),
-      const Color(0xFFFF9FB0),
-      const Color(0xFFFFF7EA),
-      const Color(0xFFC86973),
+      const Color(0xFFE5B85C),
+      const Color(0xFFD9878F),
+      const Color(0xFFF1E5D2),
+      const Color(0xFFB86670),
+      const Color(0xFFB7A2C8),
     ];
     const flowerSpots = [
       (0.045, 0.73),
+      (0.085, 0.86),
+      (0.19, 0.76),
       (0.27, 0.79),
       (0.34, 0.71),
       (0.39, 0.84),
+      (0.57, 0.80),
       (0.64, 0.74),
       (0.72, 0.85),
       (0.77, 0.70),
+      (0.89, 0.87),
       (0.96, 0.79),
     ];
     for (var i = 0; i < flowerSpots.length; i++) {
       final x = size.width * flowerSpots[i].$1;
       final y = size.height * flowerSpots[i].$2;
+      final pathHalfWidth = 0.04 + math.max(0, flowerSpots[i].$2 - 0.67) * 0.38;
+      if ((flowerSpots[i].$1 - 0.5).abs() < pathHalfWidth + 0.03) {
+        continue;
+      }
       final sway = math.sin(progress * math.pi * 2 + i) * 1.8;
       final stem = Paint()
         ..color = (isNight ? const Color(0xFFEAF5DD) : const Color(0xFF557A46))
@@ -1957,11 +1912,16 @@ class _GardenScenePainter extends CustomPainter {
       );
       final bloom = Offset(x + sway, y);
       final bloomPaint = Paint()
-        ..color = flowerColors[i % flowerColors.length].withValues(alpha: 0.86);
-      canvas.drawCircle(bloom.translate(-1.6, 0), 1.9, bloomPaint);
-      canvas.drawCircle(bloom.translate(1.6, 0), 1.9, bloomPaint);
-      canvas.drawCircle(bloom.translate(0, -1.7), 1.9, bloomPaint);
-      canvas.drawCircle(bloom, 1.1, Paint()..color = const Color(0xFFFFD36A));
+        ..color = flowerColors[i % flowerColors.length].withValues(alpha: 0.78);
+      final radius = i % 4 == 0 ? 1.65 : 1.35;
+      canvas.drawCircle(bloom.translate(-radius, 0), radius, bloomPaint);
+      canvas.drawCircle(bloom.translate(radius, 0), radius, bloomPaint);
+      canvas.drawCircle(bloom.translate(0, -radius), radius, bloomPaint);
+      canvas.drawCircle(
+        bloom,
+        0.8,
+        Paint()..color = const Color(0xFFD5A94E).withValues(alpha: 0.84),
+      );
     }
   }
 
@@ -2333,16 +2293,16 @@ class _GardenScenePainter extends CustomPainter {
       );
     }
 
-    final dogHouseBase = Offset(size.width * 0.15, size.height * 0.805);
-    final planterBase = Offset(size.width * 0.86, size.height * 0.815);
+    final dogHouseBase = Offset(size.width * 0.16, size.height * 0.755);
+    final planterBase = Offset(size.width * 0.84, size.height * 0.765);
     drawGardenLight(Offset(size.width * 0.08, size.height * 0.68), 0.90);
     drawGardenLight(Offset(size.width * 0.91, size.height * 0.67), 0.82);
-    drawGroundPatch(dogHouseBase, 82);
-    drawGroundPatch(planterBase, 64);
-    drawDogHouse(dogHouseBase, 0.80);
-    drawPlanter(planterBase, 0.84, flip: true);
-    drawBaseGrass(dogHouseBase, 0.80, const [-35, -29, 29, 36]);
-    drawBaseGrass(planterBase, 0.84, const [-29, -24, 25, 31]);
+    drawGroundPatch(dogHouseBase, 64);
+    drawGroundPatch(planterBase, 50);
+    drawDogHouse(dogHouseBase, 0.66);
+    drawPlanter(planterBase, 0.70, flip: true);
+    drawBaseGrass(dogHouseBase, 0.66, const [-32, -27, 27, 33]);
+    drawBaseGrass(planterBase, 0.70, const [-27, -22, 23, 28]);
   }
 
   void _drawGardenLife(Canvas canvas, Size size) {
