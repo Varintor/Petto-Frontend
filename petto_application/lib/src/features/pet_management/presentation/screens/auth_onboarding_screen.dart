@@ -285,7 +285,7 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
           if (_gender != null) 'gender': _gender,
           if (_birthday != null)
             'date_of_birth': _birthday!.toIso8601String().split('T').first,
-          if (weight != null) 'weight_kg': weight,
+          'weight_kg': ?weight,
           if (bloodType.isNotEmpty) 'blood_type': bloodType,
         },
       );

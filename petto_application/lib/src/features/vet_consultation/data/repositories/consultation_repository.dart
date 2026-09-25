@@ -89,10 +89,7 @@ class ConsultationRepositoryImpl implements ConsultationRepository {
   }) async {
     final response = await dio.get(
       '${AppConfig.apiPrefix}/veterinary-providers',
-      queryParameters: {
-        if (latitude != null) 'latitude': latitude,
-        if (longitude != null) 'longitude': longitude,
-      },
+      queryParameters: {'latitude': ?latitude, 'longitude': ?longitude},
     );
     return (response.data as List<dynamic>)
         .map(
@@ -131,10 +128,10 @@ class ConsultationRepositoryImpl implements ConsultationRepository {
       data: {
         'pet_id': petId,
         'vet_id': vetId,
-        if (providerId != null) 'provider_id': providerId,
-        if (assessmentId != null) 'assessment_id': assessmentId,
-        if (subject != null) 'subject': subject,
-        if (notes != null) 'notes': notes,
+        'provider_id': ?providerId,
+        'assessment_id': ?assessmentId,
+        'subject': ?subject,
+        'notes': ?notes,
         'priority': priority,
         if (priority == 'urgent')
           'urgent_help_acknowledged': urgentHelpAcknowledged,
@@ -168,7 +165,7 @@ class ConsultationRepositoryImpl implements ConsultationRepository {
   }) async {
     final response = await dio.get(
       '$_base/$consultationId/messages',
-      queryParameters: {if (afterId != null) 'after_id': afterId},
+      queryParameters: {'after_id': ?afterId},
     );
     return (response.data as List<dynamic>)
         .map((j) => ChatMessageModel.fromJson(j as Map<String, dynamic>))

@@ -75,7 +75,7 @@ class PetRepository {
           if (gender != null && gender.isNotEmpty) 'gender': gender,
           if (dateOfBirth != null)
             'date_of_birth': dateOfBirth.toIso8601String().split('T').first,
-          if (weightKg != null) 'weight_kg': weightKg,
+          'weight_kg': ?weightKg,
           if (bloodType != null && bloodType.isNotEmpty)
             'blood_type': bloodType,
         },

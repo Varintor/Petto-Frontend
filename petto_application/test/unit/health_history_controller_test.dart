@@ -7,6 +7,7 @@ class _FakeHistoryRepository implements HealthHistoryRepository {
   Set<String>? requestedTypes;
   DateTime? requestedFrom;
   DateTime? requestedTo;
+  PublicPetCardModel? publicCard;
 
   @override
   Future<HealthCardModel> getHealthCard(int petId) async => HealthCardModel(
@@ -15,6 +16,52 @@ class _FakeHistoryRepository implements HealthHistoryRepository {
     species: 'Cat',
     allergies: const ['Chicken'],
   );
+
+  @override
+  Future<PublicPetCardModel?> getPublicCard(int petId) async => publicCard;
+
+  @override
+  Future<PublicPetCardModel> savePublicCard(
+    int petId, {
+    required Set<String> visibleFields,
+    String? contactMethod,
+    String? emergencyNotes,
+  }) async {
+    publicCard = PublicPetCardModel(
+      id: 1,
+      petId: petId,
+      isActive: true,
+      visibleFields: visibleFields,
+      contactMethod: contactMethod,
+      emergencyNotes: emergencyNotes,
+      token: 'new-secret',
+    );
+    return publicCard!;
+  }
+
+  @override
+  Future<PublicPetCardModel> rotatePublicCard(int petId) async {
+    publicCard = PublicPetCardModel(
+      id: 1,
+      petId: petId,
+      isActive: true,
+      visibleFields: publicCard?.visibleFields ?? const {'name'},
+      token: 'rotated-secret',
+    );
+    return publicCard!;
+  }
+
+  @override
+  Future<PublicPetCardModel> revokePublicCard(int petId) async {
+    publicCard = PublicPetCardModel(
+      id: 1,
+      petId: petId,
+      isActive: false,
+      visibleFields: publicCard?.visibleFields ?? const {'name'},
+      revokedAt: DateTime(2026, 9, 23),
+    );
+    return publicCard!;
+  }
 
   @override
   Future<List<HistoryEntryModel>> getHistory(
@@ -130,5 +177,29 @@ void main() {
 
     expect(detail?.type, 'assessment');
     expect(detail?.fields['symptom_description'], 'Lethargic');
+  });
+
+  test('creates rotates and revokes a public health card secret', () async {
+    final repository = _FakeHistoryRepository();
+    final controller = HealthHistoryController(repository: repository);
+    await controller.load(petId: 9);
+
+    expect(
+      await controller.savePublicCard(
+        visibleFields: const {'name', 'allergies'},
+        contactMethod: '  0812345678  ',
+      ),
+      isTrue,
+    );
+    expect(controller.publicCard?.visibleFields, {'name', 'allergies'});
+    expect(controller.publicCard?.contactMethod, '0812345678');
+    expect(controller.publicCardToken, 'new-secret');
+
+    expect(await controller.rotatePublicCard(), isTrue);
+    expect(controller.publicCardToken, 'rotated-secret');
+
+    expect(await controller.revokePublicCard(), isTrue);
+    expect(controller.publicCard?.isActive, isFalse);
+    expect(controller.publicCardToken, isNull);
   });
 }

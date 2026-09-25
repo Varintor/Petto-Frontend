@@ -131,6 +131,14 @@ class AppConfig {
   static String petVaccinationsEndpoint(int petId) =>
       '$apiPrefix/pets/$petId/vaccinations';
 
+  /// Owner-managed public Pet Health Card settings.
+  static String petPublicCardEndpoint(int petId) =>
+      '$apiPrefix/pets/$petId/public-card';
+
+  /// Human-readable allow-listed page encoded into QR codes and NFC tags.
+  static String publicPetCardUrl(String token) =>
+      '$apiBaseUrl$apiPrefix/public/pets/$token/card';
+
   // ============================================================
   // Timeouts
   // ============================================================

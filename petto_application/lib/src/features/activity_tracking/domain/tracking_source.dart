@@ -1,4 +1,5 @@
 import '../../../core/services/location_service.dart';
+import '../data/services/ble_gps_service.dart';
 
 /// One position sample from ANY tracking hardware (phone GPS, BLE collar...).
 class TrackingSample {
@@ -8,12 +9,16 @@ class TrackingSample {
   /// Speed in m/s; 0 when the device can't report speed.
   final double speedMps;
   final DateTime timestamp;
+  final double? accuracyM;
+  final int? batteryPercent;
 
   const TrackingSample({
     required this.lat,
     required this.lng,
     this.speedMps = 0,
     required this.timestamp,
+    this.accuracyM,
+    this.batteryPercent,
   });
 }
 
@@ -40,7 +45,7 @@ class PhoneGpsTrackingSource implements TrackingSource {
   final LocationService locationService;
 
   PhoneGpsTrackingSource({LocationService? locationService})
-      : locationService = locationService ?? LocationService();
+    : locationService = locationService ?? LocationService();
 
   @override
   String get sourceType => 'phone';
@@ -74,36 +79,67 @@ class PhoneGpsTrackingSource implements TrackingSource {
 
   @override
   Stream<TrackingSample> samples() => locationService.positionStream().map(
-        (p) => TrackingSample(
-          lat: p.latitude,
-          lng: p.longitude,
-          speedMps: p.speed.isFinite && p.speed > 0 ? p.speed : 0,
-          timestamp: DateTime.now(),
-        ),
-      );
+    (p) => TrackingSample(
+      lat: p.latitude,
+      lng: p.longitude,
+      speedMps: p.speed.isFinite && p.speed > 0 ? p.speed : 0,
+      timestamp: DateTime.now(),
+    ),
+  );
 }
 
 /// Mode B: BLE/GPS collar (SRS-F4-035, Progress II).
 ///
-/// Structure-only stub: pairing metadata lives on the backend (devices table,
-/// /pets/{id}/devices) and collar telemetry is ingested server-side via
-/// /devices/{id}/telemetry. Live BLE streaming into the app (flutter_blue_plus
-/// scan -> GATT notifications -> TrackingSample) is the Progress II work item.
+/// BLE/GPS collar source backed by GATT notifications. It uses the Petto JSON
+/// packet contract while allowing the service/characteristic UUIDs to be
+/// replaced when the final hardware is selected.
 class BleCollarTrackingSource implements TrackingSource {
   final int deviceId;
+  final String remoteId;
+  final BleGpsService service;
+  final String serviceUuid;
+  final String characteristicUuid;
 
-  BleCollarTrackingSource({required this.deviceId});
+  BleCollarTrackingSource({
+    required this.deviceId,
+    required this.remoteId,
+    BleGpsService? service,
+    this.serviceUuid = pettoTrackingServiceUuid,
+    this.characteristicUuid = pettoTelemetryCharacteristicUuid,
+  }) : service = service ?? BleGpsService();
 
   @override
   String get sourceType => 'device';
 
   @override
-  Future<String?> prepare() async =>
-      'No GPS/BLE device detected. Please ensure your pet\'s collar is paired.';
+  Future<String?> prepare() async {
+    try {
+      await service.connect(
+        remoteId,
+        serviceUuid: serviceUuid,
+        characteristicUuid: characteristicUuid,
+      );
+      return null;
+    } catch (error) {
+      return 'Could not connect to the GPS collar: $error';
+    }
+  }
 
   @override
-  Future<TrackingSample?> current() async => null;
+  Future<TrackingSample?> current() async {
+    final packet = service.latest;
+    return packet == null ? null : _sample(packet);
+  }
 
   @override
-  Stream<TrackingSample> samples() => const Stream.empty();
+  Stream<TrackingSample> samples() => service.packets.map(_sample);
+
+  TrackingSample _sample(BleGpsPacket packet) => TrackingSample(
+    lat: packet.lat,
+    lng: packet.lng,
+    speedMps: (packet.speedKmh ?? 0) / 3.6,
+    timestamp: packet.recordedAt,
+    accuracyM: packet.accuracyM,
+    batteryPercent: packet.batteryPercent,
+  );
 }

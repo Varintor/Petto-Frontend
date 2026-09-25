@@ -290,7 +290,7 @@ void main() {
         ));
 
         // Act: Save activity
-        final result = await repository.createActivity(
+        await repository.createActivity(
           petId: ActivityFixtures.validPetId,
           activityType: ActivityFixtures.walkingType,
           durationMinutes: 30.0,
