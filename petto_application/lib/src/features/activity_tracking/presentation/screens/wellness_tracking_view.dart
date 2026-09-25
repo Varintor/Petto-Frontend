@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/navigation/petto_transitions.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/petto_loading.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../controllers/activity_tracking_controller.dart';
 import '../controllers/device_tracking_controller.dart';
@@ -49,7 +51,7 @@ class _WellnessTrackingViewState extends State<WellnessTrackingView> {
     final petId = auth.isGuest ? auth.petId : auth.rawPetId;
     Navigator.of(context)
         .push(
-          MaterialPageRoute(
+          PettoPageRoute(
             builder: (_) => LiveWalkScreen(petName: widget.petName),
           ),
         )
@@ -106,7 +108,7 @@ class _WellnessTrackingViewState extends State<WellnessTrackingView> {
                   ),
                   if (c.statsLoading) ...[
                     const SizedBox(height: 14),
-                    const LinearProgressIndicator(minHeight: 3),
+                    const PettoSkeletonBox(height: 6, radius: 999),
                   ],
                 ],
               ),
@@ -154,7 +156,7 @@ class _WellnessTrackingViewState extends State<WellnessTrackingView> {
             ),
             if (deviceController.loading) ...[
               const SizedBox(height: 10),
-              const LinearProgressIndicator(),
+              const PettoSkeletonBox(height: 6, radius: 999),
             ],
             if (deviceController.error != null) ...[
               const SizedBox(height: 10),
@@ -173,7 +175,11 @@ class _WellnessTrackingViewState extends State<WellnessTrackingView> {
                 onSimulateAlert: () =>
                     deviceController.simulateTelemetry(anomaly: true),
                 onUnpair: deviceController.unpair,
-                onViewMap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LiveDeviceTrackingScreen())),
+                onViewMap: () => Navigator.of(context).push(
+                  PettoPageRoute(
+                    builder: (_) => const LiveDeviceTrackingScreen(),
+                  ),
+                ),
               ),
             ],
           ],
@@ -272,7 +278,11 @@ class _DeviceStatusCard extends StatelessWidget {
                 icon: const Icon(Icons.route_rounded),
                 label: const Text('Simulate walk'),
               ),
-              OutlinedButton.icon(onPressed: device.lastLat == null ? null : onViewMap, icon: const Icon(Icons.map), label: const Text('View Live Map')),
+              OutlinedButton.icon(
+                onPressed: device.lastLat == null ? null : onViewMap,
+                icon: const Icon(Icons.map),
+                label: const Text('View Live Map'),
+              ),
               OutlinedButton.icon(
                 onPressed: busy ? null : onSimulateAlert,
                 icon: const Icon(Icons.warning_amber_rounded),

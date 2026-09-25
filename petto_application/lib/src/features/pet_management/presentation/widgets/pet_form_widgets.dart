@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/petto_loading.dart';
 
 /// Rounded, soft text field used across pet forms.
 class PettoTextField extends StatelessWidget {
@@ -106,14 +107,7 @@ class PettoPrimaryButton extends StatelessWidget {
           ),
         ),
         child: loading
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.4,
-                  color: Colors.white,
-                ),
-              )
+            ? const PettoButtonProgress()
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

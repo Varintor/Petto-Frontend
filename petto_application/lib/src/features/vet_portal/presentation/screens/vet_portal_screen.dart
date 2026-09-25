@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/navigation/petto_transitions.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/petto_loading.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../auth/presentation/screens/auth_gate.dart';
 import '../../../vet_consultation/data/models/consultation_models.dart';
@@ -64,7 +66,7 @@ class _VetPortalScreenState extends State<VetPortalScreen> {
     await context.read<AuthController>().logout();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const AuthGate()),
+      PettoPageRoute(builder: (_) => const AuthGate()),
       (_) => false,
     );
   }
@@ -76,7 +78,7 @@ class _VetPortalScreenState extends State<VetPortalScreen> {
     if (index < 0 || index >= patients.length) return;
     if (compact) {
       Navigator.of(context).push(
-        MaterialPageRoute(
+        PettoPageRoute(
           builder: (_) => _PatientDetailsScreen(patient: patients[index]),
         ),
       );
@@ -99,7 +101,7 @@ class _VetPortalScreenState extends State<VetPortalScreen> {
     );
     if (compact) {
       Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const _BackendConversationScreen()),
+        PettoPageRoute(builder: (_) => const _BackendConversationScreen()),
       );
       return;
     }
@@ -140,25 +142,13 @@ class _VetPortalScreenState extends State<VetPortalScreen> {
                             ),
                           Expanded(
                             child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 220),
-                              switchInCurve: Curves.easeOutCubic,
-                              switchOutCurve: Curves.easeOutCubic,
-                              transitionBuilder: (child, animation) {
-                                final curved = CurvedAnimation(
-                                  parent: animation,
-                                  curve: Curves.easeOutCubic,
-                                );
-                                return FadeTransition(
-                                  opacity: curved,
-                                  child: SlideTransition(
-                                    position: Tween<Offset>(
-                                      begin: const Offset(0.018, 0),
-                                      end: Offset.zero,
-                                    ).animate(curved),
-                                    child: child,
-                                  ),
-                                );
-                              },
+                              duration: AppTheme.motionNormal,
+                              reverseDuration: AppTheme.motionFast,
+                              switchInCurve: AppTheme.motionCurveSoft,
+                              switchOutCurve: AppTheme.motionReverseCurve,
+                              layoutBuilder: PettoTransitions.currentChildOnly,
+                              transitionBuilder:
+                                  PettoTransitions.buildSectionTransition,
                               child: KeyedSubtree(
                                 key: ValueKey(_section),
                                 child: switch (_section) {

@@ -21,6 +21,20 @@ class _HomeCalendarPreviewDay extends StatelessWidget {
     return labels[date.weekday - 1];
   }
 
+  Color get _selectedSurface => switch (date.weekday % 4) {
+    0 => const Color(0xFFE7EEDC),
+    1 => const Color(0xFFF5DEDB),
+    2 => const Color(0xFFF8ECD0),
+    _ => const Color(0xFFDCECF1),
+  };
+
+  Color get _selectedAccent => switch (date.weekday % 4) {
+    0 => _homeSageAccent,
+    1 => const Color(0xFFA94755),
+    2 => _homeGoldAccent,
+    _ => const Color(0xFF477786),
+  };
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -34,15 +48,9 @@ class _HomeCalendarPreviewDay extends StatelessWidget {
           height: 78,
           padding: const EdgeInsets.symmetric(vertical: 9),
           decoration: BoxDecoration(
-            color: selected
-                ? AppTheme.primaryColor
-                : const Color(0xFFFFE7E4).withValues(alpha: 0.76),
+            color: selected ? _selectedSurface : const Color(0xFFFFFCF8),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: selected
-                  ? AppTheme.primaryColor
-                  : AppTheme.primaryColor.withValues(alpha: 0.10),
-            ),
+            border: Border.all(color: Colors.white, width: selected ? 2.5 : 2),
             boxShadow: selected
                 ? [
                     BoxShadow(
@@ -61,8 +69,8 @@ class _HomeCalendarPreviewDay extends StatelessWidget {
                 _weekday,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: selected
-                      ? Colors.white70
-                      : AppTheme.secondaryText.withValues(alpha: 0.52),
+                      ? _selectedAccent
+                      : AppTheme.primaryColor.withValues(alpha: 0.58),
                   fontWeight: FontWeight.w900,
                   fontSize: 10,
                   letterSpacing: 0,
@@ -72,7 +80,7 @@ class _HomeCalendarPreviewDay extends StatelessWidget {
               Text(
                 '${date.day}',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: selected ? Colors.white : AppTheme.secondaryText,
+                  color: selected ? _selectedAccent : AppTheme.secondaryText,
                   fontWeight: FontWeight.w900,
                   height: 1,
                 ),
@@ -84,7 +92,7 @@ class _HomeCalendarPreviewDay extends StatelessWidget {
                 height: hasEvent ? 6 : 3,
                 decoration: BoxDecoration(
                   color: hasEvent
-                      ? (selected ? Colors.white : AppTheme.primaryColor)
+                      ? (selected ? _selectedAccent : AppTheme.primaryColor)
                       : Colors.transparent,
                   shape: BoxShape.circle,
                 ),
@@ -108,9 +116,9 @@ class _HomeScheduleEventLine extends StatelessWidget {
       margin: const EdgeInsets.only(top: 10),
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFBF2),
+        color: const Color(0xFFFFFCF8),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: event.color.withValues(alpha: 0.10)),
+        border: Border.all(color: Colors.white, width: 2.5),
       ),
       child: Row(
         children: [
@@ -118,10 +126,11 @@ class _HomeScheduleEventLine extends StatelessWidget {
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              color: event.color.withValues(alpha: 0.16),
+              color: event.color,
               borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.white, width: 2),
             ),
-            child: Icon(event.icon, color: event.color, size: 22),
+            child: Icon(event.icon, color: Colors.white, size: 22),
           ),
           const SizedBox(width: 13),
           Expanded(
@@ -133,7 +142,7 @@ class _HomeScheduleEventLine extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: AppTheme.secondaryText,
+                    color: event.color,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -154,11 +163,13 @@ class _HomeScheduleEventLine extends StatelessWidget {
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppTheme.primaryColor.withValues(alpha: 0.20),
-                width: 2,
-              ),
+              color: Colors.white.withValues(alpha: 0.82),
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Icon(
+              Icons.arrow_forward_rounded,
+              color: event.color,
+              size: 19,
             ),
           ),
         ],
@@ -168,10 +179,9 @@ class _HomeScheduleEventLine extends StatelessWidget {
 }
 
 class _HomeScheduleEmpty extends StatelessWidget {
-  const _HomeScheduleEmpty({required this.petName, required this.onTap});
+  const _HomeScheduleEmpty({required this.petName});
 
   final String petName;
-  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -179,11 +189,9 @@ class _HomeScheduleEmpty extends StatelessWidget {
       margin: const EdgeInsets.only(top: 10),
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFBF2),
+        color: const Color(0xFFFFFCF8),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: AppTheme.primaryColor.withValues(alpha: 0.08),
-        ),
+        border: Border.all(color: Colors.white, width: 2.5),
       ),
       child: Row(
         children: [
@@ -191,12 +199,13 @@ class _HomeScheduleEmpty extends StatelessWidget {
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withValues(alpha: 0.10),
+              color: const Color(0xFFEAF0E3),
               borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.white, width: 2),
             ),
             child: const Icon(
               Icons.event_available_rounded,
-              color: AppTheme.primaryColor,
+              color: _homeSageAccent,
               size: 19,
             ),
           ),
@@ -207,21 +216,11 @@ class _HomeScheduleEmpty extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: AppTheme.mutedText,
+                color: _homeSageAccent,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0,
               ),
             ),
-          ),
-          TextButton(
-            onPressed: onTap,
-            style: TextButton.styleFrom(
-              foregroundColor: AppTheme.primaryColor,
-              textStyle: Theme.of(
-                context,
-              ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            child: const Text('Add plan'),
           ),
         ],
       ),
@@ -244,12 +243,9 @@ class _CalendarCircleButton extends StatelessWidget {
         width: 38,
         height: 38,
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFEFB),
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: AppTheme.primaryColor.withValues(alpha: 0.10),
-            width: 1.2,
-          ),
+          color: const Color(0xFFFFFCF8),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white, width: 2),
         ),
         child: Icon(icon, color: AppTheme.primaryColor, size: 22),
       ),
@@ -311,17 +307,14 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFFEFB).withValues(alpha: 0.94),
+              color: AppTheme.primaryColor,
               borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: AppTheme.primaryColor.withValues(alpha: 0.13),
-                width: 1.4,
-              ),
+              border: Border.all(color: Colors.white, width: 3),
               boxShadow: [
                 BoxShadow(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.06),
-                  blurRadius: 22,
-                  spreadRadius: -14,
+                  color: AppTheme.primaryColor.withValues(alpha: 0.10),
+                  blurRadius: 24,
+                  spreadRadius: -17,
                   offset: const Offset(0, 16),
                 ),
               ],
@@ -349,7 +342,7 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
                             textAlign: TextAlign.center,
                             style: Theme.of(context).textTheme.titleLarge
                                 ?.copyWith(
-                                  color: AppTheme.secondaryText,
+                                  color: _homeCreamSurface,
                                   fontWeight: FontWeight.w900,
                                 ),
                           ),
@@ -358,7 +351,9 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
                             '${visibleEvents.length} care plans nearby',
                             style: Theme.of(context).textTheme.labelMedium
                                 ?.copyWith(
-                                  color: AppTheme.mutedText,
+                                  color: _homeCreamSurface.withValues(
+                                    alpha: 0.74,
+                                  ),
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 0,
                                 ),
@@ -417,10 +412,7 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
                 ),
                 const SizedBox(height: 2),
                 if (visibleEvents.isEmpty)
-                  _HomeScheduleEmpty(
-                    petName: _activePet.name,
-                    onTap: _showAddCalendarPlanSheet,
-                  )
+                  _HomeScheduleEmpty(petName: _activePet.name)
                 else
                   for (final event in visibleEvents)
                     _HomeScheduleEventLine(event: event),
@@ -434,17 +426,16 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
                         height: 36,
                         padding: const EdgeInsets.symmetric(horizontal: 13),
                         decoration: BoxDecoration(
-                          color: const Color(
-                            0xFFFFE9B8,
-                          ).withValues(alpha: 0.78),
+                          color: const Color(0xFFFFFCF8),
                           borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: Colors.white, width: 2),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Icon(
                               Icons.add_rounded,
-                              color: Color(0xFFB98422),
+                              color: _homeGoldAccent,
                               size: 18,
                             ),
                             const SizedBox(width: 5),
@@ -452,7 +443,7 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
                               'Add',
                               style: Theme.of(context).textTheme.labelSmall
                                   ?.copyWith(
-                                    color: const Color(0xFFB98422),
+                                    color: _homeGoldAccent,
                                     fontWeight: FontWeight.w900,
                                     letterSpacing: 0,
                                   ),
@@ -469,12 +460,13 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
                         height: 36,
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryColor,
+                          color: const Color(0xFFFFFCF8),
                           borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: Colors.white, width: 2),
                         ),
                         child: const Icon(
                           Icons.arrow_forward_rounded,
-                          color: Colors.white,
+                          color: AppTheme.primaryColor,
                           size: 20,
                         ),
                       ),
@@ -556,12 +548,17 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
           const SizedBox(height: 10),
           Container(
             decoration: BoxDecoration(
-              color: AppTheme.surfaceColor.withValues(alpha: 0.92),
+              color: _homeCreamSurface,
               borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: AppTheme.warmSurfaceColor.withValues(alpha: 0.72),
-                width: 1.4,
-              ),
+              border: Border.all(color: Colors.white, width: 3),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.07),
+                  blurRadius: 22,
+                  spreadRadius: -14,
+                  offset: const Offset(0, 14),
+                ),
+              ],
             ),
             padding: const EdgeInsets.fromLTRB(14, 16, 14, 16),
             child: GridView.builder(
@@ -572,6 +569,7 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
                 crossAxisCount: 7,
                 mainAxisSpacing: 8,
                 crossAxisSpacing: 8,
+                childAspectRatio: 0.86,
               ),
               itemBuilder: (context, index) {
                 final day = cells[index];
@@ -617,8 +615,8 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
                         AnimatedContainer(
                           duration: const Duration(milliseconds: 220),
                           curve: Curves.easeOutCubic,
-                          width: selected ? 42 : (isToday ? 38 : 0),
-                          height: selected ? 42 : (isToday ? 38 : 0),
+                          width: selected ? 36 : (isToday ? 34 : 0),
+                          height: selected ? 46 : (isToday ? 44 : 0),
                           decoration: BoxDecoration(
                             color: selected
                                 ? AppTheme.primaryColor
@@ -627,16 +625,16 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
                                     alpha: 0.64,
                                   )
                                 : Colors.transparent,
-                            shape: BoxShape.circle,
+                            borderRadius: BorderRadius.circular(23),
                             border: Border.all(
                               color: selected
-                                  ? Colors.transparent
+                                  ? Colors.white
                                   : isToday
                                   ? AppTheme.primaryColor.withValues(
                                       alpha: 0.24,
                                     )
                                   : Colors.transparent,
-                              width: isToday ? 1.6 : 0,
+                              width: selected ? 2.5 : (isToday ? 1.6 : 0),
                             ),
                           ),
                         ),
@@ -652,16 +650,6 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
                                     ? Colors.white
                                     : AppTheme.primaryColor,
                                 shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color:
-                                        (selected
-                                                ? Colors.white
-                                                : AppTheme.primaryColor)
-                                            .withValues(alpha: 0.3),
-                                    blurRadius: 8,
-                                  ),
-                                ],
                               ),
                             ),
                           ),

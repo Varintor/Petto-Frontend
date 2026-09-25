@@ -22,67 +22,71 @@ class SharedHealthCardPanel extends StatelessWidget {
     final breed = _clean(snapshot['breed'] as String?);
     final blood = _clean(snapshot['blood_type'] as String?);
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
       decoration: BoxDecoration(
         color: AppTheme.surfaceColor.withValues(alpha: 0.98),
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: AppTheme.primaryColor.withValues(alpha: 0.13),
-          width: 1.2,
+          width: 1.1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primaryColor.withValues(alpha: 0.055),
-            blurRadius: 18,
-            spreadRadius: -12,
-            offset: const Offset(0, 8),
-          ),
-        ],
       ),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
-          tilePadding: EdgeInsets.zero,
+          dense: true,
+          visualDensity: VisualDensity.compact,
+          minTileHeight: 48,
+          tilePadding: const EdgeInsets.symmetric(horizontal: 2),
           childrenPadding: EdgeInsets.zero,
           leading: Container(
-            width: 46,
-            height: 46,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
               color: AppTheme.primaryColor.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(17),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
               Icons.badge_rounded,
               color: AppTheme.primaryColor,
+              size: 19,
             ),
           ),
           title: Text(
             '${card.petName} Health ID',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
               color: AppTheme.secondaryText,
               fontWeight: FontWeight.w900,
+              height: 1.05,
             ),
           ),
           subtitle: Padding(
-            padding: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.only(top: 2),
             child: Text(
               'Shared ${_date(card.sharedAt)}',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: AppTheme.mutedText,
                 fontWeight: FontWeight.w700,
+                letterSpacing: 0,
               ),
             ),
           ),
           trailing: onRevoke == null
               ? null
-              : IconButton(
-                  tooltip: 'Stop sharing',
-                  onPressed: onRevoke,
-                  icon: const Icon(Icons.link_off_rounded),
-                  color: AppTheme.primaryColor,
+              : SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: IconButton(
+                    tooltip: 'Stop sharing',
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                    onPressed: onRevoke,
+                    icon: const Icon(Icons.link_off_rounded, size: 20),
+                    color: AppTheme.primaryColor,
+                  ),
                 ),
           children: [
             const SizedBox(height: 10),

@@ -61,12 +61,23 @@ class MissionsController extends ChangeNotifier {
     final idx = _missions.indexWhere((m) => m.id == missionId);
     if (idx == -1 || _missions[idx].isCompleted) return;
 
+    final previous = _missions[idx];
+    _missions[idx] = previous.copyWith(
+      isCompleted: true,
+      completedAt: DateTime.now(),
+    );
+    _error = null;
+    notifyListeners();
+
     try {
       final updated = await repository.completeMission(missionId);
-      _missions[idx] = updated;
+      final currentIdx = _missions.indexWhere((m) => m.id == missionId);
+      if (currentIdx != -1) _missions[currentIdx] = updated;
       notifyListeners();
       unawaited(loadDashboardStats());
     } catch (e) {
+      final currentIdx = _missions.indexWhere((m) => m.id == missionId);
+      if (currentIdx != -1) _missions[currentIdx] = previous;
       _error = e.toString();
       notifyListeners();
     }

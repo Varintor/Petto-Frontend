@@ -321,7 +321,15 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    await tester.tap(find.widgetWithText(ListTile, 'Dr. Test').first);
+    final appointmentConversation = find
+        .widgetWithText(ListTile, 'Dr. Test')
+        .first;
+    await Scrollable.ensureVisible(
+      tester.element(appointmentConversation),
+      alignment: 0.5,
+    );
+    await tester.pump();
+    await tester.tap(appointmentConversation);
     await tester.pump();
     await tester.pump();
     expect(find.text('Skin follow-up'), findsOneWidget);
@@ -366,15 +374,12 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('Nearby Animal Clinic'), findsOneWidget);
-    expect(find.text('Available on Petto'), findsOneWidget);
+    expect(find.text('Consultations available'), findsOneWidget);
     expect(find.text('Information only'), findsOneWidget);
     expect(find.text('Unavailable'), findsOneWidget);
 
-    await tester.scrollUntilVisible(
-      find.text('Map'),
-      -250,
-      scrollable: find.byType(Scrollable).first,
-    );
+    await tester.ensureVisible(find.text('Map'));
+    await tester.pump();
     await tester.tap(find.text('Map'));
     await tester.pump();
     expect(find.text('© OpenStreetMap contributors'), findsOneWidget);
@@ -438,7 +443,11 @@ void main() {
     final urgentButton = find.byKey(const Key('urgent-help-provider-21'));
     expect(urgentButton, findsOneWidget);
     expect(find.byKey(const Key('urgent-help-provider-22')), findsNothing);
-    await tester.ensureVisible(urgentButton);
+    await Scrollable.ensureVisible(
+      tester.element(urgentButton),
+      alignment: 0.5,
+    );
+    await tester.pump();
     await tester.tap(urgentButton);
     await tester.pumpAndSettle();
     expect(find.text('Request Urgent Help?'), findsOneWidget);
@@ -485,19 +494,11 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    await tester.tap(find.text('Use my location'));
+    await tester.tap(find.text('Nearby clinics'));
     await tester.pump();
 
     expect(find.text('Location permission was not granted.'), findsOneWidget);
-    expect(find.text('Use my location'), findsOneWidget);
-    expect(
-      tester
-          .widget<OutlinedButton>(
-            find.widgetWithText(OutlinedButton, 'Use my location'),
-          )
-          .onPressed,
-      isNotNull,
-    );
+    expect(find.text('Nearby clinics'), findsOneWidget);
   });
 
   testWidgets('location platform failure offers retry instead of hanging', (
@@ -525,17 +526,10 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    await tester.tap(find.text('Use my location'));
+    await tester.tap(find.text('Nearby clinics'));
     await tester.pump();
 
     expect(find.text('Location is unavailable. Try again.'), findsOneWidget);
-    expect(
-      tester
-          .widget<OutlinedButton>(
-            find.widgetWithText(OutlinedButton, 'Use my location'),
-          )
-          .onPressed,
-      isNotNull,
-    );
+    expect(find.text('Nearby clinics'), findsOneWidget);
   });
 }

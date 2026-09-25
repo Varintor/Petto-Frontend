@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/widgets/petto_loading.dart';
 import '../../../../core/widgets/top_alert.dart';
 import '../controllers/vaccination_controller.dart';
 
@@ -213,7 +214,14 @@ class _AddVaccinationScreenState extends State<AddVaccinationScreen> {
                       ),
                     )
                   else
-                    const Center(child: CircularProgressIndicator()),
+                    const Center(
+                      child: PettoInlineProgress(
+                        title: 'Saving vaccination',
+                        subtitle: 'Updating the health record.',
+                        icon: Icons.vaccines_rounded,
+                        compact: true,
+                      ),
+                    ),
                 ],
               ),
             ),

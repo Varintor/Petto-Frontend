@@ -186,29 +186,11 @@ extension _HomeConsultScreenPart on _HomeScreenState {
 
   void _openAssessmentDetailScreen(AssessmentEntity assessment) {
     Navigator.of(context).push(
-      PageRouteBuilder<void>(
-        transitionDuration: AppTheme.motionNormal,
-        reverseTransitionDuration: AppTheme.motionFast,
-        pageBuilder: (context, animation, secondaryAnimation) {
-          return _AssessmentDetailScreen(
-            assessment: assessment,
-            onShareWithVet: () => _shareAssessmentWithAvailableVet(assessment),
-          );
-        },
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          final curved = CurvedAnimation(
-            parent: animation,
-            curve: AppTheme.motionCurveSoft,
-            reverseCurve: AppTheme.motionReverseCurve,
-          );
-          return SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0.004, 0.001),
-              end: Offset.zero,
-            ).animate(curved),
-            child: child,
-          );
-        },
+      PettoPageRoute<void>(
+        builder: (_) => _AssessmentDetailScreen(
+          assessment: assessment,
+          onShareWithVet: () => _shareAssessmentWithAvailableVet(assessment),
+        ),
       ),
     );
   }
@@ -520,26 +502,27 @@ extension _HomeConsultScreenPart on _HomeScreenState {
           const SizedBox(height: 16),
           _SoftReveal(
             delay: 0.12,
-            child: _AssistantSummaryCard(
-              icon: Icons.fact_check_rounded,
-              title: 'Latest check',
-              subtitle:
-                  assessmentController.isHistoryLoading && assessments.isEmpty
-                  ? 'Loading health records...'
-                  : latestAssessment?.symptoms ?? 'No assessment yet',
-              meta: latestAssessment?.riskLevel ?? 'Start scan',
-              onTap: latestAssessment == null
-                  ? () {
-                      _update(() {
-                        _showAssessment = true;
-                      });
-                    }
-                  : () => _openAssessmentDetailScreen(latestAssessment),
-              trailingLabel: assessments.length > 1 ? 'View all' : 'Refresh',
-              onTrailingTap: assessments.length > 1
-                  ? () => _showAssessmentHistorySheet(assessments)
-                  : () => _loadAssessmentHistory(force: true),
-            ),
+            child: assessmentController.isHistoryLoading && assessments.isEmpty
+                ? const PettoCardSkeleton(height: 116, compact: true)
+                : _AssistantSummaryCard(
+                    icon: Icons.fact_check_rounded,
+                    title: 'Latest check',
+                    subtitle: latestAssessment?.symptoms ?? 'No assessment yet',
+                    meta: latestAssessment?.riskLevel ?? 'Start scan',
+                    onTap: latestAssessment == null
+                        ? () {
+                            _update(() {
+                              _showAssessment = true;
+                            });
+                          }
+                        : () => _openAssessmentDetailScreen(latestAssessment),
+                    trailingLabel: assessments.length > 1
+                        ? 'View all'
+                        : 'Refresh',
+                    onTrailingTap: assessments.length > 1
+                        ? () => _showAssessmentHistorySheet(assessments)
+                        : () => _loadAssessmentHistory(force: true),
+                  ),
           ),
           const SizedBox(height: 12),
           _SoftReveal(

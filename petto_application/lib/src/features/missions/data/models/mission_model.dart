@@ -27,6 +27,22 @@ class MissionModel {
     required this.createdAt,
   });
 
+  MissionModel copyWith({bool? isCompleted, DateTime? completedAt}) {
+    return MissionModel(
+      id: id,
+      petId: petId,
+      missionDate: missionDate,
+      title: title,
+      missionType: missionType,
+      targetValue: targetValue,
+      unit: unit,
+      reward: reward,
+      isCompleted: isCompleted ?? this.isCompleted,
+      completedAt: completedAt ?? this.completedAt,
+      createdAt: createdAt,
+    );
+  }
+
   factory MissionModel.fromJson(Map<String, dynamic> json) {
     return MissionModel(
       id: json['id'] as int,

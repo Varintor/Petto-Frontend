@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/navigation/petto_transitions.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/pet_entity.dart';
 import '../../../health_assessment/presentation/screens/home_screen.dart';
@@ -30,7 +31,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
 
   Future<void> _openForm({PetEntity? pet, int? index}) async {
     final result = await Navigator.of(context).push<PetEntity>(
-      MaterialPageRoute(builder: (_) => PetFormScreen(initial: pet)),
+      PettoPageRoute(builder: (_) => PetFormScreen(initial: pet)),
     );
     if (result == null) return;
     setState(() {
@@ -57,7 +58,7 @@ class _PetProfileScreenState extends State<PetProfileScreen> {
           IconButton(
             onPressed: () => Navigator.of(
               context,
-            ).push(MaterialPageRoute(builder: (_) => const HomeScreen())),
+            ).push(PettoPageRoute(builder: (_) => const HomeScreen())),
             icon: const Icon(
               Icons.home_outlined,
               color: AppTheme.secondaryText,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/navigation/petto_transitions.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../controllers/activity_tracking_controller.dart';
 import '../widgets/walk_map_view.dart';
@@ -157,27 +158,7 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
   void _goToSummary(ActivityTrackingController c) {
     c.finish();
     Navigator.of(context).pushReplacement(
-      PageRouteBuilder<void>(
-        transitionDuration: AppTheme.motionNormal,
-        reverseTransitionDuration: AppTheme.motionFast,
-        pageBuilder: (context, animation, secondaryAnimation) {
-          return const WalkSummaryScreen();
-        },
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          final curved = CurvedAnimation(
-            parent: animation,
-            curve: AppTheme.motionCurveSoft,
-            reverseCurve: AppTheme.motionReverseCurve,
-          );
-          return SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0, 0.002),
-              end: Offset.zero,
-            ).animate(curved),
-            child: child,
-          );
-        },
-      ),
+      PettoPageRoute(builder: (_) => const WalkSummaryScreen()),
     );
   }
 
@@ -313,6 +294,7 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
         decoration: AppTheme.glassCardDecoration(
           color: Colors.white.withValues(alpha: 0.85),
           borderRadius: BorderRadius.circular(22),
+          borderColor: Colors.white,
         ),
         child: Column(
           children: [
@@ -356,10 +338,7 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
                 ),
-                side: BorderSide(
-                  color: AppTheme.warmSurfaceColor.withValues(alpha: 0.78),
-                  width: 1.4,
-                ),
+                side: const BorderSide(color: Colors.white, width: 3),
               ),
               onPressed: isPaused ? c.resume : c.pause,
               icon: Icon(
@@ -377,6 +356,7 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
                 fixedSize: const Size.fromHeight(58),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
+                  side: const BorderSide(color: Colors.white, width: 3),
                 ),
               ),
               onPressed: () => _goToSummary(c),

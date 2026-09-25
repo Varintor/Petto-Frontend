@@ -96,7 +96,13 @@ class _DashboardView extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               if (controller.loading && consultations.isEmpty)
-                const Center(child: CircularProgressIndicator())
+                const Column(
+                  children: [
+                    PettoCardSkeleton(height: 88, compact: true),
+                    SizedBox(height: 10),
+                    PettoCardSkeleton(height: 88, compact: true),
+                  ],
+                )
               else if (controller.error != null && consultations.isEmpty)
                 _VetLoadState(
                   message: controller.error!,
@@ -190,7 +196,7 @@ class _PatientsView extends StatelessWidget {
       builder: (context, controller, _) {
         final patients = _patientsFromConsultations(controller.consultations);
         if (controller.loading && patients.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
+          return const PettoPageSkeleton(itemCount: 4, compact: true);
         }
         if (controller.error != null && patients.isEmpty) {
           return _VetLoadState(
@@ -253,7 +259,7 @@ class _BackendMessagesView extends StatelessWidget {
     return Consumer<ConsultationController>(
       builder: (context, controller, _) {
         if (controller.loading && controller.consultations.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
+          return const PettoPageSkeleton(itemCount: 4, compact: true);
         }
         if (controller.error != null && controller.consultations.isEmpty) {
           return _VetLoadState(

@@ -1,5 +1,11 @@
 part of 'home_screen.dart';
 
+const _homeCreamSurface = Color(0xFFFFFAF5);
+const _homeRoseSurface = Color(0xFFF6E4E2);
+const _homeSageSurface = Color(0xFFEEF0E5);
+const _homeSageAccent = Color(0xFF6F7E5A);
+const _homeGoldAccent = Color(0xFFB18636);
+
 extension _HomeDashboardScreenPart on _HomeScreenState {
   Future<void> _triggerMission(int missionId, Offset origin) async {
     final controller = context.read<MissionsController>();
@@ -66,7 +72,6 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
     return Consumer<MissionsController>(
       builder: (context, mc, _) {
         final missions = mc.missions;
-        final previewMissions = missions.take(2).toList(growable: false);
         final now = DateTime.now();
         final upcomingPlans =
             (_calendarEvents.where((event) {
@@ -161,7 +166,7 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
                               completed: mc.completedCount,
                               total: mc.totalCount,
                               loading: mc.missionsLoading && missions.isEmpty,
-                              missions: previewMissions,
+                              missions: missions,
                               burstMissionId: _burstMissionId,
                               onOpen: () =>
                                   _update(() => _activeView = _View.missions),
@@ -200,11 +205,15 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
                 decoration: BoxDecoration(
                   color: AppTheme.primaryColor,
                   borderRadius: BorderRadius.circular(32),
-                  border: Border.all(
-                    color: AppTheme.blushSurfaceColor,
-                    width: 2,
-                  ),
-                  boxShadow: AppTheme.cardShadow,
+                  border: Border.all(color: Colors.white, width: 3),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.10),
+                      blurRadius: 22,
+                      spreadRadius: -12,
+                      offset: const Offset(0, 14),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,6 +226,7 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.white, width: 2.5),
                           ),
                           child: const _SoftPulse(
                             child: Icon(
@@ -260,6 +270,7 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(999),
+                            border: Border.all(color: Colors.white, width: 2),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withValues(alpha: 0.08),
@@ -332,13 +343,14 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
                       vertical: 7,
                     ),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryColor,
+                      color: const Color(0xFFF1E2E0),
                       borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: Colors.white, width: 2),
                     ),
                     child: Text(
                       '$completedCount/$totalCount done',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Colors.white,
+                        color: const Color(0xFF8E555A),
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -348,22 +360,19 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
               const SizedBox(height: 14),
               if (mc.missionsLoading && missions.isEmpty)
                 const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(child: CircularProgressIndicator()),
+                  padding: EdgeInsets.symmetric(vertical: 4),
+                  child: Column(
+                    children: [
+                      PettoCardSkeleton(height: 92, compact: true),
+                      SizedBox(height: 10),
+                      PettoCardSkeleton(height: 92, compact: true),
+                    ],
+                  ),
                 )
               else
                 for (final mission in missions) ...[
-                  _MissionCard(
-                    mission: _MissionData(
-                      id: mission.id.toString(),
-                      title: mission.title,
-                      reward: mission.rewardDisplay,
-                      icon: mission.icon,
-                    ),
-                    rewardAccessory: _HomeScreenState._accessoryForMission(
-                      mission.missionType,
-                    ),
-                    completed: mission.isCompleted,
+                  _HomeMissionLine(
+                    mission: mission,
                     bursting: _burstMissionId == mission.id.toString(),
                     onTap: (origin) => _triggerMission(mission.id, origin),
                   ),
@@ -390,7 +399,7 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
       final petId = activePetId();
       Navigator.of(context)
           .push(
-            MaterialPageRoute(
+            PettoPageRoute(
               builder: (_) => LiveWalkScreen(petName: _activePet.name),
             ),
           )
@@ -446,6 +455,7 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
                           ? AppTheme.mutedText.withValues(alpha: 0.16)
                           : AppTheme.primaryColor,
                       borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: Colors.white, width: 2),
                     ),
                     child: Text(
                       controller.statsLoading ? 'Loading' : 'Refresh',
@@ -462,10 +472,18 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
-              decoration: AppTheme.glassCardDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: _homeCreamSurface,
                 borderRadius: BorderRadius.circular(30),
-                borderColor: AppTheme.primaryColor.withValues(alpha: 0.22),
+                border: Border.all(color: Colors.white, width: 3),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                    blurRadius: 22,
+                    spreadRadius: -14,
+                    offset: const Offset(0, 14),
+                  ),
+                ],
               ),
               child: Column(
                 children: [
@@ -475,12 +493,13 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
                         width: 34,
                         height: 34,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppTheme.primaryColor,
                           borderRadius: BorderRadius.circular(13),
+                          border: Border.all(color: Colors.white, width: 2),
                         ),
                         child: const Icon(
                           Icons.directions_walk_rounded,
-                          color: AppTheme.primaryColor,
+                          color: Colors.white,
                           size: 18,
                         ),
                       ),
@@ -500,10 +519,14 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: AppTheme.blushSurfaceColor.withValues(
-                            alpha: 0.74,
-                          ),
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: AppTheme.primaryColor.withValues(
+                              alpha: 0.14,
+                            ),
+                            width: 1.5,
+                          ),
                         ),
                         child: Text(
                           'Today',
@@ -541,11 +564,9 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
                         ? Padding(
                             key: const ValueKey('activity_loading'),
                             padding: const EdgeInsets.only(top: 14),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(999),
-                              child: const LinearProgressIndicator(
-                                minHeight: 3,
-                              ),
+                            child: const PettoSkeletonBox(
+                              height: 6,
+                              radius: 999,
                             ),
                           )
                         : const SizedBox.shrink(
@@ -559,6 +580,7 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
             _MissionActivityCard(
               icon: Icons.directions_walk_rounded,
               iconColor: AppTheme.primaryColor,
+              surfaceColor: _homeCreamSurface,
               title: 'Start a Walk',
               subtitle:
                   'Live GPS tracking - distance, time and pace for ${_activePet.name}.',
@@ -568,7 +590,8 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
             const SizedBox(height: 12),
             _MissionActivityCard(
               icon: Icons.sensors_rounded,
-              iconColor: AppTheme.secondaryColor,
+              iconColor: AppTheme.primaryColor,
+              surfaceColor: _homeCreamSurface,
               title: 'Live Pet Tracking',
               subtitle:
                   'Pair a device for activity, rest detection and alerts.',
@@ -617,15 +640,15 @@ class _HomePetSwitcher extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 56,
+      height: 64,
       child: ListView.separated(
         clipBehavior: Clip.none,
         scrollDirection: Axis.horizontal,
         itemCount: pets.length + 1,
-        separatorBuilder: (_, _) => const SizedBox(width: 10),
+        separatorBuilder: (_, _) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
           if (index == pets.length) {
-            return _HomePetSwitcherItem.add(onTap: onAdd);
+            return _AddPetChip(onTap: onAdd);
           }
           final pet = pets[index];
           final appearance = appearances[index];
@@ -647,101 +670,20 @@ class _HomePetSwitcherItem extends StatelessWidget {
     required this.appearance,
     required this.selected,
     required this.onTap,
-  }) : isAdd = false;
+  });
 
-  const _HomePetSwitcherItem.add({required this.onTap})
-    : pet = null,
-      appearance = null,
-      selected = false,
-      isAdd = true;
-
-  final _PetData? pet;
-  final _PetAppearanceData? appearance;
+  final _PetData pet;
+  final _PetAppearanceData appearance;
   final bool selected;
-  final bool isAdd;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return _PetChip(
+      pet: pet,
+      appearance: appearance,
+      selected: selected,
       onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-        height: 52,
-        constraints: BoxConstraints(minWidth: isAdd ? 54 : 114),
-        padding: EdgeInsets.fromLTRB(isAdd ? 0 : 6, 6, isAdd ? 0 : 16, 6),
-        decoration: BoxDecoration(
-          color: selected ? AppTheme.primaryColor : const Color(0xFFFFFEFB),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: selected
-                ? AppTheme.primaryColor
-                : AppTheme.primaryColor.withValues(alpha: 0.12),
-            width: 1.3,
-          ),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.16),
-                    blurRadius: 18,
-                    spreadRadius: -10,
-                    offset: const Offset(0, 12),
-                  ),
-                ]
-              : null,
-        ),
-        child: isAdd
-            ? Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: AppTheme.blushSurfaceColor.withValues(alpha: 0.82),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.add_rounded,
-                  color: AppTheme.primaryColor,
-                  size: 24,
-                ),
-              )
-            : Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? Colors.white
-                          : AppTheme.blushSurfaceColor,
-                      shape: BoxShape.circle,
-                    ),
-                    child: _SpeciesAvatarIcon(
-                      species: appearance!.species,
-                      appearance: appearance!,
-                      size: 35,
-                      dimmed: false,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 82),
-                    child: Text(
-                      pet!.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: selected ? Colors.white : AppTheme.secondaryText,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-      ),
     );
   }
 }
@@ -878,13 +820,16 @@ class _HomeWeatherGardenHeroState extends State<_HomeWeatherGardenHero>
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              Colors.black.withValues(
-                                alpha: isNight ? 0.12 : 0,
-                              ),
+                              (weather == _GardenWeather.stormy
+                                      ? const Color(0xFF203945)
+                                      : Colors.black)
+                                  .withValues(alpha: isNight ? 0.09 : 0),
                               Colors.transparent,
-                              const Color(0xFF2D201B).withValues(alpha: 0.14),
+                              const Color(
+                                0xFF2D201B,
+                              ).withValues(alpha: isNight ? 0.08 : 0.035),
                             ],
-                            stops: const [0, 0.48, 1],
+                            stops: const [0, 0.56, 1],
                           ),
                         ),
                       ),
@@ -1002,30 +947,55 @@ class _GardenAtmospherePainter extends CustomPainter {
   }
 
   void _drawRain(Canvas canvas, Size size) {
-    for (var layer = 0; layer < 2; layer++) {
-      final foreground = layer == 1;
+    for (var layer = 0; layer < 3; layer++) {
+      final depth = layer / 2;
       final rain = Paint()
-        ..color = Colors.white.withValues(
-          alpha: foreground
-              ? (weather == _GardenWeather.stormy ? 0.58 : 0.43)
-              : 0.22,
+        ..color = const Color(0xFFEAF5F7).withValues(
+          alpha:
+              (weather == _GardenWeather.stormy ? 0.24 : 0.18) + depth * 0.22,
         )
-        ..strokeWidth = foreground ? 1.45 : 0.85
+        ..strokeWidth = 0.75 + depth * 0.75
         ..strokeCap = StrokeCap.round;
-      final count = foreground ? 24 : 18;
-      final speed = foreground ? 250.0 : 170.0;
+      final count = 13 + layer * 6;
+      final speed = 135.0 + layer * 62;
       for (var i = 0; i < count; i++) {
         final x =
-            (i * (foreground ? 43.0 : 61.0) +
-                    progress * (foreground ? 105 : 70)) %
-                (size.width + 40) -
-            20;
+            (i * (67.0 - layer * 13) + progress * (62 + layer * 34)) %
+                (size.width + 52) -
+            26;
         final y =
-            (i * (foreground ? 59.0 : 71.0) + progress * speed) %
-            (size.height + 30);
-        final length = foreground ? 15.0 : 10.0;
-        canvas.drawLine(Offset(x, y), Offset(x - 5, y + length), rain);
+            (i * (79.0 - layer * 9) + progress * speed) % (size.height + 36) -
+            18;
+        final length = 7.5 + depth * 9 + (i % 3) * 1.2;
+        final drop = Path()
+          ..moveTo(x, y)
+          ..quadraticBezierTo(
+            x - 1.8 - depth,
+            y + length * 0.48,
+            x - 4.0 - depth * 1.8,
+            y + length,
+          );
+        canvas.drawPath(drop, rain);
       }
+    }
+
+    final ripplePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.9
+      ..color = const Color(0xFFEAF5F7).withValues(alpha: 0.24);
+    for (var i = 0; i < 7; i++) {
+      final phase = (progress * 1.7 + i * 0.173) % 1;
+      final x = size.width * (0.08 + ((i * 31) % 83) / 100);
+      final y = size.height * (0.74 + (i % 3) * 0.075);
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(x, y),
+          width: 3 + phase * 16,
+          height: 1.2 + phase * 4.2,
+        ),
+        ripplePaint
+          ..color = ripplePaint.color.withValues(alpha: 0.28 * (1 - phase)),
+      );
     }
   }
 
@@ -1149,13 +1119,13 @@ class _GardenScenePainter extends CustomPainter {
         Offset.zero,
         Offset(0, size.height),
         weather == _GardenWeather.stormy
-            ? const [Color(0xFF253C4A), Color(0xFF51666E), Color(0xFF9AA9A1)]
+            ? const [Color(0xFF34474D), Color(0xFF68777A), Color(0xFFB1B7A9)]
             : isNight
-            ? const [Color(0xFF2D2545), Color(0xFF51466B), Color(0xFFB38C84)]
+            ? const [Color(0xFF272235), Color(0xFF4B3B52), Color(0xFF8B6669)]
             : weather == _GardenWeather.cloudy ||
                   weather == _GardenWeather.rainy
-            ? const [Color(0xFFD9E5E7), Color(0xFFE9E0D2), Color(0xFFB9D4B0)]
-            : const [Color(0xFFBFE6F2), Color(0xFFFFE3C2), Color(0xFFDFF1D3)],
+            ? const [Color(0xFFDCE6E3), Color(0xFFF0E5D8), Color(0xFFC8D3AF)]
+            : const [Color(0xFFCBE5E7), Color(0xFFF8DBC7), Color(0xFFE3E5C9)],
         const [0.0, 0.52, 1.0],
       );
     canvas.drawRect(Offset.zero & size, skyPaint);
@@ -1171,8 +1141,10 @@ class _GardenScenePainter extends CustomPainter {
       canvas,
       size,
       color: isNight
-          ? const Color(0xFF9D7F58).withValues(alpha: 0.96)
-          : const Color(0xFFD9D89A),
+          ? const Color(0xFF876E57).withValues(alpha: 0.96)
+          : weather == _GardenWeather.stormy
+          ? const Color(0xFFB2B08D)
+          : const Color(0xFFD8D29F),
       y1: 0.61,
       c1y: 0.53,
       c2y: 0.68,
@@ -1181,7 +1153,11 @@ class _GardenScenePainter extends CustomPainter {
     _drawHill(
       canvas,
       size,
-      color: isNight ? const Color(0xFF5C8A56) : const Color(0xFF8BCE73),
+      color: isNight
+          ? const Color(0xFF536F50)
+          : weather == _GardenWeather.stormy
+          ? const Color(0xFF718866)
+          : const Color(0xFF91AE78),
       y1: 0.70,
       c1y: 0.62,
       c2y: 0.76,
@@ -1191,17 +1167,27 @@ class _GardenScenePainter extends CustomPainter {
     _drawBushLine(canvas, size);
 
     final path = Path()
-      ..moveTo(size.width * 0.38, size.height)
-      ..quadraticBezierTo(
-        size.width * 0.45,
-        size.height * 0.82,
-        size.width * 0.50,
-        size.height * 0.65,
+      ..moveTo(size.width * 0.35, size.height)
+      ..cubicTo(
+        size.width * 0.40,
+        size.height * 0.88,
+        size.width * 0.46,
+        size.height * 0.73,
+        size.width * 0.485,
+        size.height * 0.645,
       )
       ..quadraticBezierTo(
-        size.width * 0.56,
-        size.height * 0.82,
-        size.width * 0.63,
+        size.width * 0.50,
+        size.height * 0.625,
+        size.width * 0.515,
+        size.height * 0.645,
+      )
+      ..cubicTo(
+        size.width * 0.55,
+        size.height * 0.74,
+        size.width * 0.61,
+        size.height * 0.88,
+        size.width * 0.67,
         size.height,
       )
       ..close();
@@ -1229,14 +1215,24 @@ class _GardenScenePainter extends CustomPainter {
   }
 
   void _drawSkyGlow(Canvas canvas, Size size) {
-    final warm = isNight ? const Color(0xFFFFD7B0) : const Color(0xFFFFCF7C);
+    final warm = weather == _GardenWeather.stormy
+        ? const Color(0xFFE8DDBD)
+        : isNight
+        ? const Color(0xFFFFD7B0)
+        : const Color(0xFFFFCF7C);
     final center = Offset(size.width * 0.64, size.height * 0.20);
     canvas.drawCircle(
       center,
       size.width * 0.18,
       Paint()
         ..shader = ui.Gradient.radial(center, size.width * 0.18, [
-          warm.withValues(alpha: isNight ? 0.18 : 0.26),
+          warm.withValues(
+            alpha: weather == _GardenWeather.stormy
+                ? 0.11
+                : isNight
+                ? 0.18
+                : 0.26,
+          ),
           warm.withValues(alpha: 0),
         ]),
     );
@@ -1261,7 +1257,9 @@ class _GardenScenePainter extends CustomPainter {
       Paint()
         ..color = isNight
             ? const Color(0xFFFFF4D8).withValues(alpha: 0.90)
-            : const Color(0xFFFFC65C).withValues(alpha: 0.86),
+            : const Color(0xFFFFC65C).withValues(
+                alpha: weather == _GardenWeather.stormy ? 0.62 : 0.86,
+              ),
     );
     if (isNight) {
       canvas.drawCircle(
@@ -1290,48 +1288,48 @@ class _GardenScenePainter extends CustomPainter {
       final x =
           size.width * baseX +
           math.sin(progress * math.pi * 2 + i * 1.4) * 6 * direction;
-      final y = size.height * (i == 2 ? 0.25 : 0.15 + (i % 2) * 0.08);
-      final scale = i == 0 ? 0.68 : (i == 1 ? 0.52 : 0.58);
-      _drawCloud(canvas, Offset(x, y), scale);
+      final y = size.height * (i == 2 ? 0.26 : 0.15 + (i % 2) * 0.075);
+      final scale = i == 0 ? 0.72 : (i == 1 ? 0.56 : 0.62);
+      _drawCloud(canvas, Offset(x, y), scale, i);
     }
   }
 
-  void _drawCloud(Canvas canvas, Offset center, double scale) {
-    final width = 112 * scale;
-    final height = 38 * scale;
+  void _drawCloud(Canvas canvas, Offset center, double scale, int index) {
+    final width = 118 * scale;
+    final height = 40 * scale;
     final path = Path()
-      ..moveTo(center.dx - width * 0.52, center.dy + height * 0.20)
+      ..moveTo(center.dx - width * 0.52, center.dy + height * 0.18)
       ..cubicTo(
         center.dx - width * 0.56,
-        center.dy - height * 0.04,
+        center.dy - height * 0.08,
         center.dx - width * 0.42,
-        center.dy - height * 0.28,
-        center.dx - width * 0.25,
-        center.dy - height * 0.22,
+        center.dy - height * 0.34,
+        center.dx - width * 0.24,
+        center.dy - height * 0.27,
       )
       ..cubicTo(
-        center.dx - width * 0.16,
-        center.dy - height * 0.66,
-        center.dx + width * 0.14,
-        center.dy - height * 0.70,
+        center.dx - width * 0.13,
+        center.dy - height * 0.72,
+        center.dx + width * 0.15,
+        center.dy - height * 0.72,
         center.dx + width * 0.25,
-        center.dy - height * 0.29,
+        center.dy - height * 0.31,
       )
       ..cubicTo(
         center.dx + width * 0.43,
-        center.dy - height * 0.31,
-        center.dx + width * 0.55,
-        center.dy - height * 0.08,
-        center.dx + width * 0.49,
-        center.dy + height * 0.17,
+        center.dy - height * 0.36,
+        center.dx + width * 0.57,
+        center.dy - height * 0.07,
+        center.dx + width * 0.50,
+        center.dy + height * 0.18,
       )
       ..cubicTo(
         center.dx + width * 0.29,
-        center.dy + height * 0.34,
-        center.dx - width * 0.33,
         center.dy + height * 0.36,
+        center.dx - width * 0.33,
+        center.dy + height * 0.37,
         center.dx - width * 0.52,
-        center.dy + height * 0.20,
+        center.dy + height * 0.18,
       )
       ..close();
     final bounds = path.getBounds();
@@ -1350,12 +1348,12 @@ class _GardenScenePainter extends CustomPainter {
         : const Color(0xFFE8F1ED);
 
     canvas.drawPath(
-      path.shift(Offset(0, 3 * scale)),
+      path.shift(Offset(0, 4 * scale)),
       Paint()
         ..color = const Color(
-          0xFF202D35,
-        ).withValues(alpha: weather == _GardenWeather.stormy ? 0.10 : 0.035)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 6 * scale),
+          0xFF20313A,
+        ).withValues(alpha: weather == _GardenWeather.stormy ? 0.13 : 0.045)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 7 * scale),
     );
     canvas.drawPath(
       path,
@@ -1364,14 +1362,60 @@ class _GardenScenePainter extends CustomPainter {
           topColor.withValues(alpha: isNight ? opacity * 0.64 : opacity),
           bottomColor.withValues(alpha: isNight ? opacity * 0.42 : opacity),
         ])
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.7),
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.45),
     );
+
+    canvas.save();
+    canvas.clipPath(path);
+    final highlightAlpha = weather == _GardenWeather.stormy ? 0.12 : 0.24;
+    final puffCenters = [
+      center.translate(-width * 0.23, -height * 0.20),
+      center.translate(width * 0.02, -height * 0.37),
+      center.translate(width * 0.25, -height * 0.15),
+    ];
+    for (var i = 0; i < puffCenters.length; i++) {
+      final puff = puffCenters[i];
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: puff,
+          width: width * (i == 1 ? 0.46 : 0.38),
+          height: height * (i == 1 ? 0.82 : 0.66),
+        ),
+        Paint()
+          ..shader = ui.Gradient.radial(
+            puff.translate(-3 * scale, -4 * scale),
+            width * 0.25,
+            [
+              Colors.white.withValues(
+                alpha: isNight ? highlightAlpha * 0.35 : highlightAlpha,
+              ),
+              Colors.white.withValues(alpha: 0),
+            ],
+          ),
+      );
+    }
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: center.translate(0, height * 0.19),
+        width: width * 0.86,
+        height: height * 0.28,
+      ),
+      Paint()
+        ..color =
+            (weather == _GardenWeather.stormy
+                    ? const Color(0xFF536A73)
+                    : const Color(0xFFCADDDC))
+                .withValues(alpha: isNight ? 0.16 : 0.22),
+    );
+    canvas.restore();
     canvas.drawPath(
       path.shift(Offset(0, -1.1 * scale)),
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = scale
-        ..color = Colors.white.withValues(alpha: isNight ? 0.07 : 0.22),
+        ..color = Colors.white.withValues(
+          alpha: isNight ? 0.07 : (0.18 + (index.isEven ? 0.03 : 0)),
+        ),
     );
   }
 
@@ -1396,142 +1440,224 @@ class _GardenScenePainter extends CustomPainter {
 
   void _drawDistantTreeLine(Canvas canvas, Size size) {
     final baseY = size.height * 0.61;
-    final back = isNight ? const Color(0xFF405E50) : const Color(0xFF9CCB91);
-    final front = isNight ? const Color(0xFF315344) : const Color(0xFF72AE70);
+    final back = isNight
+        ? const Color(0xFF263F38)
+        : weather == _GardenWeather.stormy
+        ? const Color(0xFF587364)
+        : const Color(0xFF4F7C5D);
+    final front = isNight
+        ? const Color(0xFF315248)
+        : weather == _GardenWeather.stormy
+        ? const Color(0xFF668C70)
+        : const Color(0xFF65976D);
 
-    for (var row = 0; row < 2; row++) {
-      final paint = Paint()
-        ..color = (row == 0 ? back : front).withValues(
-          alpha: row == 0 ? 0.48 : 0.64,
-        );
-      final path = Path()..moveTo(0, baseY + row * 9);
-      for (var i = 0; i <= 18; i++) {
-        final x = size.width * i / 18;
-        final crown = 20.0 + ((i * 17 + row * 11) % 26);
-        final y = baseY - crown + row * 10;
+    Path makePineLine({required double y, required bool foreground}) {
+      final path = Path()..moveTo(-24, y + 20);
+      final treeCount = foreground ? 13 : 11;
+      final spacing = (size.width + 48) / (treeCount - 1);
+      for (var i = 0; i < treeCount; i++) {
+        final center = -24 + spacing * i;
+        final height = (foreground ? 38.0 : 31.0) + ((i * 9) % 13);
+        final halfWidth = spacing * (foreground ? 0.58 : 0.62);
         path
-          ..lineTo(x - 8, baseY + row * 9)
-          ..quadraticBezierTo(x - 5, y + 8, x, y)
-          ..quadraticBezierTo(x + 7, y + 9, x + 10, baseY + row * 9);
+          ..lineTo(center - halfWidth, y + 8)
+          ..quadraticBezierTo(
+            center - halfWidth * 0.54,
+            y - height * 0.18,
+            center - halfWidth * 0.26,
+            y - height * 0.33,
+          )
+          ..lineTo(center - halfWidth * 0.48, y - height * 0.30)
+          ..quadraticBezierTo(
+            center - halfWidth * 0.23,
+            y - height * 0.56,
+            center,
+            y - height,
+          )
+          ..quadraticBezierTo(
+            center + halfWidth * 0.23,
+            y - height * 0.56,
+            center + halfWidth * 0.48,
+            y - height * 0.30,
+          )
+          ..lineTo(center + halfWidth * 0.26, y - height * 0.33)
+          ..quadraticBezierTo(
+            center + halfWidth * 0.54,
+            y - height * 0.18,
+            center + halfWidth,
+            y + 8,
+          );
       }
-      path
-        ..lineTo(size.width, baseY + 34)
-        ..lineTo(0, baseY + 34)
+      return path
+        ..lineTo(size.width + 24, y + 30)
+        ..lineTo(-24, y + 30)
         ..close();
-      canvas.drawPath(path, paint);
     }
+
+    canvas.drawPath(
+      makePineLine(y: baseY - 5, foreground: false),
+      Paint()..color = back.withValues(alpha: isNight ? 0.52 : 0.66),
+    );
+    canvas.drawPath(
+      makePineLine(y: baseY + 11, foreground: true),
+      Paint()..color = front.withValues(alpha: isNight ? 0.62 : 0.76),
+    );
+
+    final haze = Paint()
+      ..color = Colors.white.withValues(alpha: isNight ? 0.04 : 0.12)
+      ..strokeWidth = 1.4
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(
+      Offset(0, baseY + 10),
+      Offset(size.width, baseY + 10),
+      haze,
+    );
   }
 
   void _drawGardenTrees(Canvas canvas, Size size) {
-    void drawTree({
+    void drawPine({
       required Offset root,
       required double scale,
-      required bool mirror,
+      required bool isForeground,
+      required double phase,
     }) {
-      final sign = mirror ? -1.0 : 1.0;
-      final trunkColor = isNight
-          ? const Color(0xFF5A4B45)
-          : const Color(0xFF9B7355);
-      final trunk = Paint()
-        ..color = trunkColor.withValues(alpha: isNight ? 0.66 : 0.74)
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round
-        ..strokeWidth = 8.5 * scale;
-      final trunkPath = Path()
-        ..moveTo(root.dx, root.dy)
-        ..cubicTo(
-          root.dx + sign * 4 * scale,
-          root.dy - 30 * scale,
-          root.dx - sign * 6 * scale,
-          root.dy - 57 * scale,
-          root.dx + sign * 1 * scale,
-          root.dy - 84 * scale,
-        );
-      canvas.drawPath(trunkPath, trunk);
+      final storm = weather == _GardenWeather.stormy;
+      final sway =
+          math.sin(progress * math.pi * 2 + phase) * (storm ? 0.018 : 0.007);
+      canvas.save();
+      canvas.translate(root.dx, root.dy);
+      canvas.rotate(sway);
+      canvas.scale(scale);
 
-      final branch = Paint()
-        ..color = trunk.color
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round
-        ..strokeWidth = 3.4 * scale;
-      canvas.drawLine(
-        root.translate(sign * 1 * scale, -61 * scale),
-        root.translate(sign * 28 * scale, -91 * scale),
-        branch,
-      );
-      canvas.drawLine(
-        root.translate(-sign * 2 * scale, -50 * scale),
-        root.translate(-sign * 21 * scale, -78 * scale),
-        branch,
-      );
-
-      final canopyCenter = root.translate(sign * 4 * scale, -105 * scale);
-      final deep = isNight ? const Color(0xFF2E5849) : const Color(0xFF6AAA5C);
-      final mid = isNight ? const Color(0xFF47705A) : const Color(0xFF88C46E);
-      final bright = isNight
-          ? const Color(0xFF6E8F6D)
-          : const Color(0xFFB8DD85);
-      final shadow = Paint()
-        ..color = const Color(
-          0xFF2D201B,
-        ).withValues(alpha: isNight ? 0.14 : 0.05)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 5 * scale);
-      final canopySpecs = [
-        (Offset(-42 * sign, 10), 48.0, 42.0, deep, 0.90),
-        (Offset(-27 * sign, -14), 54.0, 50.0, mid, 0.92),
-        (Offset(3 * sign, -25), 58.0, 53.0, mid, 0.96),
-        (Offset(32 * sign, -8), 50.0, 45.0, deep, 0.88),
-        (Offset(22 * sign, 20), 50.0, 36.0, mid, 0.82),
-        (Offset(-12 * sign, 23), 56.0, 38.0, deep, 0.80),
-      ];
-
-      for (final spec in canopySpecs) {
-        final center = canopyCenter.translate(
-          spec.$1.dx * scale,
-          spec.$1.dy * scale,
-        );
-        final rect = Rect.fromCenter(
-          center: center,
-          width: spec.$2 * scale,
-          height: spec.$3 * scale,
-        );
-        canvas.drawOval(rect.shift(Offset(0, 3 * scale)), shadow);
-        canvas.drawOval(
-          rect,
-          Paint()..color = spec.$4.withValues(alpha: spec.$5),
-        );
-      }
-
-      final highlight = Paint()
-        ..color = bright.withValues(alpha: isNight ? 0.16 : 0.34);
-      for (final offset in [
-        Offset(-20 * sign, -24),
-        Offset(11 * sign, -32),
-        Offset(31 * sign, 0),
-      ]) {
-        canvas.drawOval(
-          Rect.fromCenter(
-            center: canopyCenter.translate(
-              offset.dx * scale,
-              offset.dy * scale,
-            ),
-            width: 30 * scale,
-            height: 14 * scale,
+      final trunkTop = isNight
+          ? const Color(0xFF745D50)
+          : const Color(0xFFAF8060);
+      final trunkBottom = isNight
+          ? const Color(0xFF493B36)
+          : const Color(0xFF76503D);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          const Rect.fromLTWH(-7, -62, 14, 66),
+          const Radius.circular(7),
+        ),
+        Paint()
+          ..shader = ui.Gradient.linear(
+            const Offset(-7, -62),
+            const Offset(7, 4),
+            [trunkTop, trunkBottom],
           ),
-          highlight,
+      );
+
+      final deep = isForeground
+          ? isNight
+                ? const Color(0xFF416E57)
+                : storm
+                ? const Color(0xFF5F8D67)
+                : const Color(0xFF5F9B67)
+          : isNight
+          ? const Color(0xFF2E5448)
+          : storm
+          ? const Color(0xFF52745E)
+          : const Color(0xFF527D62);
+      final mid = isForeground
+          ? isNight
+                ? const Color(0xFF5F8868)
+                : storm
+                ? const Color(0xFF79A873)
+                : const Color(0xFF78B276)
+          : isNight
+          ? const Color(0xFF466A58)
+          : storm
+          ? const Color(0xFF668A6C)
+          : const Color(0xFF66926E);
+      final bright = isForeground
+          ? isNight
+                ? const Color(0xFF7FA07A)
+                : storm
+                ? const Color(0xFF9AC786)
+                : const Color(0xFFA2D187)
+          : isNight
+          ? const Color(0xFF617D67)
+          : storm
+          ? const Color(0xFF7F9F78)
+          : const Color(0xFF7EA57A);
+
+      Path pineTier(double top, double bottom, double halfWidth) {
+        return Path()
+          ..moveTo(0, top)
+          ..cubicTo(
+            -halfWidth * 0.14,
+            top + (bottom - top) * 0.22,
+            -halfWidth * 0.58,
+            bottom - 12,
+            -halfWidth,
+            bottom - 2,
+          )
+          ..quadraticBezierTo(-halfWidth * 0.88, bottom + 5, 0, bottom)
+          ..quadraticBezierTo(
+            halfWidth * 0.88,
+            bottom + 5,
+            halfWidth,
+            bottom - 2,
+          )
+          ..cubicTo(
+            halfWidth * 0.58,
+            bottom - 12,
+            halfWidth * 0.14,
+            top + (bottom - top) * 0.22,
+            0,
+            top,
+          )
+          ..close();
+      }
+
+      final tiers = [
+        (pineTier(-154, -88, 38), bright),
+        (pineTier(-126, -50, 53), mid),
+        (pineTier(-92, -10, 67), deep),
+      ];
+      canvas.drawOval(
+        const Rect.fromLTWH(-58, -7, 116, 14),
+        Paint()..color = Colors.black.withValues(alpha: isNight ? 0.13 : 0.07),
+      );
+      for (final tier in tiers) {
+        canvas.drawPath(
+          tier.$1,
+          Paint()
+            ..shader = ui.Gradient.linear(
+              tier.$1.getBounds().topCenter,
+              tier.$1.getBounds().bottomCenter,
+              [
+                Color.lerp(tier.$2, Colors.white, isNight ? 0.04 : 0.10)!,
+                tier.$2,
+              ],
+            ),
         );
       }
+      canvas.drawPath(
+        Path()
+          ..moveTo(-5, -143)
+          ..quadraticBezierTo(-17, -112, -22, -99),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3
+          ..strokeCap = StrokeCap.round
+          ..color = Colors.white.withValues(alpha: isNight ? 0.06 : 0.13),
+      );
+      canvas.restore();
     }
 
-    drawTree(
-      root: Offset(size.width * 0.09, size.height * 0.73),
-      scale: math.min(size.width / 470, 1.06),
-      mirror: false,
+    drawPine(
+      root: Offset(size.width * 0.10, size.height * 0.72),
+      scale: math.min(size.width / 570, 0.88),
+      isForeground: false,
+      phase: 0.3,
     );
-    drawTree(
+    drawPine(
       root: Offset(size.width * 0.92, size.height * 0.71),
-      scale: math.min(size.width / 500, 1.0),
-      mirror: true,
+      scale: math.min(size.width / 520, 0.96),
+      isForeground: true,
+      phase: 1.4,
     );
   }
 
@@ -1666,81 +1792,114 @@ class _GardenScenePainter extends CustomPainter {
         ),
     );
 
-    final backPaint = Paint()
-      ..color = (isNight ? const Color(0xFF497756) : const Color(0xFFA9D982))
-          .withValues(alpha: isNight ? 0.64 : 0.76);
-    final frontPaint = Paint()
-      ..shader = ui.Gradient.linear(
-        Offset(0, baseY - 32),
-        Offset(0, baseY + 54),
-        isNight
-            ? const [Color(0xFF5C8C62), Color(0xFF39704F)]
-            : const [Color(0xFFB8E58D), Color(0xFF75C66B)],
-      );
+    final backColor = isNight
+        ? const Color(0xFF345F49)
+        : weather == _GardenWeather.stormy
+        ? const Color(0xFF668E65)
+        : const Color(0xFF57945E);
+    final frontColor = isNight
+        ? const Color(0xFF4F7F5B)
+        : weather == _GardenWeather.stormy
+        ? const Color(0xFF7AAA6D)
+        : const Color(0xFF7FC775);
 
-    for (var i = 0; i <= 9; i++) {
-      final x = -24 + (size.width + 48) * i / 9;
-      final y = baseY + 20 + ((i * 13) % 10);
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: Offset(x, y),
-          width: 78 + ((i * 17) % 28),
-          height: 43 + ((i * 11) % 14),
-        ),
-        backPaint,
-      );
-    }
-    for (var i = 0; i <= 12; i++) {
-      final x = -28 + (size.width + 56) * i / 12;
-      final y = baseY + 16 + ((i * 19) % 12);
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: Offset(x, y),
-          width: 64 + ((i * 23) % 25),
-          height: 38 + ((i * 7) % 12),
-        ),
-        frontPaint,
-      );
-    }
-
-    final leafPaint = Paint()
-      ..color = Colors.white.withValues(alpha: isNight ? 0.08 : 0.18);
-    for (var i = 0; i < 20; i++) {
-      final x = size.width * ((i * 37 % 97) / 96);
-      final y = baseY + 12 + ((i * 13) % 30);
-      canvas.save();
-      canvas.translate(x, y);
-      canvas.rotate((i.isEven ? -0.45 : 0.45));
-      canvas.drawOval(
-        Rect.fromCenter(center: Offset.zero, width: 8, height: 3.4),
-        leafPaint,
-      );
-      canvas.restore();
-    }
-
-    final flowerPaints = [
-      Paint()
+    void drawShrub({
+      required Offset center,
+      required double width,
+      required double height,
+      required Color color,
+      required int seed,
+    }) {
+      final base = center.translate(0, height * 0.30);
+      final branchPaint = Paint()
         ..color = const Color(
-          0xFFFFD16E,
-        ).withValues(alpha: isNight ? 0.72 : 0.92),
-      Paint()
-        ..color = const Color(
-          0xFFFFA7B5,
-        ).withValues(alpha: isNight ? 0.66 : 0.88),
-      Paint()..color = Colors.white.withValues(alpha: isNight ? 0.72 : 0.92),
+          0xFF6C7250,
+        ).withValues(alpha: isNight ? 0.30 : 0.48)
+        ..strokeWidth = 1.6
+        ..strokeCap = StrokeCap.round;
+      for (final branch in [
+        Offset(-width * 0.18, -height * 0.22),
+        Offset(width * 0.02, -height * 0.34),
+        Offset(width * 0.21, -height * 0.18),
+      ]) {
+        canvas.drawLine(base, center + branch, branchPaint);
+      }
+
+      final leafClusters = [
+        (-0.31, 0.02, 0.34, 0.52),
+        (-0.20, -0.18, 0.40, 0.62),
+        (0.01, -0.28, 0.43, 0.70),
+        (0.22, -0.16, 0.39, 0.60),
+        (0.33, 0.04, 0.31, 0.48),
+        (0.02, 0.03, 0.50, 0.56),
+      ];
+      for (var i = 0; i < leafClusters.length; i++) {
+        final cluster = leafClusters[i];
+        final jitterX = math.sin(seed * 0.73 + i * 1.91) * width * 0.025;
+        final jitterY = math.cos(seed * 0.61 + i * 1.37) * height * 0.035;
+        final clusterColor = Color.lerp(
+          color,
+          i < 3 ? Colors.white : const Color(0xFF28533E),
+          isNight ? 0.035 + (i % 3) * 0.018 : 0.07 + (i % 3) * 0.025,
+        )!;
+        canvas.drawOval(
+          Rect.fromCenter(
+            center: center.translate(
+              width * cluster.$1 + jitterX,
+              height * cluster.$2 + jitterY,
+            ),
+            width: width * cluster.$3,
+            height: height * cluster.$4,
+          ),
+          Paint()..color = clusterColor,
+        );
+      }
+
+      final leafPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.15
+        ..strokeCap = StrokeCap.round
+        ..color = Colors.white.withValues(alpha: isNight ? 0.07 : 0.15);
+      for (var i = 0; i < 3; i++) {
+        final detail = center.translate(
+          width * (-0.18 + i * 0.18),
+          height * (-0.15 + (i % 2) * 0.10),
+        );
+        canvas.drawArc(
+          Rect.fromCenter(center: detail, width: 7, height: 4.5),
+          i.isEven ? math.pi * 0.08 : math.pi * 0.92,
+          math.pi * 0.82,
+          false,
+          leafPaint,
+        );
+      }
+    }
+
+    final backShrubs = [
+      (0.18, 0.26, 39.0, 11, 10.0),
+      (0.80, 0.28, 37.0, 23, 12.0),
     ];
-    for (var i = 0; i < 14; i++) {
-      final row = i % 2;
-      final x = size.width * (0.08 + (i % 7) * 0.14) + (row == 0 ? 0 : 12);
-      if (x > size.width * 0.10 && x < size.width * 0.25) continue;
-      if (x > size.width * 0.79 && x < size.width * 0.93) continue;
-      if (x > size.width * 0.40 && x < size.width * 0.61) continue;
-      final y = baseY + 10 + row * 18 + ((i * 5) % 7);
-      final flutter = math.sin(progress * math.pi * 2 + i) * 0.8;
-      final center = Offset(x + flutter, y);
-      final paint = flowerPaints[i % flowerPaints.length];
-      canvas.drawCircle(center, 2.3, paint);
-      canvas.drawCircle(center.translate(2.4, -0.5), 1.6, paint);
+    for (final shrub in backShrubs) {
+      drawShrub(
+        center: Offset(size.width * shrub.$1, baseY + shrub.$5),
+        width: size.width * shrub.$2,
+        height: shrub.$3,
+        color: backColor,
+        seed: shrub.$4,
+      );
+    }
+    final frontShrubs = [
+      (0.34, 0.19, 31.0, 6, 26.0),
+      (0.65, 0.17, 29.0, 31, 28.0),
+    ];
+    for (final shrub in frontShrubs) {
+      drawShrub(
+        center: Offset(size.width * shrub.$1, baseY + shrub.$5),
+        width: size.width * shrub.$2,
+        height: shrub.$3,
+        color: frontColor,
+        seed: shrub.$4,
+      );
     }
   }
 
@@ -1750,7 +1909,7 @@ class _GardenScenePainter extends CustomPainter {
           .withValues(alpha: isNight ? 0.18 : 0.25)
       ..strokeWidth = 1.2
       ..strokeCap = StrokeCap.round;
-    for (var i = 0; i < 36; i++) {
+    for (var i = 0; i < 22; i++) {
       final x = size.width * ((i * 29 % 101) / 100);
       final y = size.height * (0.67 + ((i * 11) % 26) / 100);
       final lean = math.sin(i * 1.7) * 2.5;
@@ -1768,12 +1927,19 @@ class _GardenScenePainter extends CustomPainter {
       const Color(0xFFFFF7EA),
       const Color(0xFFC86973),
     ];
-    for (var i = 0; i < 26; i++) {
-      final x = size.width * (0.05 + (i % 9) * 0.112) + (i ~/ 9) * 8;
-      if (x > size.width * 0.10 && x < size.width * 0.24) continue;
-      if (x > size.width * 0.79 && x < size.width * 0.93) continue;
-      if (x > size.width * 0.42 && x < size.width * 0.58) continue;
-      final y = size.height * (0.69 + ((i * 11) % 19) / 100);
+    const flowerSpots = [
+      (0.045, 0.73),
+      (0.27, 0.79),
+      (0.34, 0.71),
+      (0.39, 0.84),
+      (0.64, 0.74),
+      (0.72, 0.85),
+      (0.77, 0.70),
+      (0.96, 0.79),
+    ];
+    for (var i = 0; i < flowerSpots.length; i++) {
+      final x = size.width * flowerSpots[i].$1;
+      final y = size.height * flowerSpots[i].$2;
       final sway = math.sin(progress * math.pi * 2 + i) * 1.8;
       final stem = Paint()
         ..color = (isNight ? const Color(0xFFEAF5DD) : const Color(0xFF557A46))
@@ -1781,14 +1947,21 @@ class _GardenScenePainter extends CustomPainter {
         ..strokeWidth = 1.4
         ..strokeCap = StrokeCap.round;
       canvas.drawLine(Offset(x, y + 8), Offset(x + sway, y), stem);
-      canvas.drawCircle(
-        Offset(x + sway, y),
-        i.isEven ? 2.6 : 2.1,
-        Paint()
-          ..color = flowerColors[i % flowerColors.length].withValues(
-            alpha: 0.86,
-          ),
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(x - 1.8, y + 5.8),
+          width: 4.5,
+          height: 2.2,
+        ),
+        Paint()..color = stem.color.withValues(alpha: 0.72),
       );
+      final bloom = Offset(x + sway, y);
+      final bloomPaint = Paint()
+        ..color = flowerColors[i % flowerColors.length].withValues(alpha: 0.86);
+      canvas.drawCircle(bloom.translate(-1.6, 0), 1.9, bloomPaint);
+      canvas.drawCircle(bloom.translate(1.6, 0), 1.9, bloomPaint);
+      canvas.drawCircle(bloom.translate(0, -1.7), 1.9, bloomPaint);
+      canvas.drawCircle(bloom, 1.1, Paint()..color = const Color(0xFFFFD36A));
     }
   }
 
@@ -1800,6 +1973,46 @@ class _GardenScenePainter extends CustomPainter {
     final potShadow = AppTheme.primaryColor.withValues(
       alpha: isNight ? 0.18 : 0.10,
     );
+
+    void drawGroundPatch(Offset base, double width) {
+      final patchColor = isNight
+          ? const Color(0xFF4D7955)
+          : const Color(0xFF72B96B);
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: base.translate(0, 19),
+          width: width,
+          height: 13,
+        ),
+        Paint()..color = patchColor.withValues(alpha: isNight ? 0.36 : 0.42),
+      );
+    }
+
+    void drawBaseGrass(Offset base, double scale, List<double> offsets) {
+      final grassPaint = Paint()
+        ..color = (isNight ? const Color(0xFF83A878) : const Color(0xFF4F9655))
+            .withValues(alpha: isNight ? 0.54 : 0.72)
+        ..strokeWidth = 1.45 * scale
+        ..strokeCap = StrokeCap.round;
+      for (var i = 0; i < offsets.length; i++) {
+        final x = base.dx + offsets[i] * scale;
+        final groundY = base.dy + 23 * scale;
+        final height = (6 + (i * 3) % 5) * scale;
+        final lean = (i.isEven ? -2.2 : 2.4) * scale;
+        canvas.drawLine(
+          Offset(x, groundY),
+          Offset(x + lean, groundY - height),
+          grassPaint,
+        );
+        if (i % 3 == 0) {
+          canvas.drawLine(
+            Offset(x, groundY),
+            Offset(x - lean * 0.65, groundY - height * 0.72),
+            grassPaint,
+          );
+        }
+      }
+    }
 
     void drawLeaf(Offset center, double angle, double scale, Color color) {
       canvas.save();
@@ -1820,26 +2033,35 @@ class _GardenScenePainter extends CustomPainter {
       final sign = flip ? -1.0 : 1.0;
       canvas.drawOval(
         Rect.fromCenter(
-          center: base.translate(0, 17 * scale),
-          width: 68 * scale,
-          height: 14 * scale,
+          center: base.translate(0, 21 * scale),
+          width: 54 * scale,
+          height: 8 * scale,
         ),
-        Paint()..color = Colors.black.withValues(alpha: isNight ? 0.13 : 0.08),
+        Paint()..color = Colors.black.withValues(alpha: isNight ? 0.12 : 0.07),
       );
       final bodyPath = Path()
-        ..moveTo(base.dx - 24 * scale, base.dy - 7 * scale)
-        ..quadraticBezierTo(
-          base.dx - 22 * scale,
-          base.dy + 15 * scale,
-          base.dx - 12 * scale,
-          base.dy + 20 * scale,
+        ..moveTo(base.dx - 23 * scale, base.dy - 6 * scale)
+        ..cubicTo(
+          base.dx - 21 * scale,
+          base.dy + 7 * scale,
+          base.dx - 18 * scale,
+          base.dy + 18 * scale,
+          base.dx - 11 * scale,
+          base.dy + 21 * scale,
         )
-        ..lineTo(base.dx + 12 * scale, base.dy + 20 * scale)
         ..quadraticBezierTo(
-          base.dx + 22 * scale,
-          base.dy + 15 * scale,
-          base.dx + 24 * scale,
-          base.dy - 7 * scale,
+          base.dx,
+          base.dy + 25 * scale,
+          base.dx + 11 * scale,
+          base.dy + 21 * scale,
+        )
+        ..cubicTo(
+          base.dx + 18 * scale,
+          base.dy + 18 * scale,
+          base.dx + 21 * scale,
+          base.dy + 7 * scale,
+          base.dx + 23 * scale,
+          base.dy - 6 * scale,
         )
         ..close();
       canvas.drawPath(
@@ -1859,74 +2081,82 @@ class _GardenScenePainter extends CustomPainter {
         RRect.fromRectAndRadius(
           Rect.fromCenter(
             center: base.translate(0, -9 * scale),
-            width: 54 * scale,
-            height: 13 * scale,
+            width: 52 * scale,
+            height: 12 * scale,
           ),
           Radius.circular(10 * scale),
         ),
         Paint()..color = pot.withValues(alpha: 0.98),
       );
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromCenter(
-            center: base.translate(0, -11 * scale),
-            width: 45 * scale,
-            height: 6 * scale,
-          ),
-          Radius.circular(6 * scale),
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: base.translate(0, -9 * scale),
+          width: 42 * scale,
+          height: 6 * scale,
         ),
-        Paint()..color = Colors.white.withValues(alpha: isNight ? 0.16 : 0.30),
+        Paint()..color = const Color(0xFF5F4B3D).withValues(alpha: 0.72),
+      );
+      canvas.drawArc(
+        Rect.fromCenter(
+          center: base.translate(-3 * scale, 3 * scale),
+          width: 31 * scale,
+          height: 29 * scale,
+        ),
+        math.pi * 0.57,
+        math.pi * 0.70,
+        false,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.2 * scale
+          ..strokeCap = StrokeCap.round
+          ..color = Colors.white.withValues(alpha: isNight ? 0.10 : 0.22),
+      );
+
+      final stemPaint = Paint()
+        ..color = leafA.withValues(alpha: isNight ? 0.62 : 0.82)
+        ..strokeWidth = 1.8 * scale
+        ..strokeCap = StrokeCap.round;
+      canvas.drawLine(
+        base.translate(0, -9 * scale),
+        base.translate(sign * -14 * scale, -28 * scale),
+        stemPaint,
+      );
+      canvas.drawLine(
+        base.translate(0, -9 * scale),
+        base.translate(sign * -2 * scale, -40 * scale),
+        stemPaint,
+      );
+      canvas.drawLine(
+        base.translate(0, -9 * scale),
+        base.translate(sign * 14 * scale, -27 * scale),
+        stemPaint,
       );
 
       drawLeaf(
-        base.translate(sign * -15 * scale, -25 * scale),
+        base.translate(sign * -14 * scale, -26 * scale),
         sign * -0.55,
         scale,
         leafA,
       );
       drawLeaf(
-        base.translate(sign * -3 * scale, -32 * scale),
+        base.translate(sign * -2 * scale, -35 * scale),
         sign * -0.08,
         scale * 1.05,
         leafB,
       );
       drawLeaf(
-        base.translate(sign * 13 * scale, -24 * scale),
+        base.translate(sign * 14 * scale, -25 * scale),
         sign * 0.55,
         scale,
         leafA,
-      );
-      canvas.drawLine(
-        base.translate(0, -6 * scale),
-        base.translate(0, -27 * scale),
-        Paint()
-          ..color = leafA.withValues(alpha: isNight ? 0.38 : 0.58)
-          ..strokeWidth = 1.4 * scale
-          ..strokeCap = StrokeCap.round,
       );
       final bloomColor = flip
           ? const Color(0xFFFFD16E)
           : const Color(0xFFFF9FAE);
       canvas.drawCircle(
-        base.translate(sign * 2 * scale, -34 * scale),
-        3.6 * scale,
+        base.translate(sign * -2 * scale, -46 * scale),
+        4.2 * scale,
         Paint()..color = bloomColor.withValues(alpha: isNight ? 0.70 : 0.92),
-      );
-      canvas.drawCircle(
-        base.translate(sign * -8 * scale, -28 * scale),
-        2.8 * scale,
-        Paint()
-          ..color = const Color(
-            0xFFFFF4DE,
-          ).withValues(alpha: isNight ? 0.56 : 0.88),
-      );
-      canvas.drawCircle(
-        base.translate(sign * 10 * scale, -30 * scale),
-        2.4 * scale,
-        Paint()
-          ..color = const Color(
-            0xFFFFC96D,
-          ).withValues(alpha: isNight ? 0.60 : 0.90),
       );
     }
 
@@ -1935,9 +2165,9 @@ class _GardenScenePainter extends CustomPainter {
         ..color = Colors.black.withValues(alpha: isNight ? 0.14 : 0.08);
       canvas.drawOval(
         Rect.fromCenter(
-          center: base.translate(0, 17 * scale),
-          width: 82 * scale,
-          height: 15 * scale,
+          center: base.translate(0, 23 * scale),
+          width: 70 * scale,
+          height: 9 * scale,
         ),
         shadow,
       );
@@ -1955,52 +2185,67 @@ class _GardenScenePainter extends CustomPainter {
           ? const Color(0xFFFFD8C6).withValues(alpha: 0.72)
           : const Color(0xFFFFD8C6);
 
-      final body = RRect.fromRectAndRadius(
-        Rect.fromCenter(
-          center: base.translate(0, -2 * scale),
-          width: 58 * scale,
-          height: 46 * scale,
-        ),
-        Radius.circular(13 * scale),
+      final body = Path()
+        ..moveTo(base.dx - 28 * scale, base.dy - 10 * scale)
+        ..lineTo(base.dx, base.dy - 34 * scale)
+        ..lineTo(base.dx + 28 * scale, base.dy - 10 * scale)
+        ..lineTo(base.dx + 28 * scale, base.dy + 20 * scale)
+        ..quadraticBezierTo(
+          base.dx + 28 * scale,
+          base.dy + 24 * scale,
+          base.dx + 23 * scale,
+          base.dy + 24 * scale,
+        )
+        ..lineTo(base.dx - 23 * scale, base.dy + 24 * scale)
+        ..quadraticBezierTo(
+          base.dx - 28 * scale,
+          base.dy + 24 * scale,
+          base.dx - 28 * scale,
+          base.dy + 20 * scale,
+        )
+        ..close();
+      canvas.drawPath(
+        body.shift(Offset(0, 2 * scale)),
+        Paint()..color = Colors.black.withValues(alpha: isNight ? 0.10 : 0.05),
       );
-      canvas.drawRRect(
-        body.inflate(2.0 * scale),
-        Paint()..color = Colors.white.withValues(alpha: isNight ? 0.10 : 0.48),
-      );
-      canvas.drawRRect(body, Paint()..color = wallColor);
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(
-            body.outerRect.left,
-            body.outerRect.top,
-            body.outerRect.width * 0.34,
-            body.outerRect.height,
-          ),
-          Radius.circular(13 * scale),
-        ),
-        Paint()..color = sideColor.withValues(alpha: 0.70),
+      canvas.drawPath(body, Paint()..color = wallColor);
+      final sideShade = Path()
+        ..moveTo(base.dx - 28 * scale, base.dy - 10 * scale)
+        ..lineTo(base.dx, base.dy - 34 * scale)
+        ..lineTo(base.dx, base.dy + 24 * scale)
+        ..lineTo(base.dx - 23 * scale, base.dy + 24 * scale)
+        ..quadraticBezierTo(
+          base.dx - 28 * scale,
+          base.dy + 24 * scale,
+          base.dx - 28 * scale,
+          base.dy + 19 * scale,
+        )
+        ..close();
+      canvas.drawPath(
+        sideShade,
+        Paint()..color = sideColor.withValues(alpha: 0.42),
       );
 
       final roof = Path()
-        ..moveTo(base.dx - 39 * scale, base.dy - 17 * scale)
+        ..moveTo(base.dx - 38 * scale, base.dy - 12 * scale)
         ..quadraticBezierTo(
           base.dx,
-          base.dy - 54 * scale,
-          base.dx + 39 * scale,
-          base.dy - 17 * scale,
+          base.dy - 50 * scale,
+          base.dx + 38 * scale,
+          base.dy - 12 * scale,
         )
         ..quadraticBezierTo(
-          base.dx + 34 * scale,
-          base.dy - 9 * scale,
-          base.dx + 27 * scale,
-          base.dy - 10 * scale,
+          base.dx + 36 * scale,
+          base.dy - 7 * scale,
+          base.dx + 31 * scale,
+          base.dy - 8 * scale,
         )
-        ..lineTo(base.dx - 27 * scale, base.dy - 10 * scale)
+        ..lineTo(base.dx - 31 * scale, base.dy - 8 * scale)
         ..quadraticBezierTo(
-          base.dx - 34 * scale,
-          base.dy - 9 * scale,
-          base.dx - 39 * scale,
-          base.dy - 17 * scale,
+          base.dx - 36 * scale,
+          base.dy - 7 * scale,
+          base.dx - 38 * scale,
+          base.dy - 12 * scale,
         )
         ..close();
       canvas.drawPath(roof, Paint()..color = roofColor);
@@ -2021,29 +2266,31 @@ class _GardenScenePainter extends CustomPainter {
           ..color = Colors.white.withValues(alpha: isNight ? 0.12 : 0.20),
       );
 
-      final door = RRect.fromRectAndRadius(
-        Rect.fromCenter(
-          center: base.translate(0, 8 * scale),
-          width: 25 * scale,
-          height: 29 * scale,
-        ),
-        Radius.circular(12 * scale),
-      );
-      canvas.drawRRect(
+      final doorTop = base.dy - 3 * scale;
+      final doorBottom = base.dy + 24 * scale;
+      final door = Path()
+        ..moveTo(base.dx - 13 * scale, doorBottom)
+        ..lineTo(base.dx - 13 * scale, doorTop + 11 * scale)
+        ..cubicTo(
+          base.dx - 13 * scale,
+          doorTop - 4 * scale,
+          base.dx + 13 * scale,
+          doorTop - 4 * scale,
+          base.dx + 13 * scale,
+          doorTop + 11 * scale,
+        )
+        ..lineTo(base.dx + 13 * scale, doorBottom)
+        ..close();
+      canvas.drawPath(
         door,
         Paint()
           ..shader = ui.Gradient.linear(
-            door.outerRect.topCenter,
-            door.outerRect.bottomCenter,
+            Offset(base.dx, doorTop),
+            Offset(base.dx, doorBottom),
             isNight
                 ? const [Color(0xFF3C2730), Color(0xFF251D22)]
                 : const [Color(0xFF7B3034), Color(0xFF522327)],
           ),
-      );
-      canvas.drawCircle(
-        base.translate(0, 3 * scale),
-        3 * scale,
-        Paint()..color = trimColor,
       );
       canvas.drawRRect(
         RRect.fromRectAndRadius(
@@ -2055,31 +2302,6 @@ class _GardenScenePainter extends CustomPainter {
           Radius.circular(5 * scale),
         ),
         Paint()..color = trimColor.withValues(alpha: isNight ? 0.58 : 0.92),
-      );
-
-      final bonePaint = Paint()
-        ..color = Colors.white.withValues(alpha: isNight ? 0.70 : 0.92);
-      final boneCenter = base.translate(18 * scale, -3 * scale);
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromCenter(
-            center: boneCenter,
-            width: 18 * scale,
-            height: 5 * scale,
-          ),
-          Radius.circular(999),
-        ),
-        bonePaint,
-      );
-      canvas.drawCircle(
-        boneCenter.translate(-8 * scale, 0),
-        3 * scale,
-        bonePaint,
-      );
-      canvas.drawCircle(
-        boneCenter.translate(8 * scale, 0),
-        3 * scale,
-        bonePaint,
       );
     }
 
@@ -2111,14 +2333,16 @@ class _GardenScenePainter extends CustomPainter {
       );
     }
 
-    drawDogHouse(Offset(size.width * 0.15, size.height * 0.80), 0.80);
-    drawPlanter(
-      Offset(size.width * 0.86, size.height * 0.81),
-      0.84,
-      flip: true,
-    );
+    final dogHouseBase = Offset(size.width * 0.15, size.height * 0.805);
+    final planterBase = Offset(size.width * 0.86, size.height * 0.815);
     drawGardenLight(Offset(size.width * 0.08, size.height * 0.68), 0.90);
     drawGardenLight(Offset(size.width * 0.91, size.height * 0.67), 0.82);
+    drawGroundPatch(dogHouseBase, 82);
+    drawGroundPatch(planterBase, 64);
+    drawDogHouse(dogHouseBase, 0.80);
+    drawPlanter(planterBase, 0.84, flip: true);
+    drawBaseGrass(dogHouseBase, 0.80, const [-35, -29, 29, 36]);
+    drawBaseGrass(planterBase, 0.84, const [-29, -24, 25, 31]);
   }
 
   void _drawGardenLife(Canvas canvas, Size size) {
@@ -2747,14 +2971,14 @@ class _HomeSectionTitle extends StatelessWidget {
     return Row(
       children: [
         Container(
-          width: 5,
-          height: 28,
+          width: 6,
+          height: 30,
           decoration: BoxDecoration(
             color: AppTheme.primaryColor,
             borderRadius: BorderRadius.circular(999),
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 12),
         Expanded(
           child: Text(
             title,
@@ -2769,10 +2993,11 @@ class _HomeSectionTitle extends StatelessWidget {
         if (trailing != null) const SizedBox(width: 10),
         if (trailing != null)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
               color: AppTheme.primaryColor,
               borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: Colors.white, width: 2.5),
               boxShadow: [
                 BoxShadow(
                   color: AppTheme.primaryColor.withValues(alpha: 0.16),
@@ -2813,61 +3038,65 @@ class _HomeTodayOverview extends StatelessWidget {
   Widget build(BuildContext context) {
     final nextPlanTitle = nextPlan?.title ?? 'No plan today';
     final nextPlanMeta = nextPlan?.timeLabel ?? 'Add a care plan when needed';
-    final missionLabel = totalMissions == 0
-        ? 'No missions'
-        : '$completedMissions/$totalMissions done';
-    final profileBits = <String>[
+    final identityBits = <String>[
       pet.species,
-      if (pet.breed.trim().isNotEmpty && pet.breed != 'Unknown') pet.breed,
       if (pet.gender != null && pet.gender!.trim().isNotEmpty) pet.gender!,
-      if (pet.ageLabel.trim().isNotEmpty && pet.ageLabel != '—') pet.ageLabel,
+    ];
+    final detailBits = <String>[
+      if (pet.ageLabel.trim().isNotEmpty && pet.ageLabel != '—')
+        pet.ageLabel
+            .replaceAll(' Years Old', ' yrs')
+            .replaceAll(' Year Old', ' yr'),
       if (pet.weightLabel.trim().isNotEmpty && pet.weightLabel != '—')
         pet.weightLabel,
-      if (pet.bloodType != null && pet.bloodType!.trim().isNotEmpty)
-        '${pet.bloodType} blood',
     ];
+    final profileDetails = [...identityBits, ...detailBits].join(' • ');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _HomeSectionTitle(title: 'Today', trailing: missionLabel),
+        const _HomeSectionTitle(title: 'Today'),
         const SizedBox(height: 10),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFFFFFEFB).withValues(alpha: 0.94),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: AppTheme.primaryColor.withValues(alpha: 0.12),
-              width: 1.2,
-            ),
+            color: AppTheme.primaryColor,
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(color: Colors.white, width: 3),
             boxShadow: [
               BoxShadow(
-                color: AppTheme.primaryColor.withValues(alpha: 0.05),
-                blurRadius: 16,
+                color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                blurRadius: 22,
                 spreadRadius: -14,
-                offset: const Offset(0, 10),
+                offset: const Offset(0, 14),
               ),
             ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _HomeTodayInfoRow(
-                icon: Icons.favorite_rounded,
-                title: pet.name,
-                subtitle: profileBits.join(' • '),
-                color: AppTheme.primaryColor,
-                tint: const Color(0xFFFFE6E2),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: _HomeTodayPetPanel(
+                      name: pet.name,
+                      details: profileDetails,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  _HomeTodayMissionPanel(
+                    completed: completedMissions,
+                    total: totalMissions,
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
-              _HomeTodayInfoRow(
+              _HomeTodayPlanStrip(
                 icon: nextPlan?.icon ?? Icons.event_available_rounded,
                 title: nextPlanTitle,
-                subtitle: nextPlanMeta,
-                color: nextPlan?.color ?? const Color(0xFFC9932E),
-                tint: const Color(0xFFFFF1D0),
+                meta: nextPlanMeta,
               ),
             ],
           ),
@@ -2877,41 +3106,37 @@ class _HomeTodayOverview extends StatelessWidget {
   }
 }
 
-class _HomeTodayInfoRow extends StatelessWidget {
-  const _HomeTodayInfoRow({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.tint,
-  });
+class _HomeTodayPetPanel extends StatelessWidget {
+  const _HomeTodayPetPanel({required this.name, required this.details});
 
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final Color tint;
+  final String name;
+  final String details;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minHeight: 54),
-      padding: const EdgeInsets.fromLTRB(10, 8, 12, 8),
+      height: 72,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: tint.withValues(alpha: 0.54),
-        borderRadius: BorderRadius.circular(19),
-        border: Border.all(color: color.withValues(alpha: 0.10)),
+        color: const Color(0xFFFFFCF8),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white, width: 2.5),
       ),
       child: Row(
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.92),
-              borderRadius: BorderRadius.circular(13),
+              color: const Color(0xFFFFEBDD),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white, width: 2),
             ),
-            child: Icon(icon, color: color, size: 18),
+            child: const Icon(
+              Icons.favorite_rounded,
+              color: Color(0xFFA94755),
+              size: 21,
+            ),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -2919,33 +3144,184 @@ class _HomeTodayInfoRow extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppTheme.secondaryText,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 13.5,
-                    letterSpacing: 0,
-                    height: 1.05,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    name,
+                    maxLines: 1,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: const Color(0xFFA94755),
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0,
+                      height: 1,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 11.5,
-                    height: 1.12,
-                    letterSpacing: 0,
+                const SizedBox(height: 4),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    details.isEmpty ? 'Pet profile' : details,
+                    maxLines: 1,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: const Color(0xFFA94755).withValues(alpha: 0.72),
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0,
+                      height: 1,
+                      fontSize: 10,
+                    ),
                   ),
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeTodayMissionPanel extends StatelessWidget {
+  const _HomeTodayMissionPanel({required this.completed, required this.total});
+
+  final int completed;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = total == 0 ? 0.0 : (completed / total).clamp(0.0, 1.0);
+    return Container(
+      width: 96,
+      height: 72,
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFCF8),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white, width: 2.5),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAF0E3),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child: const Icon(
+                  Icons.flag_rounded,
+                  color: _homeSageAccent,
+                  size: 16,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                total == 0 ? '0/0' : '$completed/$total',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: _homeSageAccent,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 5,
+              backgroundColor: Colors.white,
+              valueColor: const AlwaysStoppedAnimation(_homeSageAccent),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeTodayPlanStrip extends StatelessWidget {
+  const _HomeTodayPlanStrip({
+    required this.icon,
+    required this.title,
+    required this.meta,
+  });
+
+  final IconData icon;
+  final String title;
+  final String meta;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 54),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFCF8),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: Colors.white, width: 2),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8ECD0),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white, width: 2),
+            ),
+            child: Icon(icon, color: _homeGoldAccent, size: 19),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: _homeGoldAccent,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    meta,
+                    maxLines: 1,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: _homeGoldAccent.withValues(alpha: 0.82),
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Icon(
+            Icons.arrow_forward_ios_rounded,
+            color: _homeGoldAccent.withValues(alpha: 0.78),
+            size: 16,
           ),
         ],
       ),
@@ -2976,6 +3352,7 @@ class _HomeQuickCareMenu extends StatelessWidget {
         Icons.health_and_safety_rounded,
         const Color(0xFFFFDCD6),
         AppTheme.primaryColor,
+        -0.025,
         onTapAssessment,
       ),
       _HomeQuickCareData(
@@ -2983,6 +3360,7 @@ class _HomeQuickCareMenu extends StatelessWidget {
         Icons.calendar_month_rounded,
         const Color(0xFFFFE9B8),
         const Color(0xFFB98422),
+        0.018,
         onTapCalendar,
       ),
       _HomeQuickCareData(
@@ -2990,6 +3368,7 @@ class _HomeQuickCareMenu extends StatelessWidget {
         Icons.medical_services_rounded,
         const Color(0xFFE4F0DA),
         const Color(0xFF657B4F),
+        -0.012,
         onTapAssistant,
       ),
       _HomeQuickCareData(
@@ -2997,6 +3376,7 @@ class _HomeQuickCareMenu extends StatelessWidget {
         Icons.folder_copy_rounded,
         const Color(0xFFDDF1F4),
         const Color(0xFF4D7B86),
+        0.022,
         onTapHistory,
       ),
       _HomeQuickCareData(
@@ -3004,17 +3384,18 @@ class _HomeQuickCareMenu extends StatelessWidget {
         Icons.checkroom_rounded,
         const Color(0xFFEFE1F5),
         const Color(0xFF7E638F),
+        -0.018,
         onTapWardrobe,
       ),
     ];
 
     return SizedBox(
-      height: 112,
+      height: 116,
       child: ListView.separated(
         clipBehavior: Clip.none,
         scrollDirection: Axis.horizontal,
         itemCount: items.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 14),
+        separatorBuilder: (_, _) => const SizedBox(width: 12),
         itemBuilder: (context, index) => _HomeQuickCareTile(data: items[index]),
       ),
     );
@@ -3027,6 +3408,7 @@ class _HomeQuickCareData {
     this.icon,
     this.background,
     this.foreground,
+    this.tilt,
     this.onTap,
   );
 
@@ -3034,6 +3416,7 @@ class _HomeQuickCareData {
   final IconData icon;
   final Color background;
   final Color foreground;
+  final double tilt;
   final VoidCallback onTap;
 }
 
@@ -3048,50 +3431,40 @@ class _HomeQuickCareTile extends StatelessWidget {
       onTap: data.onTap,
       borderRadius: BorderRadius.circular(28),
       child: SizedBox(
-        width: 76,
+        width: 82,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
-              width: 72,
-              height: 72,
-              child: Stack(
-                clipBehavior: Clip.none,
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    width: 66,
-                    height: 66,
-                    decoration: BoxDecoration(
-                      color: data.background,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.85),
-                        width: 3,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: data.foreground.withValues(alpha: 0.13),
-                          blurRadius: 18,
-                          spreadRadius: -10,
-                          offset: const Offset(0, 12),
-                        ),
-                      ],
-                    ),
+            Transform.rotate(
+              angle: data.tilt,
+              child: Container(
+                width: 74,
+                height: 74,
+                decoration: BoxDecoration(
+                  color: data.background,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(30),
+                    topRight: Radius.circular(22),
+                    bottomLeft: Radius.circular(22),
+                    bottomRight: Radius.circular(30),
                   ),
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFFEFB).withValues(alpha: 0.92),
-                      shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 4),
+                  boxShadow: [
+                    BoxShadow(
+                      color: data.foreground.withValues(alpha: 0.16),
+                      blurRadius: 18,
+                      spreadRadius: -10,
+                      offset: const Offset(0, 12),
                     ),
-                    child: Icon(data.icon, color: data.foreground, size: 21),
-                  ),
-                ],
+                  ],
+                ),
+                child: Transform.rotate(
+                  angle: -data.tilt,
+                  child: Icon(data.icon, color: data.foreground, size: 31),
+                ),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 9),
             Text(
               data.label,
               maxLines: 1,
@@ -3143,18 +3516,7 @@ class _HomeMissionBoard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           if (loading)
-            Container(
-              height: 96,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFEFB).withValues(alpha: 0.94),
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.12),
-                ),
-              ),
-              child: const CircularProgressIndicator(strokeWidth: 2.5),
-            )
+            const PettoCardSkeleton(height: 92, compact: true)
           else if (missions.isEmpty)
             _HomeMissionEmptyCard(petName: petName, onOpen: onOpen)
           else
@@ -3189,117 +3551,145 @@ class _HomeMissionLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = mission.isCompleted
-        ? AppTheme.primaryColor
-        : const Color(0xFFC9932E);
-    return Builder(
-      builder: (context) => AnimatedScale(
-        scale: bursting ? 1.02 : 1,
-        duration: const Duration(milliseconds: 180),
-        child: InkWell(
-          onTap: () {
-            final box = context.findRenderObject() as RenderBox?;
-            final origin = box == null
-                ? Offset.zero
-                : box.localToGlobal(box.size.center(Offset.zero));
-            onTap(origin);
-          },
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 92),
-            padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFFEFB).withValues(alpha: 0.94),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(
-                color: AppTheme.primaryColor.withValues(alpha: 0.14),
-                width: 1.25,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.06),
-                  blurRadius: 18,
-                  spreadRadius: -14,
-                  offset: const Offset(0, 12),
-                ),
-              ],
+    final palette = switch (mission.id % 3) {
+      0 => (const Color(0xFF9B666A), const Color(0xFFF3E7E5)),
+      1 => (const Color(0xFFA58043), const Color(0xFFF4ECD5)),
+      _ => (const Color(0xFF748066), const Color(0xFFEBEEE5)),
+    };
+    final color = mission.isCompleted ? const Color(0xFF8E555A) : palette.$1;
+    final surface = mission.isCompleted ? const Color(0xFFF1E2E0) : palette.$2;
+    return AnimatedScale(
+      scale: bursting ? 1.02 : 1,
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutBack,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 92),
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+        decoration: BoxDecoration(
+          color: surface,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: Colors.white, width: 3),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.12),
+              blurRadius: 20,
+              spreadRadius: -15,
+              offset: const Offset(0, 14),
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: 54,
-                  height: 54,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.90),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Icon(mission.icon, color: Colors.white, size: 25),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        mission.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: AppTheme.secondaryText,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 7),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: color.withValues(alpha: 0.10),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            mission.rewardDisplay,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.labelSmall
-                                ?.copyWith(
-                                  color: color,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 0,
-                                ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: mission.isCompleted ? color : Colors.transparent,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.20),
-                      width: 2,
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 54,
+              height: 54,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white, width: 2.5),
+              ),
+              child: Icon(mission.icon, color: Colors.white, size: 25),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    mission.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: AppTheme.secondaryText,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
-                  child: Icon(
-                    mission.isCompleted ? Icons.check_rounded : Icons.circle,
-                    color: mission.isCompleted
-                        ? Colors.white
-                        : Colors.transparent,
-                    size: mission.isCompleted ? 22 : 1,
+                  const SizedBox(height: 7),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.78),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        mission.rewardDisplay,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: color,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Builder(
+              builder: (checkboxContext) => Semantics(
+                button: true,
+                checked: mission.isCompleted,
+                label: mission.isCompleted
+                    ? '${mission.title} completed'
+                    : 'Complete ${mission.title}',
+                child: InkWell(
+                  onTap: mission.isCompleted
+                      ? null
+                      : () {
+                          final box =
+                              checkboxContext.findRenderObject() as RenderBox?;
+                          final origin = box == null
+                              ? Offset.zero
+                              : box.localToGlobal(box.size.center(Offset.zero));
+                          onTap(origin);
+                        },
+                  borderRadius: BorderRadius.circular(15),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOutCubic,
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: mission.isCompleted
+                          ? color
+                          : Colors.white.withValues(alpha: 0.88),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(
+                        color: mission.isCompleted
+                            ? color
+                            : color.withValues(alpha: 0.42),
+                        width: 2,
+                      ),
+                    ),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      transitionBuilder: (child, animation) =>
+                          ScaleTransition(scale: animation, child: child),
+                      child: mission.isCompleted
+                          ? const Icon(
+                              Icons.check_rounded,
+                              key: ValueKey(true),
+                              color: Colors.white,
+                              size: 24,
+                            )
+                          : const SizedBox(
+                              key: ValueKey(false),
+                              width: 24,
+                              height: 24,
+                            ),
+                    ),
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -3321,12 +3711,9 @@ class _HomeMissionEmptyCard extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFEFB).withValues(alpha: 0.94),
+          color: _homeSageSurface,
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(
-            color: AppTheme.primaryColor.withValues(alpha: 0.14),
-            width: 1.25,
-          ),
+          border: Border.all(color: Colors.white, width: 3),
         ),
         child: Row(
           children: [
@@ -3334,8 +3721,9 @@ class _HomeMissionEmptyCard extends StatelessWidget {
               width: 54,
               height: 54,
               decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withValues(alpha: 0.90),
+                color: _homeSageAccent,
                 borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white, width: 2.5),
               ),
               child: const Icon(
                 Icons.flag_rounded,
@@ -4259,6 +4647,7 @@ class _MissionActivityCard extends StatelessWidget {
   const _MissionActivityCard({
     required this.icon,
     required this.iconColor,
+    required this.surfaceColor,
     required this.title,
     required this.subtitle,
     required this.actionLabel,
@@ -4267,6 +4656,7 @@ class _MissionActivityCard extends StatelessWidget {
 
   final IconData icon;
   final Color iconColor;
+  final Color surfaceColor;
   final String title;
   final String subtitle;
   final String actionLabel;
@@ -4274,89 +4664,101 @@ class _MissionActivityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(30),
-      child: Material(
-        color: Colors.transparent,
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(30),
-          child: Ink(
-            padding: const EdgeInsets.all(16),
-            decoration: AppTheme.glassCardDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(30),
-              borderColor: iconColor.withValues(alpha: 0.18),
-              hasShadow: false,
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 54,
-                  height: 54,
-                  decoration: BoxDecoration(
-                    color: iconColor,
-                    borderRadius: BorderRadius.circular(20),
+    return Container(
+      decoration: BoxDecoration(
+        color: surfaceColor,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.white, width: 3),
+        boxShadow: [
+          BoxShadow(
+            color: iconColor.withValues(alpha: 0.10),
+            blurRadius: 20,
+            spreadRadius: -15,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(27),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: iconColor,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: Colors.white, width: 2.5),
+                    ),
+                    child: _SoftPulse(
+                      child: Icon(icon, color: Colors.white, size: 23),
+                    ),
                   ),
-                  child: _SoftPulse(
-                    child: Icon(icon, color: Colors.white, size: 26),
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w800),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodyMedium?.copyWith(height: 1.35),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 9,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppTheme.creamSurfaceColor.withValues(alpha: 0.72),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        actionLabel,
-                        style: Theme.of(context).textTheme.labelMedium
-                            ?.copyWith(
-                              color: AppTheme.primaryColor,
-                              fontWeight: FontWeight.w900,
-                            ),
-                      ),
-                      const SizedBox(width: 5),
-                      const _SoftNudge(
-                        child: Icon(
-                          Icons.arrow_forward_rounded,
-                          size: 16,
-                          color: AppTheme.primaryColor,
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w800),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 4),
+                        Text(
+                          subtitle,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium?.copyWith(height: 1.35),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 12),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 9,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.12),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          actionLabel,
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(
+                                color: AppTheme.primaryColor,
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
+                        const SizedBox(width: 5),
+                        const _SoftNudge(
+                          child: Icon(
+                            Icons.arrow_forward_rounded,
+                            size: 16,
+                            color: AppTheme.primaryColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

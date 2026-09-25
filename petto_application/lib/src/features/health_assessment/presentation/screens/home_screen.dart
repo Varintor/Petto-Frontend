@@ -10,7 +10,9 @@ import 'package:provider/provider.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/services/weather_service.dart';
+import '../../../../core/navigation/petto_transitions.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/petto_loading.dart';
 import '../../domain/entities/assessment_entity.dart';
 import '../controllers/health_assessment_controller.dart';
 import '../../../../core/widgets/top_alert.dart';
@@ -584,7 +586,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final index = _activePetIndex;
     final initial = _petEntityFromData(_activePet);
     final result = await Navigator.of(context).push<PetEntity>(
-      MaterialPageRoute(builder: (_) => PetFormScreen(initial: initial)),
+      PettoPageRoute(builder: (_) => PetFormScreen(initial: initial)),
     );
     if (result == null || !mounted) return;
 
@@ -651,7 +653,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     final result = await Navigator.of(
       context,
-    ).push<PetEntity>(MaterialPageRoute(builder: (_) => const PetFormScreen()));
+    ).push<PetEntity>(PettoPageRoute(builder: (_) => const PetFormScreen()));
     if (result == null || !mounted) return;
     try {
       await PetRepository().createPet(
@@ -782,29 +784,18 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 18, 24, 8),
+                    padding: const EdgeInsets.fromLTRB(20, 7, 20, 5),
                     child: _buildHeader(context),
                   ),
                   Expanded(
                     child: AnimatedSwitcher(
-                      duration: AppTheme.motionFast,
+                      duration: AppTheme.motionNormal,
                       reverseDuration: AppTheme.motionFast,
                       switchInCurve: AppTheme.motionCurveSoft,
                       switchOutCurve: AppTheme.motionReverseCurve,
-                      transitionBuilder: (child, animation) {
-                        final curved = CurvedAnimation(
-                          parent: animation,
-                          curve: AppTheme.motionCurveSoft,
-                          reverseCurve: AppTheme.motionReverseCurve,
-                        );
-                        return SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(0, 0.002),
-                            end: Offset.zero,
-                          ).animate(curved),
-                          child: child,
-                        );
-                      },
+                      layoutBuilder: PettoTransitions.currentChildOnly,
+                      transitionBuilder:
+                          PettoTransitions.buildSectionTransition,
                       child: KeyedSubtree(
                         key: ValueKey(_activeView),
                         child: _buildCurrentView(context),
@@ -814,12 +805,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: _buildDockedNav(context),
-            ),
+            if (_activeView != _View.wardrobe)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: _buildDockedNav(context),
+              ),
             if (_showAssessment) _buildAssessmentModal(context),
             if (_activeChatVet != null) _buildVetChatModal(context),
             if (_showNotesModal) _buildNotesModal(context),
@@ -848,63 +840,102 @@ class _HomeScreenState extends State<HomeScreen> {
       'Sunday',
     ];
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Container(
-          width: 46,
-          height: 46,
-          decoration: BoxDecoration(
-            color: AppTheme.primaryColor,
-            borderRadius: BorderRadius.circular(17),
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.primaryColor.withValues(alpha: 0.12),
-                blurRadius: 18,
-                spreadRadius: -10,
-                offset: const Offset(0, 10),
+    final compactDate =
+        '${weekdays[now.weekday - 1].substring(0, 3)} · ${now.day} ${_monthName(now.month).substring(0, 3)}';
+
+    return SizedBox(
+      height: 42,
+      child: Row(
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 2),
+            child: Text(
+              'PETTO',
+              maxLines: 1,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: AppTheme.secondaryText,
+                fontSize: 21,
+                fontWeight: FontWeight.w900,
+                height: 1,
+                letterSpacing: 0.2,
               ),
-            ],
+            ),
           ),
-          child: const Icon(Icons.pets_rounded, color: Colors.white, size: 23),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'PETTO',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppTheme.secondaryText,
-                  fontSize: 30,
-                  fontWeight: FontWeight.w900,
-                  height: 0.95,
-                  letterSpacing: 0,
+          const SizedBox(width: 10),
+          Flexible(
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: 1),
+              duration: const Duration(milliseconds: 560),
+              curve: Curves.easeOutBack,
+              builder: (context, value, child) => Transform.translate(
+                offset: Offset(-8 * (1 - value), 0),
+                child: Transform.scale(
+                  scale: 0.94 + (0.06 * value),
+                  alignment: Alignment.centerLeft,
+                  child: child,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                '${weekdays[now.weekday - 1]}, ${now.day} ${_monthName(now.month)}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: AppTheme.mutedText,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0,
-                  height: 1.05,
+              child: Container(
+                height: 36,
+                padding: const EdgeInsets.fromLTRB(7, 5, 11, 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1E1DF),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.10),
+                      blurRadius: 12,
+                      spreadRadius: -8,
+                      offset: const Offset(0, 7),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 23,
+                      height: 23,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.calendar_today_rounded,
+                        size: 12,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 7),
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          compactDate,
+                          maxLines: 1,
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: const Color(0xFF7B3034),
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0,
+                                height: 1,
+                              ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
-        ),
-        const SizedBox(width: 12),
-        _buildNotificationButton(context),
-      ],
+          const Spacer(),
+          const SizedBox(width: 8),
+          _buildNotificationButton(context),
+        ],
+      ),
     );
   }
 
@@ -917,27 +948,24 @@ class _HomeScreenState extends State<HomeScreen> {
           _showNavActionMenu = false;
         });
       },
-      borderRadius: BorderRadius.circular(999),
+      borderRadius: BorderRadius.circular(13),
       child: AnimatedContainer(
         duration: AppTheme.motionFast,
         curve: AppTheme.motionCurve,
-        width: 54,
-        height: 54,
+        width: 38,
+        height: 38,
         decoration: BoxDecoration(
-          color: AppTheme.surfaceColor.withValues(alpha: 0.98),
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: AppTheme.primaryColor.withValues(
-              alpha: _activeView == _View.notifications ? 0.22 : 0.10,
-            ),
-            width: 1.3,
-          ),
+          color: _activeView == _View.notifications
+              ? const Color(0xFF68272B)
+              : AppTheme.primaryColor,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: Colors.white, width: 2),
           boxShadow: [
             BoxShadow(
-              color: AppTheme.primaryColor.withValues(alpha: 0.08),
-              blurRadius: 16,
-              spreadRadius: -8,
-              offset: const Offset(0, 10),
+              color: AppTheme.primaryColor.withValues(alpha: 0.16),
+              blurRadius: 14,
+              spreadRadius: -9,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
@@ -945,43 +973,43 @@ class _HomeScreenState extends State<HomeScreen> {
           clipBehavior: Clip.none,
           children: [
             Center(
-              child: AnimatedContainer(
-                duration: AppTheme.motionFast,
-                curve: AppTheme.motionCurve,
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: _activeView == _View.notifications
-                      ? AppTheme.blushSurfaceColor.withValues(alpha: 0.78)
-                      : AppTheme.creamSurfaceColor.withValues(alpha: 0.7),
-                  shape: BoxShape.circle,
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0, end: 1),
+                duration: const Duration(milliseconds: 820),
+                curve: Curves.easeOutCubic,
+                builder: (context, value, child) => Transform.rotate(
+                  angle: math.sin(value * math.pi * 4) * (1 - value) * 0.16,
+                  child: child,
                 ),
                 child: Icon(
                   _activeView == _View.notifications
                       ? Icons.notifications_active_rounded
                       : Icons.notifications_none_rounded,
-                  color: AppTheme.primaryColor,
-                  size: 22,
+                  color: Colors.white,
+                  size: 20,
                 ),
               ),
             ),
             if (unreadCount > 0)
               Positioned(
-                top: 6,
-                right: 7,
+                top: -2,
+                right: -2,
                 child: Container(
-                  width: 16,
-                  height: 16,
+                  constraints: const BoxConstraints(
+                    minWidth: 16,
+                    minHeight: 16,
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryColor,
-                    shape: BoxShape.circle,
+                    color: _homeCreamSurface,
+                    borderRadius: BorderRadius.circular(999),
                     border: Border.all(color: Colors.white, width: 2),
                   ),
                   child: Center(
                     child: Text(
                       '$unreadCount',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Colors.white,
+                        color: AppTheme.primaryColor,
                         fontSize: 8,
                         fontWeight: FontWeight.w900,
                         height: 1,
@@ -1073,7 +1101,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 width: math.min(164, constraints.maxWidth),
                                 icon: Icons.auto_awesome_rounded,
                                 label: 'Smart AI Scan',
-                                color: AppTheme.secondaryColor,
+                                color: AppTheme.primaryColor,
                                 onTap: () => openAssessment('Smart AI Scan'),
                               ),
                             );
@@ -1202,25 +1230,34 @@ class _HomeScreenState extends State<HomeScreen> {
           _SoftReveal(
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(18),
-              decoration: AppTheme.glassCardDecoration(
-                color: AppTheme.surfaceColor.withValues(alpha: 0.97),
-                borderRadius: BorderRadius.circular(32),
-                borderColor: AppTheme.primaryColor.withValues(alpha: 0.12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: _homeCreamSurface,
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(color: Colors.white, width: 3),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                    blurRadius: 20,
+                    spreadRadius: -14,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
                   Container(
-                    width: 58,
-                    height: 58,
+                    width: 50,
+                    height: 50,
                     decoration: BoxDecoration(
                       color: AppTheme.primaryColor,
-                      borderRadius: BorderRadius.circular(22),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: Colors.white, width: 2),
                     ),
                     child: const Icon(
                       Icons.notifications_rounded,
                       color: Colors.white,
-                      size: 27,
+                      size: 24,
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -1248,13 +1285,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       vertical: 7,
                     ),
                     decoration: BoxDecoration(
-                      color: AppTheme.blushSurfaceColor.withValues(alpha: 0.8),
+                      color: AppTheme.primaryColor,
                       borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: Colors.white, width: 2),
                     ),
                     child: Text(
                       '$unreadCount new',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppTheme.primaryColor,
+                        color: Colors.white,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -1333,41 +1371,9 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Splash shown while the user's pets are still loading. Matches the
   /// dashboard background so the transition feels seamless.
   Widget _buildLoadingState(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          color: AppTheme.backgroundColor,
-          gradient: AppTheme.appBackgroundGradient,
-        ),
-        child: const SafeArea(
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: 36,
-                  height: 36,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    color: AppTheme.primaryColor,
-                  ),
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'Loading your pets...',
-                  style: TextStyle(
-                    fontFamily: AppTheme.sansFontFamily,
-                    color: AppTheme.primaryColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+    return const Scaffold(
+      backgroundColor: AppTheme.backgroundColor,
+      body: PettoPageSkeleton(itemCount: 3),
     );
   }
 
@@ -1442,7 +1448,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       );
                       await context.read<AuthController>().logout();
                       navigator.pushAndRemoveUntil(
-                        MaterialPageRoute(builder: (_) => const AuthGate()),
+                        PettoPageRoute(builder: (_) => const AuthGate()),
                         (route) => false,
                       );
                     },

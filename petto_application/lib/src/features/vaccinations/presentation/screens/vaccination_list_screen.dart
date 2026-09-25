@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/navigation/petto_transitions.dart';
+import '../../../../core/widgets/petto_loading.dart';
 import '../controllers/vaccination_controller.dart';
 import '../../domain/entities/vaccination_entity.dart';
 import 'add_vaccination_screen.dart';
@@ -47,7 +49,7 @@ class _VaccinationListScreenState extends State<VaccinationListScreen> {
       body: Consumer<VaccinationController>(
         builder: (context, controller, child) {
           if (controller.isLoading && controller.vaccinations.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
+            return const PettoPageSkeleton(itemCount: 4, compact: true);
           }
 
           if (controller.hasError && controller.vaccinations.isEmpty) {
@@ -120,7 +122,7 @@ class _VaccinationListScreenState extends State<VaccinationListScreen> {
           final controller = context.read<VaccinationController>();
           final result = await Navigator.push<bool>(
             context,
-            MaterialPageRoute(
+            PettoPageRoute(
               builder: (context) => AddVaccinationScreen(petId: widget.petId),
             ),
           );

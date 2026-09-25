@@ -22,8 +22,16 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
           const SizedBox(height: 20),
           if (controller.loading && controller.card == null)
             const Padding(
-              padding: EdgeInsets.all(48),
-              child: Center(child: CircularProgressIndicator()),
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Column(
+                children: [
+                  PettoCardSkeleton(height: 240),
+                  SizedBox(height: 14),
+                  PettoCardSkeleton(height: 118, compact: true),
+                  SizedBox(height: 12),
+                  PettoCardSkeleton(height: 118, compact: true),
+                ],
+              ),
             )
           else if (controller.error != null && controller.card == null)
             _HealthHistoryStateCard(
@@ -47,8 +55,8 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
             const SizedBox(height: 14),
             _historyFilters(context, controller),
             if (controller.loading) ...[
-              const SizedBox(height: 8),
-              const LinearProgressIndicator(),
+              const SizedBox(height: 10),
+              const PettoCardSkeleton(height: 88, compact: true),
             ],
             const SizedBox(height: 10),
             if (controller.entries.isEmpty)

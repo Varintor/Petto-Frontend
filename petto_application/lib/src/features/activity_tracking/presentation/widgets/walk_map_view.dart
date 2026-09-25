@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/petto_loading.dart';
 import '../controllers/activity_tracking_controller.dart';
 
 /// Live OpenStreetMap view for the walk session.
@@ -64,8 +65,12 @@ class _WalkMapViewState extends State<WalkMapView> {
 
     final route = [for (final p in widget.points) LatLng(p.lat, p.lng)];
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white, width: 3),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
           FlutterMap(
@@ -154,23 +159,27 @@ class _WalkMapViewState extends State<WalkMapView> {
   }
 
   Widget _locating() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
+    return Container(
+      decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.6),
-        alignment: Alignment.center,
-        child: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: 26,
-              height: 26,
-              child: CircularProgressIndicator(strokeWidth: 2.5),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white, width: 3),
+      ),
+      alignment: Alignment.center,
+      child: const Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: EdgeInsets.all(20),
+            child: PettoInlineProgress(
+              title: 'Finding your location',
+              subtitle: 'Preparing the live walk map.',
+              icon: Icons.location_searching_rounded,
+              compact: true,
+              borderColor: Colors.white,
             ),
-            SizedBox(height: 14),
-            Text('Locating you…'),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

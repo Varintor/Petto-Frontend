@@ -255,10 +255,10 @@ class _BackendConversationPanelState extends State<_BackendConversationPanel> {
                           ? null
                           : _proposeAppointment,
                       icon: _proposingAppointment
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                          ? const PettoButtonProgress(
+                              onDark: false,
+                              width: 20,
+                              height: 6,
                             )
                           : const Icon(Icons.event_available_rounded),
                       color: AppTheme.primaryColor,
@@ -561,14 +561,7 @@ class _ChatComposer extends StatelessWidget {
                 ),
               ),
               icon: sending
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
+                  ? const PettoButtonProgress(width: 22, height: 6)
                   : const Icon(Icons.send_rounded),
             ),
           ),
@@ -689,59 +682,11 @@ class _ConnectionPill extends StatelessWidget {
   }
 }
 
-class _AssistantLoading extends StatefulWidget {
+class _AssistantLoading extends StatelessWidget {
   const _AssistantLoading();
 
   @override
-  State<_AssistantLoading> createState() => _AssistantLoadingState();
-}
-
-class _AssistantLoadingState extends State<_AssistantLoading>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1100),
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Center(
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          final lift = 1 - (_controller.value - 0.5).abs() * 2;
-          return Transform.translate(
-            offset: Offset(0, -5 * lift),
-            child: child,
-          );
-        },
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const _TintIcon(icon: Icons.support_agent_rounded, filled: true),
-            const SizedBox(height: 12),
-            const Text(
-              'Loading conversation',
-              style: TextStyle(
-                color: AppTheme.secondaryText,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return const SingleChildScrollView(child: PettoChatSkeleton());
   }
 }

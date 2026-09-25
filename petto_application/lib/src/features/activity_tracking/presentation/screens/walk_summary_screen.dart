@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/petto_loading.dart';
 import '../../../../core/widgets/top_alert.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../controllers/activity_tracking_controller.dart';
@@ -152,14 +153,7 @@ class WalkSummaryScreen extends StatelessWidget {
                                 ),
                               ),
                               child: saving
-                                  ? const SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    )
+                                  ? const PettoButtonProgress()
                                   : const Text('Save Walk'),
                             ),
                           ),

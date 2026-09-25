@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/petto_loading.dart';
 import '../../data/models/consultation_models.dart';
 
 class ConsultationAppointmentCard extends StatelessWidget {
@@ -200,13 +201,9 @@ class ConsultationAppointmentCard extends StatelessWidget {
                               ),
                             ),
                             child: busy
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
+                                ? const PettoButtonProgress(
+                                    width: 26,
+                                    height: 6,
                                   )
                                 : const Text('Accept'),
                           ),

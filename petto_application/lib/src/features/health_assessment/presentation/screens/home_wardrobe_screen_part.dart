@@ -65,26 +65,52 @@ extension _HomeWardrobeScreenPart on _HomeScreenState {
 
   Widget _buildWardrobeView(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 150),
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 36),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
+              Container(
+                width: 6,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   'Wardrobe',
-                  style: Theme.of(context).textTheme.headlineMedium,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: AppTheme.secondaryText,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
-              _SquareIconButton(
-                icon: Icons.close_rounded,
+              InkWell(
                 onTap: () {
                   _update(() {
                     _loadDraftForPet(_activePetIndex);
-                    _activeView = _View.dashboard;
+                    _activeView = _View.profile;
                   });
                 },
+                borderRadius: BorderRadius.circular(15),
+                child: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: _homeRoseSurface,
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: const Icon(
+                    Icons.close_rounded,
+                    color: AppTheme.primaryColor,
+                    size: 22,
+                  ),
+                ),
               ),
             ],
           ),
@@ -94,9 +120,17 @@ extension _HomeWardrobeScreenPart on _HomeScreenState {
               width: 232,
               height: 232,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: _homeRoseSurface,
                 borderRadius: BorderRadius.circular(42),
-                boxShadow: AppTheme.subtleShadow,
+                border: Border.all(color: Colors.white, width: 3),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.09),
+                    blurRadius: 22,
+                    spreadRadius: -14,
+                    offset: const Offset(0, 14),
+                  ),
+                ],
               ),
               child: Center(
                 child: Transform.translate(
@@ -309,6 +343,18 @@ extension _HomeWardrobeScreenPart on _HomeScreenState {
               onPressed: _hasWardrobeChanges() ? _saveWardrobe : null,
               icon: const Icon(Icons.check_rounded),
               label: const Text('Save Look'),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(54),
+                backgroundColor: AppTheme.primaryColor,
+                disabledBackgroundColor: _homeRoseSurface,
+                disabledForegroundColor: AppTheme.primaryColor.withValues(
+                  alpha: 0.45,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(22),
+                  side: const BorderSide(color: Colors.white, width: 2.5),
+                ),
+              ),
             ),
           ),
         ],

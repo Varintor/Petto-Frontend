@@ -296,10 +296,7 @@ class _AddPetHeader extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppTheme.surfaceColor,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: AppTheme.primaryColor.withValues(alpha: 0.10),
-                width: 1.2,
-              ),
+              border: Border.all(color: Colors.white, width: 2),
             ),
             child: const Icon(
               Icons.close_rounded,
@@ -356,10 +353,7 @@ class _AddPetHeroCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.surfaceColor.withValues(alpha: 0.98),
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(
-          color: AppTheme.primaryColor.withValues(alpha: 0.18),
-          width: 1.5,
-        ),
+        border: Border.all(color: Colors.white, width: 3),
         boxShadow: [
           BoxShadow(
             color: AppTheme.primaryColor.withValues(alpha: 0.075),
@@ -437,7 +431,6 @@ class _AddPetHeroCard extends StatelessWidget {
                     Expanded(
                       child: _SpeciesSegment(
                         value: 'dog',
-                        label: 'DOG',
                         selected: species == 'dog',
                         onTap: onSpeciesChanged,
                       ),
@@ -446,7 +439,6 @@ class _AddPetHeroCard extends StatelessWidget {
                     Expanded(
                       child: _SpeciesSegment(
                         value: 'cat',
-                        label: 'CAT',
                         selected: species == 'cat',
                         onTap: onSpeciesChanged,
                       ),
@@ -465,13 +457,11 @@ class _AddPetHeroCard extends StatelessWidget {
 class _SpeciesSegment extends StatelessWidget {
   const _SpeciesSegment({
     required this.value,
-    required this.label,
     required this.selected,
     required this.onTap,
   });
 
   final String value;
-  final String label;
   final bool selected;
   final ValueChanged<String> onTap;
 
@@ -494,12 +484,7 @@ class _SpeciesSegment extends StatelessWidget {
               ? AppTheme.primaryColor
               : AppTheme.surfaceColor.withValues(alpha: 0.98),
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: selected
-                ? AppTheme.primaryColor
-                : AppTheme.primaryColor.withValues(alpha: 0.20),
-            width: 1.4,
-          ),
+          border: Border.all(color: Colors.white, width: selected ? 3 : 2),
           boxShadow: selected
               ? [
                   BoxShadow(
@@ -532,17 +517,6 @@ class _SpeciesSegment extends StatelessWidget {
                 mouthType: 'smile',
               ),
             ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: AppTheme.displayFontFamily,
-                color: selected ? Colors.white : AppTheme.primaryColor,
-                fontSize: 14,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.7,
-              ),
-            ),
           ],
         ),
       ),
@@ -570,10 +544,7 @@ class _FormSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.surfaceColor.withValues(alpha: 0.96),
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(
-          color: AppTheme.primaryColor.withValues(alpha: 0.16),
-          width: 1.4,
-        ),
+        border: Border.all(color: Colors.white, width: 3),
         boxShadow: [
           BoxShadow(
             color: AppTheme.primaryColor.withValues(alpha: 0.055),
@@ -690,14 +661,11 @@ class _PetTextField extends StatelessWidget {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(24),
-          borderSide: BorderSide(
-            color: AppTheme.primaryColor.withValues(alpha: 0.16),
-            width: 1.3,
-          ),
+          borderSide: BorderSide(color: Colors.white, width: 2),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(24),
-          borderSide: const BorderSide(color: AppTheme.primaryColor, width: 2),
+          borderSide: const BorderSide(color: Colors.white, width: 3),
         ),
       ),
     );
@@ -730,12 +698,7 @@ class _GenderCard extends StatelessWidget {
               ? AppTheme.primaryColor
               : AppTheme.primaryColor.withValues(alpha: 0.045),
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: selected
-                ? AppTheme.primaryColor
-                : AppTheme.primaryColor.withValues(alpha: 0.16),
-            width: 1.3,
-          ),
+          border: Border.all(color: Colors.white, width: selected ? 3 : 2),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -773,10 +736,7 @@ class _BloodTypePicker extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.primaryColor.withValues(alpha: 0.045),
         borderRadius: BorderRadius.circular(26),
-        border: Border.all(
-          color: AppTheme.primaryColor.withValues(alpha: 0.16),
-          width: 1.3,
-        ),
+        border: Border.all(color: Colors.white, width: 2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -843,10 +803,8 @@ class _BloodTypePicker extends StatelessWidget {
                             : AppTheme.surfaceColor.withValues(alpha: 0.92),
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(
-                          color: selected
-                              ? AppTheme.primaryColor
-                              : AppTheme.primaryColor.withValues(alpha: 0.14),
-                          width: 1.1,
+                          color: Colors.white,
+                          width: selected ? 3 : 2,
                         ),
                       ),
                       child: Center(
@@ -908,10 +866,7 @@ class _BirthdayCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.primaryColor.withValues(alpha: 0.045),
         borderRadius: BorderRadius.circular(26),
-        border: Border.all(
-          color: AppTheme.primaryColor.withValues(alpha: 0.16),
-          width: 1.3,
-        ),
+        border: Border.all(color: Colors.white, width: 2),
       ),
       child: Row(
         children: [

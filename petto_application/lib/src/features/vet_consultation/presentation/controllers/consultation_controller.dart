@@ -236,6 +236,14 @@ class ConsultationController extends ChangeNotifier {
         _active!,
         ..._consultations.where((item) => item.id != _active!.id),
       ];
+      _messages = [];
+      _appointments = [];
+      _sharedAssessments = [];
+      _sharedHealthCards = [];
+      // The consultation already exists, so reveal the chat shell now. The
+      // remaining reads can populate it without keeping the owner on the
+      // directory screen.
+      notifyListeners();
       if (assessmentId != null) {
         try {
           await repository.requestAiSummary(_active!.id);

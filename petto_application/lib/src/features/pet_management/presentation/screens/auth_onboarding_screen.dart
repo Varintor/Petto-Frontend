@@ -5,7 +5,9 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/config/app_config.dart';
+import '../../../../core/navigation/petto_transitions.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/petto_loading.dart';
 import '../../../../core/widgets/top_alert.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../auth/data/repositories/auth_repository.dart';
@@ -200,7 +202,7 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
       return;
     }
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => HomeScreen(initialPet: initialPet)),
+      PettoPageRoute(builder: (_) => HomeScreen(initialPet: initialPet)),
     );
   }
 
@@ -648,7 +650,7 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
           const Positioned.fill(child: _ReferenceBackground()),
           Positioned.fill(
             child: AnimatedSwitcher(
-              duration: AppTheme.motionFast,
+              duration: AppTheme.motionNormal,
               reverseDuration: AppTheme.motionFast,
               switchInCurve: AppTheme.motionCurveSoft,
               switchOutCurve: AppTheme.motionReverseCurve,
@@ -728,7 +730,7 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
           child: _RegisterStepShell(
             step: _RegisterStep.values.indexOf(_step) + 1,
             child: AnimatedSwitcher(
-              duration: AppTheme.motionFast,
+              duration: AppTheme.motionNormal,
               reverseDuration: AppTheme.motionFast,
               switchInCurve: AppTheme.motionCurveSoft,
               switchOutCurve: AppTheme.motionReverseCurve,
@@ -773,28 +775,13 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
                   child: Container(
                     color: _cream.withValues(alpha: 0.85),
                     child: const Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SizedBox(
-                            width: 32,
-                            height: 32,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: _red,
-                            ),
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            'Creating your account...',
-                            style: TextStyle(
-                              fontFamily: AppTheme.sansFontFamily,
-                              color: _deepRed,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
+                      child: Padding(
+                        padding: EdgeInsets.all(28),
+                        child: PettoInlineProgress(
+                          title: 'Creating your account',
+                          subtitle: 'Saving your new pet profile.',
+                          icon: Icons.pets_rounded,
+                        ),
                       ),
                     ),
                   ),
@@ -818,6 +805,9 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
   }
 
   Widget _buildAuthTransition(Widget child, Animation<double> animation) {
+    if (MediaQuery.maybeOf(context)?.disableAnimations ?? false) {
+      return child;
+    }
     final startOffset = Offset(0.003 * _transitionDirection, 0);
     final slideCurve = CurvedAnimation(
       parent: animation,

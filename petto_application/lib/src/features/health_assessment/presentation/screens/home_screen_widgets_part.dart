@@ -425,15 +425,15 @@ class _NotificationTile extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(large ? 14 : 10),
       decoration: BoxDecoration(
-        color: large
-            ? AppTheme.surfaceColor.withValues(alpha: 0.98)
-            : AppTheme.surfaceColor,
+        color: large ? _homeCreamSurface : AppTheme.surfaceColor,
         borderRadius: BorderRadius.circular(large ? 24 : 20),
         border: Border.all(
-          color: item.unread
-              ? AppTheme.primaryColor.withValues(alpha: large ? 0.18 : 0.12)
+          color: large
+              ? Colors.white
+              : item.unread
+              ? AppTheme.primaryColor.withValues(alpha: 0.12)
               : AppTheme.warmSurfaceColor.withValues(alpha: 0.46),
-          width: large ? 1.4 : 1,
+          width: large ? 3 : 1,
         ),
         boxShadow: large
             ? [
@@ -451,14 +451,17 @@ class _NotificationTile extends StatelessWidget {
             width: large ? 48 : 38,
             height: large ? 48 : 38,
             decoration: BoxDecoration(
-              color: item.tint.withValues(alpha: large ? 0.13 : 0.10),
+              color: large
+                  ? AppTheme.primaryColor
+                  : item.tint.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(large ? 18 : 15),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.9),
-                width: 1,
-              ),
+              border: Border.all(color: Colors.white, width: large ? 2 : 1),
             ),
-            child: Icon(item.icon, color: item.tint, size: large ? 22 : 19),
+            child: Icon(
+              item.icon,
+              color: large ? Colors.white : item.tint,
+              size: large ? 22 : 19,
+            ),
           ),
           SizedBox(width: large ? 12 : 10),
           Expanded(
@@ -559,35 +562,58 @@ class _HomeNoticeEmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: AppTheme.glassCardDecoration(
-        color: AppTheme.surfaceColor.withValues(alpha: 0.96),
-        borderRadius: BorderRadius.circular(28),
-        borderColor: AppTheme.primaryColor.withValues(alpha: 0.10),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.notifications_none_rounded,
-            color: AppTheme.primaryColor.withValues(alpha: 0.72),
-            size: 36,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: _homeCreamSurface,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.white, width: 3),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryColor.withValues(alpha: 0.07),
+            blurRadius: 20,
+            spreadRadius: -14,
+            offset: const Offset(0, 12),
           ),
-          const SizedBox(height: 10),
-          Text(
-            'No upcoming notices',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: AppTheme.secondaryText,
-              fontWeight: FontWeight.w900,
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.white, width: 2),
+            ),
+            child: const Icon(
+              Icons.notifications_none_rounded,
+              color: Colors.white,
+              size: 24,
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            'Calendar plans for this pet will appear here. Device reminders '
-            'are delivered separately by the operating system.',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppTheme.mutedText,
-              height: 1.4,
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'No upcoming notices',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: AppTheme.secondaryText,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Calendar plans will appear here. Device reminders are '
+                  'delivered by your operating system.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.mutedText,
+                    height: 1.35,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -766,19 +792,17 @@ class _NavActionBubble extends StatelessWidget {
         onTap: onTap,
         child: Container(
           width: width,
-          height: 50,
+          height: 54,
           padding: const EdgeInsets.fromLTRB(8, 7, 14, 7),
           decoration: BoxDecoration(
             color: AppTheme.primaryColor,
             borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.18),
-              width: 1.2,
-            ),
+            border: Border.all(color: Colors.white, width: 3),
             boxShadow: [
               BoxShadow(
-                color: AppTheme.primaryColor.withValues(alpha: 0.18),
+                color: AppTheme.primaryColor.withValues(alpha: 0.20),
                 blurRadius: 18,
+                spreadRadius: -10,
                 offset: const Offset(0, 8),
               ),
             ],
@@ -787,17 +811,14 @@ class _NavActionBubble extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: 38,
+                height: 38,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.16),
+                  color: _homeCreamSurface,
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.16),
-                    width: 1,
-                  ),
+                  border: Border.all(color: Colors.white, width: 2),
                 ),
-                child: Icon(icon, color: Colors.white, size: 18),
+                child: Icon(icon, color: color, size: 18),
               ),
               const SizedBox(width: 9),
               Flexible(
@@ -1055,8 +1076,9 @@ class _CalendarArrowButton extends StatelessWidget {
         width: 34,
         height: 34,
         decoration: BoxDecoration(
-          color: Colors.transparent,
+          color: Colors.white.withValues(alpha: 0.84),
           borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white, width: 2),
         ),
         child: Icon(icon, color: AppTheme.primaryColor, size: 21),
       ),
@@ -1095,7 +1117,7 @@ class _CalendarMonthHeader extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                '$year Events',
+                '$year',
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   color: AppTheme.mutedText,
                   fontWeight: FontWeight.w800,
@@ -1108,12 +1130,17 @@ class _CalendarMonthHeader extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceColor.withValues(alpha: 0.88),
+            color: _homeRoseSurface,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: AppTheme.warmSurfaceColor.withValues(alpha: 0.72),
-              width: 1.2,
-            ),
+            border: Border.all(color: Colors.white, width: 2.5),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primaryColor.withValues(alpha: 0.07),
+                blurRadius: 14,
+                spreadRadius: -10,
+                offset: const Offset(0, 9),
+              ),
+            ],
           ),
           child: Row(
             children: [
@@ -1320,23 +1347,9 @@ class _PetChip extends StatelessWidget {
         constraints: const BoxConstraints(minWidth: 126),
         padding: const EdgeInsets.fromLTRB(6, 5, 16, 5),
         decoration: BoxDecoration(
-          gradient: selected
-              ? const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [AppTheme.primaryColor, Color(0xFF934247)],
-                )
-              : null,
-          color: selected
-              ? null
-              : AppTheme.surfaceColor.withValues(alpha: 0.82),
+          color: selected ? AppTheme.primaryColor : _homeCreamSurface,
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: selected
-                ? AppTheme.primaryColor.withValues(alpha: 0.72)
-                : AppTheme.primaryColor.withValues(alpha: 0.10),
-            width: 1.2,
-          ),
+          border: Border.all(color: Colors.white, width: selected ? 3 : 2.5),
           boxShadow: selected
               ? [
                   BoxShadow(
@@ -1364,14 +1377,9 @@ class _PetChip extends StatelessWidget {
               decoration: BoxDecoration(
                 color: selected
                     ? Colors.white.withValues(alpha: 0.95)
-                    : AppTheme.blushSurfaceColor.withValues(alpha: 0.42),
+                    : _homeRoseSurface,
                 borderRadius: BorderRadius.circular(999),
-                border: Border.all(
-                  color: selected
-                      ? Colors.white
-                      : AppTheme.primaryColor.withValues(alpha: 0.08),
-                  width: 1.2,
-                ),
+                border: Border.all(color: Colors.white, width: 2),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(999),
@@ -1435,9 +1443,10 @@ class _PetChipAvatar extends StatelessWidget {
 }
 
 class _AddPetChip extends StatelessWidget {
-  const _AddPetChip({required this.onTap});
+  const _AddPetChip({required this.onTap, this.size = 58});
 
   final VoidCallback onTap;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
@@ -1452,55 +1461,26 @@ class _AddPetChip extends StatelessWidget {
           return Transform.scale(scale: 0.96 + (0.04 * value), child: child);
         },
         child: Container(
-          constraints: const BoxConstraints(minWidth: 132),
-          padding: const EdgeInsets.fromLTRB(6, 5, 16, 5),
+          width: size,
+          height: size,
           decoration: BoxDecoration(
-            color: AppTheme.surfaceColor.withValues(alpha: 0.82),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: AppTheme.primaryColor.withValues(alpha: 0.10),
-              width: 1.2,
-            ),
+            color: _homeCreamSurface,
+            shape: BoxShape.circle,
+            border: Border.all(color: AppTheme.primaryColor, width: 3.5),
             boxShadow: [
               BoxShadow(
-                color: AppTheme.secondaryText.withValues(alpha: 0.035),
+                color: AppTheme.primaryColor.withValues(alpha: 0.08),
                 blurRadius: 16,
-                spreadRadius: -7,
-                offset: const Offset(0, 8),
+                spreadRadius: -10,
+                offset: const Offset(0, 9),
               ),
             ],
           ),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      color: AppTheme.blushSurfaceColor.withValues(alpha: 0.72),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: Colors.white, width: 1.4),
-                    ),
-                    child: const Icon(
-                      Icons.add_rounded,
-                      color: AppTheme.primaryColor,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Add Pet',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppTheme.secondaryText,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+          child: const Icon(
+            Icons.add_rounded,
+            color: AppTheme.primaryColor,
+            size: 31,
+            weight: 700,
           ),
         ),
       ),
@@ -1594,160 +1574,6 @@ class _MetricCard extends StatelessWidget {
   }
 }
 
-class _MissionCard extends StatelessWidget {
-  const _MissionCard({
-    required this.mission,
-    required this.completed,
-    required this.bursting,
-    required this.onTap,
-    this.rewardAccessory,
-  });
-
-  final _MissionData mission;
-  final bool completed;
-  final bool bursting;
-  final ValueChanged<Offset> onTap;
-
-  /// Cosmetic granted when this mission is completed. Shown as the reward
-  /// chip; falls back to the legacy "+X treats XP" badge when null (mission
-  /// type isn't mapped to an accessory yet).
-  final _AccessoryData? rewardAccessory;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedOpacity(
-      duration: const Duration(milliseconds: 220),
-      opacity: 1,
-      child: AnimatedScale(
-        duration: const Duration(milliseconds: 240),
-        curve: Curves.easeOutBack,
-        scale: bursting ? 1.025 : 1,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          decoration: AppTheme.glassCardDecoration(
-            color: AppTheme.surfaceColor,
-            borderColor: completed
-                ? AppTheme.primaryColor.withValues(alpha: 0.22)
-                : AppTheme.primaryColor.withValues(alpha: 0.24),
-            borderWidth: 1.6,
-          ),
-          padding: const EdgeInsets.fromLTRB(15, 14, 14, 14),
-          child: Row(
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: completed
-                      ? AppTheme.primaryColor.withValues(alpha: 0.86)
-                      : AppTheme.primaryColor,
-                  borderRadius: BorderRadius.circular(17),
-                ),
-                child: Icon(mission.icon, color: Colors.white, size: 22),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      mission.title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 7),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: completed
-                            ? AppTheme.creamSurfaceColor.withValues(alpha: 0.9)
-                            : AppTheme.blushSurfaceColor.withValues(
-                                alpha: 0.86,
-                              ),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (rewardAccessory != null) ...[
-                            Text(
-                              rewardAccessory!.emoji,
-                              style: const TextStyle(fontSize: 13),
-                            ),
-                            const SizedBox(width: 4),
-                          ],
-                          Text(
-                            rewardAccessory != null
-                                ? rewardAccessory!.name
-                                : '+${mission.reward} treats XP',
-                            style: Theme.of(context).textTheme.labelSmall
-                                ?.copyWith(
-                                  color: AppTheme.primaryColor,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.2,
-                                ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              AnimatedScale(
-                duration: const Duration(milliseconds: 260),
-                scale: bursting ? 1.08 : 1,
-                child: completed
-                    ? Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryColor,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.check_rounded,
-                          color: Colors.white,
-                          size: 17,
-                        ),
-                      )
-                    : GestureDetector(
-                        onTapDown: (details) => onTap(details.globalPosition),
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: AppTheme.blushSurfaceColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: AppTheme.primaryColor.withValues(
-                                alpha: 0.28,
-                              ),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Icon(
-                            Icons.check_rounded,
-                            color: AppTheme.primaryColor.withValues(
-                              alpha: 0.76,
-                            ),
-                            size: 16,
-                          ),
-                        ),
-                      ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _WeekdayLabel extends StatelessWidget {
   const _WeekdayLabel(this.label);
 
@@ -1827,10 +1653,7 @@ class _CalendarScheduleHeader extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppTheme.primaryColor,
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: AppTheme.surfaceColor.withValues(alpha: 0.72),
-                width: 1.6,
-              ),
+              border: Border.all(color: Colors.white, width: 2.5),
               boxShadow: [
                 BoxShadow(
                   color: AppTheme.primaryColor.withValues(alpha: 0.14),
@@ -1871,15 +1694,20 @@ class _NoPlansCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      constraints: const BoxConstraints(minHeight: 184),
-      padding: const EdgeInsets.all(22),
+      constraints: const BoxConstraints(minHeight: 156),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceColor.withValues(alpha: 0.92),
+        color: _homeRoseSurface,
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(
-          color: AppTheme.warmSurfaceColor.withValues(alpha: 0.74),
-          width: 1.4,
-        ),
+        border: Border.all(color: Colors.white, width: 3),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryColor.withValues(alpha: 0.06),
+            blurRadius: 18,
+            spreadRadius: -13,
+            offset: const Offset(0, 12),
+          ),
+        ],
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -1888,11 +1716,9 @@ class _NoPlansCard extends StatelessWidget {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: AppTheme.blushSurfaceColor.withValues(alpha: 0.54),
+              color: Colors.white.withValues(alpha: 0.84),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: AppTheme.primaryColor.withValues(alpha: 0.08),
-              ),
+              border: Border.all(color: Colors.white, width: 2),
             ),
             child: const Icon(
               Icons.event_available_rounded,
@@ -1932,10 +1758,7 @@ class _NoPlansCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppTheme.primaryColor,
                 borderRadius: BorderRadius.circular(999),
-                border: Border.all(
-                  color: AppTheme.surfaceColor.withValues(alpha: 0.74),
-                  width: 1.8,
-                ),
+                border: Border.all(color: Colors.white, width: 2.5),
                 boxShadow: [
                   BoxShadow(
                     color: AppTheme.primaryColor.withValues(alpha: 0.16),
@@ -2198,11 +2021,18 @@ class _CalendarEventCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: AppTheme.glassCardDecoration(
-        color: AppTheme.surfaceColor.withValues(alpha: 0.94),
+      decoration: BoxDecoration(
+        color: _homeCreamSurface,
         borderRadius: BorderRadius.circular(28),
-        borderColor: AppTheme.primaryColor.withValues(alpha: 0.11),
-        borderWidth: 1.4,
+        border: Border.all(color: Colors.white, width: 3),
+        boxShadow: [
+          BoxShadow(
+            color: event.color.withValues(alpha: 0.07),
+            blurRadius: 18,
+            spreadRadius: -13,
+            offset: const Offset(0, 12),
+          ),
+        ],
       ),
       padding: const EdgeInsets.all(15),
       child: Row(
@@ -2213,7 +2043,7 @@ class _CalendarEventCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: event.color.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: event.color.withValues(alpha: 0.10)),
+              border: Border.all(color: Colors.white, width: 2.5),
             ),
             child: Icon(event.icon, color: event.color, size: 24),
           ),
@@ -2260,11 +2090,7 @@ class _CalendarEventCard extends StatelessWidget {
                   ? AppTheme.primaryColor
                   : AppTheme.creamSurfaceColor.withValues(alpha: 0.82),
               shape: BoxShape.circle,
-              border: Border.all(
-                color: event.completed
-                    ? AppTheme.primaryColor
-                    : AppTheme.warmSurfaceColor.withValues(alpha: 0.62),
-              ),
+              border: Border.all(color: Colors.white, width: 2),
             ),
             child: Icon(
               event.completed
@@ -4151,12 +3977,16 @@ class _ProfileLinkCard extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
+    required this.surfaceColor,
+    required this.accentColor,
     required this.onTap,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
+  final Color surfaceColor;
+  final Color accentColor;
   final VoidCallback onTap;
 
   @override
@@ -4165,9 +3995,18 @@ class _ProfileLinkCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(30),
       child: Container(
-        decoration: AppTheme.glassCardDecoration(
-          color: AppTheme.surfaceColor.withValues(alpha: 0.95),
-          borderColor: AppTheme.secondaryColor.withValues(alpha: 0.13),
+        decoration: BoxDecoration(
+          color: surfaceColor,
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: Colors.white, width: 3),
+          boxShadow: [
+            BoxShadow(
+              color: accentColor.withValues(alpha: 0.08),
+              blurRadius: 18,
+              spreadRadius: -13,
+              offset: const Offset(0, 12),
+            ),
+          ],
         ),
         padding: const EdgeInsets.all(18),
         child: Row(
@@ -4176,10 +4015,11 @@ class _ProfileLinkCard extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF1EC),
+                color: accentColor,
                 borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Colors.white, width: 2),
               ),
-              child: Icon(icon, color: AppTheme.secondaryColor),
+              child: Icon(icon, color: Colors.white),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -4190,14 +4030,14 @@ class _ProfileLinkCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppTheme.primaryColor,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.labelSmall?.copyWith(color: accentColor),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_rounded, color: AppTheme.mutedText),
+            Icon(Icons.arrow_forward_rounded, color: accentColor),
           ],
         ),
       ),
@@ -4220,41 +4060,44 @@ class _ProfileActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: Ink(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: AppTheme.surfaceColor.withValues(alpha: 0.92),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: AppTheme.secondaryText.withValues(alpha: 0.08),
-            width: 1.1,
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(999),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: tint.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: Icon(icon, size: 18, color: tint),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: tint,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
           ),
-          boxShadow: AppTheme.subtleShadow,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                color: tint.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Icon(icon, size: 18, color: tint),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: AppTheme.secondaryText,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -4276,9 +4119,26 @@ class _WardrobeSection extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.only(left: 2, bottom: 12),
-            child: Text(
-              title.toUpperCase(),
-              style: Theme.of(context).textTheme.labelSmall,
+            child: Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: AppTheme.primaryColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  title.toUpperCase(),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: AppTheme.primaryColor,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ],
             ),
           ),
           child,
@@ -4310,21 +4170,17 @@ class _SelectionChip extends StatelessWidget {
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOutCubic,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: selected ? _homeRoseSurface : _homeCreamSurface,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: selected
-                ? AppTheme.secondaryColor.withValues(alpha: 0.34)
-                : AppTheme.warmSurfaceColor.withValues(alpha: 0.46),
-            width: selected ? 1.8 : 1.4,
-          ),
+          border: Border.all(color: Colors.white, width: 3),
           boxShadow: [
             BoxShadow(
-              color: selected
-                  ? AppTheme.primaryColor.withValues(alpha: 0.08)
-                  : AppTheme.secondaryColor.withValues(alpha: 0.06),
-              blurRadius: selected ? 16 : 10,
-              offset: const Offset(0, 6),
+              color: AppTheme.primaryColor.withValues(
+                alpha: selected ? 0.10 : 0.04,
+              ),
+              blurRadius: 16,
+              spreadRadius: -11,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
@@ -4337,9 +4193,10 @@ class _SelectionChip extends StatelessWidget {
               height: 42,
               decoration: BoxDecoration(
                 color: selected
-                    ? AppTheme.blushSurfaceColor.withValues(alpha: 0.74)
-                    : AppTheme.creamSurfaceColor.withValues(alpha: 0.66),
+                    ? Colors.white.withValues(alpha: 0.86)
+                    : _homeRoseSurface,
                 borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: Colors.white, width: 2),
               ),
               child: Center(child: leading),
             ),
@@ -4549,11 +4406,20 @@ class _MiniSelectionCard extends StatelessWidget {
       child: Container(
         width: 96,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
-        decoration: AppTheme.glassCardDecoration(
-          color: selected
-              ? AppTheme.primaryColor.withValues(alpha: 0.08)
-              : Colors.white,
+        decoration: BoxDecoration(
+          color: selected ? _homeRoseSurface : _homeCreamSurface,
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white, width: 3),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primaryColor.withValues(
+                alpha: selected ? 0.09 : 0.035,
+              ),
+              blurRadius: 14,
+              spreadRadius: -10,
+              offset: const Offset(0, 9),
+            ),
+          ],
         ),
         child: Column(
           children: [
@@ -4604,11 +4470,20 @@ class _AccessoryCard extends StatelessWidget {
         opacity: unlocked ? 1 : 0.32,
         child: Container(
           width: 156,
-          decoration: AppTheme.glassCardDecoration(
-            color: equipped
-                ? AppTheme.primaryColor.withValues(alpha: 0.08)
-                : Colors.white,
+          decoration: BoxDecoration(
+            color: equipped ? _homeRoseSurface : _homeCreamSurface,
             borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white, width: 3),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primaryColor.withValues(
+                  alpha: equipped ? 0.09 : 0.035,
+                ),
+                blurRadius: 14,
+                spreadRadius: -10,
+                offset: const Offset(0, 9),
+              ),
+            ],
           ),
           padding: const EdgeInsets.all(16),
           child: Stack(

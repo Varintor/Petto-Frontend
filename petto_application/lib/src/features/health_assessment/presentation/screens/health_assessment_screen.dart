@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/petto_loading.dart';
 import '../../../../core/widgets/top_alert.dart';
 import '../controllers/health_assessment_controller.dart';
 import '../widgets/image_uploader_widget.dart';
@@ -222,7 +223,16 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
         final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
 
         if (controller.isLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: PettoInlineProgress(
+                title: 'Reading your pet photo',
+                subtitle: 'Petto AI is checking the details with care.',
+                icon: Icons.auto_awesome_rounded,
+              ),
+            ),
+          );
         }
 
         if (controller.currentAssessment != null) {

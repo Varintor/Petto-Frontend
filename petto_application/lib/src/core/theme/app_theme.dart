@@ -322,6 +322,10 @@ class AppTheme {
   static const Duration motionFast = Duration(milliseconds: 80);
   static const Duration motionNormal = Duration(milliseconds: 130);
   static const Duration motionSlow = Duration(milliseconds: 240);
+  static const Duration pageTransitionDuration = Duration(milliseconds: 160);
+  static const Duration pageTransitionReverseDuration = Duration(
+    milliseconds: 120,
+  );
   static const Curve motionCurve = Curves.easeOutCubic;
   static const Curve motionCurveSoft = Curves.easeOutCubic;
   static const Curve motionReverseCurve = Curves.easeInCubic;
@@ -329,13 +333,6 @@ class AppTheme {
 
 class _PettoPageTransitionsBuilder extends PageTransitionsBuilder {
   const _PettoPageTransitionsBuilder();
-
-  static final Animatable<Offset> _slideIn =
-      Tween<Offset>(begin: const Offset(0.004, 0.001), end: Offset.zero).chain(
-        CurveTween(
-          curve: const Interval(0.0, 0.24, curve: AppTheme.motionCurveSoft),
-        ),
-      );
 
   @override
   Widget buildTransitions<T>(
@@ -345,19 +342,22 @@ class _PettoPageTransitionsBuilder extends PageTransitionsBuilder {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
-    if (route.fullscreenDialog) {
-      return SlideTransition(
-        position: animation.drive(
-          Tween<Offset>(begin: const Offset(0, 0.006), end: Offset.zero).chain(
-            CurveTween(
-              curve: const Interval(0.0, 0.28, curve: Curves.easeOutCubic),
-            ),
-          ),
-        ),
+    if (MediaQuery.maybeOf(context)?.disableAnimations ?? false) return child;
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: AppTheme.motionCurveSoft,
+      reverseCurve: AppTheme.motionReverseCurve,
+    );
+    return ClipRect(
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: route.fullscreenDialog
+              ? const Offset(0, 0.018)
+              : const Offset(0.014, 0),
+          end: Offset.zero,
+        ).animate(curved),
         child: child,
-      );
-    }
-
-    return SlideTransition(position: animation.drive(_slideIn), child: child);
+      ),
+    );
   }
 }

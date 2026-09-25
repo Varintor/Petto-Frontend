@@ -62,20 +62,6 @@ class _PetAppearanceData {
   final Set<String> equipped;
 }
 
-class _MissionData {
-  const _MissionData({
-    required this.id,
-    required this.title,
-    required this.reward,
-    required this.icon,
-  });
-
-  final String id;
-  final String title;
-  final String reward;
-  final IconData icon;
-}
-
 class _NotificationData {
   const _NotificationData({
     required this.title,

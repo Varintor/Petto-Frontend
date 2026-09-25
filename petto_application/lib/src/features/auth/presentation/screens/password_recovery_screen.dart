@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/widgets/petto_loading.dart';
 
 class PasswordRecoveryScreen extends StatefulWidget {
   const PasswordRecoveryScreen({
@@ -154,12 +155,7 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
                         key: const Key('recovery-submit'),
                         onPressed: _submitting ? null : _submit,
                         child: _submitting
-                            ? const SizedBox.square(
-                                dimension: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
+                            ? const PettoButtonProgress(width: 28, height: 6)
                             : const Text('UPDATE PASSWORD'),
                       ),
                     ],

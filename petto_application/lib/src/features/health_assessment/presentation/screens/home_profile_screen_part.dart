@@ -49,9 +49,13 @@ extension _HomeProfileScreenPart on _HomeScreenState {
                       width: 160,
                       height: 160,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: _homeCreamSurface,
                         borderRadius: BorderRadius.circular(40),
                         boxShadow: AppTheme.subtleShadow,
+                      ),
+                      foregroundDecoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(40),
+                        border: Border.all(color: Colors.white, width: 3),
                       ),
                       clipBehavior: Clip.antiAlias,
                       child: _buildActivePetProfileMedia(),
@@ -124,6 +128,8 @@ extension _HomeProfileScreenPart on _HomeScreenState {
             icon: Icons.auto_awesome_rounded,
             title: 'Accessories',
             subtitle: '${_activeAppearance.equipped.length} Items Equipped',
+            surfaceColor: _homeCreamSurface,
+            accentColor: AppTheme.primaryColor,
             onTap: () {
               _update(() {
                 _openWardrobe();
@@ -135,6 +141,8 @@ extension _HomeProfileScreenPart on _HomeScreenState {
             icon: Icons.history_rounded,
             title: 'Health Records',
             subtitle: 'View all past logs',
+            surfaceColor: _homeCreamSurface,
+            accentColor: AppTheme.primaryColor,
             onTap: () {
               _update(() {
                 _activeView = _View.history;
@@ -299,7 +307,7 @@ extension _HomeProfileScreenPart on _HomeScreenState {
       // root AuthGate, so the gate is no longer in the stack to react to
       // status changes. Force-reset the stack back to a fresh AuthGate.
       navigator.pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const AuthGate()),
+        PettoPageRoute(builder: (_) => const AuthGate()),
         (route) => false,
       );
     }
@@ -474,12 +482,9 @@ class _PetProfileDetailsCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceColor.withValues(alpha: 0.98),
+        color: AppTheme.primaryColor,
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(
-          color: AppTheme.primaryColor.withValues(alpha: 0.14),
-          width: 1.3,
-        ),
+        border: Border.all(color: Colors.white, width: 3),
         boxShadow: [
           BoxShadow(
             color: AppTheme.primaryColor.withValues(alpha: 0.055),
@@ -497,12 +502,13 @@ class _PetProfileDetailsCard extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryColor,
+                  color: _homeCreamSurface,
                   borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white, width: 2.5),
                 ),
                 child: const Icon(
                   Icons.badge_rounded,
-                  color: Colors.white,
+                  color: AppTheme.primaryColor,
                   size: 21,
                 ),
               ),
@@ -514,7 +520,7 @@ class _PetProfileDetailsCard extends StatelessWidget {
                     Text(
                       'Pet Profile',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: AppTheme.secondaryText,
+                        color: Colors.white,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -522,7 +528,7 @@ class _PetProfileDetailsCard extends StatelessWidget {
                     Text(
                       'Details from onboarding',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.mutedText,
+                        color: Colors.white.withValues(alpha: 0.74),
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -532,17 +538,15 @@ class _PetProfileDetailsCard extends StatelessWidget {
               InkWell(
                 onTap: onEdit,
                 borderRadius: BorderRadius.circular(999),
-                child: Ink(
+                child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                    color: _homeCreamSurface,
                     borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: AppTheme.primaryColor.withValues(alpha: 0.14),
-                    ),
+                    border: Border.all(color: Colors.white, width: 2),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
@@ -576,6 +580,8 @@ class _PetProfileDetailsCard extends StatelessWidget {
                   icon: Icons.pets_rounded,
                   label: 'Type',
                   value: pet.species,
+                  backgroundColor: _homeCreamSurface,
+                  accentColor: const Color(0xFF9B666A),
                 ),
               ),
               const SizedBox(width: 10),
@@ -584,6 +590,8 @@ class _PetProfileDetailsCard extends StatelessWidget {
                   icon: Icons.favorite_rounded,
                   label: 'Gender',
                   value: gender,
+                  backgroundColor: _homeCreamSurface,
+                  accentColor: const Color(0xFFA66F79),
                 ),
               ),
             ],
@@ -596,6 +604,8 @@ class _PetProfileDetailsCard extends StatelessWidget {
                   icon: Icons.category_rounded,
                   label: 'Breed',
                   value: pet.breed,
+                  backgroundColor: _homeCreamSurface,
+                  accentColor: const Color(0xFFA58043),
                 ),
               ),
               const SizedBox(width: 10),
@@ -604,6 +614,8 @@ class _PetProfileDetailsCard extends StatelessWidget {
                   icon: Icons.bloodtype_rounded,
                   label: 'Blood',
                   value: bloodType,
+                  backgroundColor: _homeCreamSurface,
+                  accentColor: const Color(0xFF99545B),
                 ),
               ),
             ],
@@ -616,6 +628,8 @@ class _PetProfileDetailsCard extends StatelessWidget {
                   icon: Icons.cake_rounded,
                   label: 'Birthday',
                   value: birthday,
+                  backgroundColor: _homeCreamSurface,
+                  accentColor: const Color(0xFF826F86),
                 ),
               ),
               const SizedBox(width: 10),
@@ -624,6 +638,8 @@ class _PetProfileDetailsCard extends StatelessWidget {
                   icon: Icons.scale_rounded,
                   label: 'Weight',
                   value: pet.weightLabel,
+                  backgroundColor: _homeCreamSurface,
+                  accentColor: const Color(0xFF748066),
                 ),
               ),
             ],
@@ -639,11 +655,15 @@ class _ProfileDetailTile extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
+    required this.backgroundColor,
+    required this.accentColor,
   });
 
   final IconData icon;
   final String label;
   final String value;
+  final Color backgroundColor;
+  final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
@@ -651,12 +671,9 @@ class _ProfileDetailTile extends StatelessWidget {
       height: 76,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: AppTheme.primaryColor.withValues(alpha: 0.045),
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: AppTheme.primaryColor.withValues(alpha: 0.10),
-          width: 1.1,
-        ),
+        border: Border.all(color: Colors.white, width: 2.5),
       ),
       child: Row(
         children: [
@@ -664,10 +681,10 @@ class _ProfileDetailTile extends StatelessWidget {
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              color: AppTheme.surfaceColor.withValues(alpha: 0.94),
+              color: accentColor.withValues(alpha: 0.13),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: AppTheme.primaryColor, size: 18),
+            child: Icon(icon, color: accentColor, size: 18),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -681,22 +698,25 @@ class _ProfileDetailTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontFamily: AppTheme.sansFontFamily,
-                    color: AppTheme.mutedText.withValues(alpha: 0.84),
+                    color: accentColor.withValues(alpha: 0.90),
                     fontSize: 10,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.9,
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontFamily: AppTheme.displayFontFamily,
-                    color: AppTheme.secondaryText,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    value,
+                    maxLines: 1,
+                    style: const TextStyle(
+                      fontFamily: AppTheme.displayFontFamily,
+                      color: AppTheme.secondaryText,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
               ],
