@@ -50,4 +50,40 @@ void main() {
       'The server is taking longer than expected. Please retry.',
     );
   });
+
+  test('idempotent GET retries a transient mobile network failure once', () {
+    final options = RequestOptions(
+      path: '/api/v1/pets/1/history',
+      method: 'GET',
+    );
+    final error = DioException(
+      requestOptions: options,
+      type: DioExceptionType.connectionTimeout,
+    );
+
+    expect(ApiClient.shouldRetryRead(error), isTrue);
+    options.extra['petto_network_retry'] = true;
+    expect(ApiClient.shouldRetryRead(error), isFalse);
+  });
+
+  test('mutating requests are never retried automatically', () {
+    final error = DioException(
+      requestOptions: RequestOptions(
+        path: '/api/v1/consultations/1/messages',
+        method: 'POST',
+      ),
+      type: DioExceptionType.receiveTimeout,
+    );
+
+    expect(ApiClient.shouldRetryRead(error), isFalse);
+  });
+
+  test('wrapped friendly repository message is preserved without prefix', () {
+    expect(
+      ApiClient.describeError(
+        Exception('Network timeout talking to the backend.'),
+      ),
+      'Network timeout talking to the backend.',
+    );
+  });
 }

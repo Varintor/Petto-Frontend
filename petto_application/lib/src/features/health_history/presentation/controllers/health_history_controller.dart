@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/network/api_client.dart';
 import '../../data/models/health_history_models.dart';
 import '../../data/models/public_pet_card_model.dart';
 import '../../data/repositories/health_history_repository.dart';
@@ -67,7 +68,7 @@ class HealthHistoryController extends ChangeNotifier {
       _card = results[1] as HealthCardModel;
       _publicCard = results[2] as PublicPetCardModel?;
     } catch (e) {
-      _error = e.toString();
+      _error = ApiClient.describeError(e);
     } finally {
       _loading = false;
       notifyListeners();
@@ -98,7 +99,7 @@ class HealthHistoryController extends ChangeNotifier {
         to: _dateTo,
       );
     } catch (e) {
-      _error = e.toString();
+      _error = ApiClient.describeError(e);
     } finally {
       _loading = false;
       notifyListeners();
@@ -111,7 +112,7 @@ class HealthHistoryController extends ChangeNotifier {
     try {
       return await repository.getHistoryDetail(id, entry);
     } catch (e) {
-      _error = e.toString();
+      _error = ApiClient.describeError(e);
       notifyListeners();
       return null;
     }
@@ -139,7 +140,7 @@ class HealthHistoryController extends ChangeNotifier {
       _card = await repository.getHealthCard(id);
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = ApiClient.describeError(e);
       return false;
     } finally {
       _savingProfile = false;
@@ -178,7 +179,7 @@ class HealthHistoryController extends ChangeNotifier {
       _publicCardToken = saved.token ?? _publicCardToken;
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = ApiClient.describeError(e);
       return false;
     } finally {
       _savingPublicCard = false;
@@ -198,7 +199,7 @@ class HealthHistoryController extends ChangeNotifier {
       _publicCardToken = rotated.token;
       return rotated.token != null;
     } catch (e) {
-      _error = e.toString();
+      _error = ApiClient.describeError(e);
       return false;
     } finally {
       _savingPublicCard = false;
@@ -217,7 +218,7 @@ class HealthHistoryController extends ChangeNotifier {
       _publicCardToken = null;
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = ApiClient.describeError(e);
       return false;
     } finally {
       _savingPublicCard = false;

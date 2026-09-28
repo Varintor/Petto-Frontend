@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show kDebugMode, visibleForTesting;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/app_config.dart';
@@ -20,6 +20,7 @@ class ApiClient {
 
   static final TokenStorage _storage = TokenStorage();
   static const _authRetryKey = 'petto_auth_retry';
+  static const _networkRetryKey = 'petto_network_retry';
   static Future<String?>? _refreshInFlight;
   static StreamSubscription<AuthState>? _authSubscription;
 
@@ -90,29 +91,40 @@ class ApiClient {
         },
         onError: (error, handler) async {
           final request = error.requestOptions;
-          final canRetry =
+          final canRetryAuth =
               error.response?.statusCode == 401 &&
               request.extra[_authRetryKey] != true &&
               request.data is! FormData;
-          if (!canRetry) {
-            handler.next(error);
-            return;
+          if (canRetryAuth) {
+            try {
+              final token = await _refreshAccessTokenOnce();
+              if (token != null && token.isNotEmpty) {
+                request.extra[_authRetryKey] = true;
+                request.headers['Authorization'] = 'Bearer $token';
+                handler.resolve(await dio.fetch<dynamic>(request));
+                return;
+              }
+            } catch (_) {
+              // Continue with the original 401 below. The UI presents a
+              // concise session-expired message instead of Dio internals.
+            }
           }
 
-          try {
-            final token = await _refreshAccessTokenOnce();
-            if (token == null || token.isEmpty) {
-              handler.next(error);
+          if (shouldRetryRead(error)) {
+            request.extra[_networkRetryKey] = true;
+            // A short delay lets Railway finish a cold start and avoids an
+            // immediate second hit while the database pool is recovering.
+            await Future<void>.delayed(const Duration(milliseconds: 650));
+            try {
+              handler.resolve(await dio.fetch<dynamic>(request));
+              return;
+            } on DioException catch (retryError) {
+              handler.next(retryError);
               return;
             }
-            request.extra[_authRetryKey] = true;
-            request.headers['Authorization'] = 'Bearer $token';
-            handler.resolve(await dio.fetch<dynamic>(request));
-          } catch (_) {
-            // Preserve the original 401. The UI can now present a concise
-            // session-expired message instead of exposing Dio internals.
-            handler.next(error);
           }
+
+          handler.next(error);
         },
       ),
     );
@@ -192,6 +204,12 @@ class ApiClient {
 
   static String describeError(Object error) {
     if (error is! DioException) {
+      final message = error.toString().replaceFirst('Exception: ', '').trim();
+      final exposesInternals =
+          message.contains('DioException') ||
+          message.contains('SocketException') ||
+          message.contains('ClientException');
+      if (message.isNotEmpty && !exposesInternals) return message;
       return 'Something went wrong. Please try again.';
     }
     final response = error.response;
@@ -211,6 +229,26 @@ class ApiClient {
       default:
         return 'Could not complete the request. Please retry.';
     }
+  }
+
+  /// Retry only idempotent reads, and only once. Mutating requests are never
+  /// repeated automatically because that could duplicate messages, calendar
+  /// events, assessments, or tracking sessions.
+  @visibleForTesting
+  static bool shouldRetryRead(DioException error) {
+    final request = error.requestOptions;
+    if (request.method.toUpperCase() != 'GET' ||
+        request.extra[_networkRetryKey] == true) {
+      return false;
+    }
+    if ({502, 503, 504}.contains(error.response?.statusCode)) return true;
+    return switch (error.type) {
+      DioExceptionType.connectionTimeout ||
+      DioExceptionType.receiveTimeout ||
+      DioExceptionType.sendTimeout ||
+      DioExceptionType.connectionError => true,
+      _ => false,
+    };
   }
 
   /// True when the backend says the current account may no longer read the
