@@ -226,8 +226,7 @@ class _FakeConsultationRepository implements ConsultationRepository {
       throw UnimplementedError();
 
   @override
-  Future<List<VetModel>> listVets({bool onlineOnly = false}) =>
-      throw UnimplementedError();
+  Future<List<VetModel>> listVets({bool onlineOnly = false}) async => [];
 
   @override
   Future<List<VeterinaryProviderModel>> listProviders({

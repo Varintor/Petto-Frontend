@@ -114,7 +114,18 @@ class ConsultationController extends ChangeNotifier {
     required int veterinarianId,
     required String? realtimeAccessToken,
   }) async {
-    await loadVetConsultations();
+    await _guard(() async {
+      _consultations = _sortVetConsultations(
+        await repository.listVetConsultations(),
+      );
+      try {
+        _vets = await repository.listVets();
+      } catch (_) {
+        // Profile metadata is secondary. A temporary profile read failure
+        // must never make the consultation inbox unavailable to the vet.
+        _vets = [];
+      }
+    });
     await _watchVetInbox(
       veterinarianId: veterinarianId,
       accessToken: realtimeAccessToken,

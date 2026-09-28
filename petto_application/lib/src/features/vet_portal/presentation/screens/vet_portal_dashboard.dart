@@ -179,16 +179,54 @@ class _UrgentInboxBanner extends StatelessWidget {
   }
 }
 
-class _PatientsView extends StatelessWidget {
+class _PatientsView extends StatefulWidget {
   const _PatientsView({
     required this.selectedIndex,
     required this.compact,
     required this.onSelect,
+    required this.onRequestHealthCard,
+    required this.onOpenConsultation,
   });
 
   final int selectedIndex;
   final bool compact;
   final ValueChanged<int> onSelect;
+  final ValueChanged<_Patient> onRequestHealthCard;
+  final ValueChanged<_Patient> onOpenConsultation;
+
+  @override
+  State<_PatientsView> createState() => _PatientsViewState();
+}
+
+class _PatientsViewState extends State<_PatientsView> {
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
+  String _filter = 'all';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  bool _matchesFilter(_Patient patient) {
+    final status = patient.consultation.status.toLowerCase();
+    return switch (_filter) {
+      'urgent' => patient.consultation.priority.toLowerCase() == 'urgent',
+      'open' => !patient.consultation.isClosed,
+      'closed' => patient.consultation.isClosed,
+      _ => true,
+    };
+  }
+
+  bool _matchesQuery(_Patient patient) {
+    final query = _query.trim().toLowerCase();
+    if (query.isEmpty) return true;
+    return patient.name.toLowerCase().contains(query) ||
+        patient.owner.toLowerCase().contains(query) ||
+        patient.species.toLowerCase().contains(query) ||
+        patient.note.toLowerCase().contains(query);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -210,7 +248,21 @@ class _PatientsView extends StatelessWidget {
                 'No assigned patients yet. Patients appear after an owner starts a consultation.',
           );
         }
-        final safeIndex = selectedIndex.clamp(0, patients.length - 1);
+        final filteredPatients = patients
+            .where(
+              (patient) => _matchesFilter(patient) && _matchesQuery(patient),
+            )
+            .toList(growable: false);
+        final preferredIndex = widget.selectedIndex.clamp(
+          0,
+          patients.length - 1,
+        );
+        final preferredPatient = patients[preferredIndex];
+        final selectedPatient = filteredPatients.contains(preferredPatient)
+            ? preferredPatient
+            : filteredPatients.isEmpty
+            ? null
+            : filteredPatients.first;
         final list = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -219,21 +271,73 @@ class _PatientsView extends StatelessWidget {
               subtitle: 'Pets assigned through Petto consultations.',
             ),
             const SizedBox(height: 14),
-            for (var i = 0; i < patients.length; i++)
+            TextField(
+              key: const Key('vet-patient-search'),
+              controller: _searchController,
+              onChanged: (value) => setState(() => _query = value),
+              decoration: InputDecoration(
+                hintText: 'Search pet, owner, species...',
+                prefixIcon: const Icon(Icons.search_rounded),
+                suffixIcon: _query.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Clear search',
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _query = '');
+                        },
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final option in const [
+                  ('all', 'All'),
+                  ('urgent', 'Urgent'),
+                  ('open', 'Open'),
+                  ('closed', 'Closed'),
+                ])
+                  ChoiceChip(
+                    label: Text(option.$2),
+                    selected: _filter == option.$1,
+                    onSelected: (_) => setState(() => _filter = option.$1),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            if (filteredPatients.isEmpty)
+              const _VetLoadState(
+                message: 'No patients match the current search or filter.',
+              ),
+            for (final patient in filteredPatients)
               _PatientRow(
-                patient: patients[i],
-                selected: !compact && i == safeIndex,
-                onTap: () => onSelect(i),
+                patient: patient,
+                selected: !widget.compact && patient == selectedPatient,
+                onTap: () => widget.onSelect(patients.indexOf(patient)),
               ),
           ],
         );
-        if (compact) return _VetScroll(child: list);
+        if (widget.compact) return _VetScroll(child: list);
         return Row(
           children: [
             SizedBox(width: 390, child: _VetScroll(child: list)),
             Expanded(
               child: _VetScroll(
-                child: _PatientDetails(patient: patients[safeIndex]),
+                child: selectedPatient == null
+                    ? const _VetLoadState(
+                        message: 'Select a patient to review their record.',
+                      )
+                    : _PatientDetails(
+                        patient: selectedPatient,
+                        onRequestHealthCard: () =>
+                            widget.onRequestHealthCard(selectedPatient),
+                        onOpenConsultation: () =>
+                            widget.onOpenConsultation(selectedPatient),
+                      ),
               ),
             ),
           ],

@@ -72,14 +72,19 @@ class _VetPortalScreenState extends State<VetPortalScreen> {
   }
 
   void _openPatient(int index, bool compact) {
-    final patients = _patientsFromConsultations(
-      context.read<ConsultationController>().consultations,
-    );
+    final controller = context.read<ConsultationController>();
+    final patients = _patientsFromConsultations(controller.consultations);
     if (index < 0 || index >= patients.length) return;
+    final patient = patients[index];
+    unawaited(_activatePatient(patient));
     if (compact) {
       Navigator.of(context).push(
         PettoPageRoute(
-          builder: (_) => _PatientDetailsScreen(patient: patients[index]),
+          builder: (_) => _PatientDetailsScreen(
+            patient: patient,
+            onRequestHealthCard: () => _requestHealthCard(patient),
+            onOpenConsultation: () => _openPatientConsultation(patient, true),
+          ),
         ),
       );
       return;
@@ -88,6 +93,53 @@ class _VetPortalScreenState extends State<VetPortalScreen> {
       _selectedPatient = index;
       _section = _VetSection.patients;
     });
+  }
+
+  Future<void> _activatePatient(_Patient patient) async {
+    final controller = context.read<ConsultationController>();
+    if (controller.active?.id == patient.consultation.id) return;
+    await controller.openConsultation(
+      patient.consultation,
+      realtimeAccessToken: context.read<AuthController>().token,
+    );
+  }
+
+  Future<void> _requestHealthCard(_Patient patient) async {
+    await _activatePatient(patient);
+    if (!mounted) return;
+    final controller = context.read<ConsultationController>();
+    final sent = await controller.sendMessage(
+      "Please share ${patient.name}'s Pet Health Card so I can review the latest health information.",
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          sent
+              ? 'Health Card request sent to ${patient.owner}.'
+              : (controller.error ?? 'Could not request the Health Card.'),
+        ),
+      ),
+    );
+  }
+
+  void _openPatientConsultation(_Patient patient, bool compact) {
+    final consultations = context.read<ConsultationController>().consultations;
+    final index = consultations.indexWhere(
+      (item) => item.id == patient.consultation.id,
+    );
+    if (index >= 0) _openMessage(index, compact);
+  }
+
+  void _selectSection(_VetSection value, {required bool compact}) {
+    setState(() => _section = value);
+    if (value != _VetSection.patients) return;
+    final patients = _patientsFromConsultations(
+      context.read<ConsultationController>().consultations,
+    );
+    if (patients.isEmpty) return;
+    final safeIndex = _selectedPatient.clamp(0, patients.length - 1);
+    unawaited(_activatePatient(patients[safeIndex]));
   }
 
   void _openMessage(int index, bool compact) {
@@ -128,7 +180,8 @@ class _VetPortalScreenState extends State<VetPortalScreen> {
                       _VetSidebar(
                         section: _section,
                         vetName: _vetName,
-                        onSelect: (value) => setState(() => _section = value),
+                        onSelect: (value) =>
+                            _selectSection(value, compact: false),
                         onLogout: _logout,
                       ),
                     Expanded(
@@ -171,6 +224,12 @@ class _VetPortalScreenState extends State<VetPortalScreen> {
                                     compact: !desktop,
                                     onSelect: (index) =>
                                         _openPatient(index, !desktop),
+                                    onRequestHealthCard: _requestHealthCard,
+                                    onOpenConsultation: (patient) =>
+                                        _openPatientConsultation(
+                                          patient,
+                                          !desktop,
+                                        ),
                                   ),
                                   _VetSection.messages => _BackendMessagesView(
                                     selectedIndex: _selectedMessage,
@@ -179,6 +238,10 @@ class _VetPortalScreenState extends State<VetPortalScreen> {
                                         _openMessage(index, !desktop),
                                   ),
                                   _VetSection.profile => _ProfileView(
+                                    vetId: context
+                                        .read<AuthController>()
+                                        .currentUser
+                                        ?.id,
                                     vetName: _vetName,
                                     email:
                                         context
@@ -196,7 +259,7 @@ class _VetPortalScreenState extends State<VetPortalScreen> {
                             _VetBottomNav(
                               section: _section,
                               onSelect: (value) =>
-                                  setState(() => _section = value),
+                                  _selectSection(value, compact: true),
                             ),
                         ],
                       ),
