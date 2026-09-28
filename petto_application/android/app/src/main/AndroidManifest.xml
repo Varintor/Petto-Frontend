@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
     <!-- Scheduled mission/calendar reminders must survive device restarts. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- Android 13+ requires explicit runtime notification permission. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- Requested at runtime; the app falls back to inexact alarms if denied. -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <!-- Location for Feature 4 (Mode A walk tracking) -->
@@ -21,6 +23,9 @@
         android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- Optional writable NFC tag for the revocable public Pet Health Card. -->
+    <uses-permission android:name="android.permission.NFC" />
+    <uses-feature android:name="android.hardware.nfc" android:required="false" />
 
     <application
         android:label="Petto"

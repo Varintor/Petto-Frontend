@@ -4,8 +4,8 @@ import '../../../../core/config/app_config.dart';
 import '../../../../core/network/api_client.dart';
 
 /// Paired tracking device (BLE/GPS collar) as returned by the backend.
-/// Only the LATEST position is kept server-side (live-map pin) — the raw
-/// route is never persisted (proposal privacy rule).
+/// The latest position drives the live-map pin. Recent owner-only telemetry is
+/// retained for seven days for route and motion trends, then pruned on ingest.
 class DeviceModel {
   final int id;
   final int petId;
@@ -172,9 +172,9 @@ class MotionSummaryModel {
   );
 }
 
-/// Pairing + live-position API for Mode B tracking (SRS-F4-035..038).
-/// The actual BLE scan/GATT link (flutter_blue_plus) is the Progress II work
-/// item; this repository already speaks the backend contract it will feed.
+/// Pairing, telemetry, alert and motion-summary API for Mode B tracking.
+/// Native BLE/GATT concerns stay in BleGpsService; this repository only owns
+/// the authenticated backend contract.
 class TelemetryResultModel {
   const TelemetryResultModel({
     required this.device,

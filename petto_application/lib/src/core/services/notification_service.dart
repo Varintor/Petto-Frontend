@@ -169,6 +169,24 @@ class NotificationService {
     await _plugin.cancel(calendarEventId(eventId));
   }
 
+  /// Sends an immediate notification for physical-device acceptance testing.
+  /// The UI exposes this only in debug builds; production reminders continue
+  /// to be driven by missions and calendar events.
+  Future<void> showAcceptanceTestNotification() async {
+    if (!supported) {
+      debugPrint('[notif] acceptance test notification (unsupported platform)');
+      return;
+    }
+    await init();
+    await _androidScheduleMode(requestExact: false);
+    await _plugin.show(
+      9901,
+      'Petto notification test',
+      'Local notifications are working on this device.',
+      _details(channelId: 'diagnostics', channelName: 'Device checks'),
+    );
+  }
+
   Future<void> _scheduleDaily({
     required int id,
     required int hour,

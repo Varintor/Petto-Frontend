@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -10,8 +10,10 @@ import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/config/app_config.dart';
+import '../../../../core/network/api_client.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../../../core/services/location_service.dart';
+import '../../../../core/services/nfc_pet_card_service.dart';
 import '../../../../core/services/weather_service.dart';
 import '../../../../core/navigation/petto_transitions.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -673,7 +675,9 @@ class _HomeScreenState extends State<HomeScreen> {
       await _loadPets();
       messenger.showSnackBar(SnackBar(content: Text('${result.name} added!')));
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Failed to add pet: $e')));
+      messenger.showSnackBar(
+        SnackBar(content: Text(ApiClient.describeError(e))),
+      );
     }
   }
 
@@ -1304,6 +1308,30 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
+          if (kDebugMode && !kIsWeb) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              key: const Key('send-test-notification'),
+              onPressed: () async {
+                try {
+                  await NotificationService.instance
+                      .showAcceptanceTestNotification();
+                  if (context.mounted) {
+                    showTopAlert(context, 'Test notification sent.');
+                  }
+                } catch (_) {
+                  if (context.mounted) {
+                    showTopAlert(
+                      context,
+                      'Could not send the test notification. Check device permissions.',
+                    );
+                  }
+                }
+              },
+              icon: const Icon(Icons.notification_add_rounded),
+              label: const Text('Send test notification'),
+            ),
+          ],
           const SizedBox(height: 20),
           Row(
             children: [
