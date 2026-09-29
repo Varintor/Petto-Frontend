@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../../core/network/api_client.dart';
 import '../../data/repositories/device_repository.dart';
@@ -339,9 +340,10 @@ class DeviceTrackingController extends ChangeNotifier {
         batteryPercent: anomaly ? 18 : 82,
         sessionDurationMinutes: anomaly ? null : 18,
         sessionDistanceMeters: anomaly ? null : 1100,
-        sessionId: anomaly
-            ? null
-            : 'demo-${device.id}-${DateTime.now().millisecondsSinceEpoch}',
+        // The backend contract uses UUID session identifiers so repeated
+        // uploads can be deduplicated safely. A display-oriented label such
+        // as `demo-<id>-<timestamp>` is rejected by Pydantic with HTTP 422.
+        sessionId: anomaly ? null : const Uuid().v4(),
       );
       _devices = [
         result.device,

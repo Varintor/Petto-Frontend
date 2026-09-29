@@ -219,6 +219,16 @@ class ApiClient {
     final data = response?.data;
     final detail = data is Map ? data['detail'] : null;
     if (detail is String && detail.trim().isNotEmpty) return detail;
+    if (detail is List) {
+      final messages = detail
+          .whereType<Map>()
+          .map((item) => item['msg'])
+          .whereType<String>()
+          .map((message) => message.trim())
+          .where((message) => message.isNotEmpty)
+          .toSet();
+      if (messages.isNotEmpty) return messages.join('\n');
+    }
     switch (error.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.receiveTimeout:
