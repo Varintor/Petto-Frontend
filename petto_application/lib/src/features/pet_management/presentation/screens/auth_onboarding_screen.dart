@@ -258,12 +258,17 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     }
   }
 
-  void _handleGoogleLogin() {
+  Future<void> _handleGoogleLogin() async {
     FocusManager.instance.primaryFocus?.unfocus();
+    final auth = context.read<AuthController>();
+    final launched = await auth.loginWithGoogle();
+    if (!mounted) return;
     showTopAlert(
       context,
-      'Google sign-in is being connected.',
-      icon: Icons.info_outline_rounded,
+      launched
+          ? 'Complete sign-in in the Google window.'
+          : auth.error ?? 'Could not start Google sign-in. Please try again.',
+      icon: launched ? Icons.open_in_browser_rounded : Icons.error_outline,
     );
   }
 
