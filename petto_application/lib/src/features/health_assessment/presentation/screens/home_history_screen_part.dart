@@ -201,14 +201,12 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
         notes: notes.text,
       );
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              saved
-                  ? 'Health profile updated.'
-                  : 'Could not update health profile.',
-            ),
-          ),
+        showTopAlert(
+          context,
+          saved
+              ? 'Health profile updated.'
+              : 'Could not update health profile.',
+          icon: saved ? Icons.check_rounded : Icons.error_outline_rounded,
         );
       }
     }
@@ -259,6 +257,7 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
               18 + MediaQuery.viewInsetsOf(context).bottom,
             ),
             child: SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -344,6 +343,9 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
                   TextField(
                     controller: contact,
                     maxLength: 255,
+                    keyboardType: TextInputType.phone,
+                    textInputAction: TextInputAction.next,
+                    onSubmitted: (_) => FocusScope.of(context).nextFocus(),
                     decoration: _publicCardInputDecoration(
                       label: 'Emergency contact',
                       icon: Icons.contact_phone_rounded,
@@ -355,6 +357,9 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
                     maxLength: 2000,
                     minLines: 2,
                     maxLines: 3,
+                    keyboardType: TextInputType.multiline,
+                    textCapitalization: TextCapitalization.sentences,
+                    textInputAction: TextInputAction.newline,
                     decoration: _publicCardInputDecoration(
                       label: 'Emergency notes',
                       icon: Icons.medical_information_rounded,
@@ -398,14 +403,14 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
         if (success && token != null) {
           await _showPublicCardQr(context, token);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                success
-                    ? 'Settings saved. Rotate the link to display its QR on this device.'
-                    : 'Could not save the public card.',
-              ),
-            ),
+          showTopAlert(
+            context,
+            success
+                ? 'Settings saved. Rotate the link to display its QR on this device.'
+                : 'Could not save the public card.',
+            icon: success
+                ? Icons.info_outline_rounded
+                : Icons.error_outline_rounded,
           );
         }
       }
@@ -437,8 +442,10 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
     if (success && token != null) {
       await _showPublicCardQr(context, token);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not replace the public link.')),
+      showTopAlert(
+        context,
+        'Could not replace the public link.',
+        icon: Icons.error_outline_rounded,
       );
     }
   }
@@ -462,14 +469,10 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
     if (confirmed != true) return;
     final success = await controller.revokePublicCard();
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            success
-                ? 'Public card disabled.'
-                : 'Could not disable public card.',
-          ),
-        ),
+      showTopAlert(
+        context,
+        success ? 'Public card disabled.' : 'Could not disable public card.',
+        icon: success ? Icons.check_rounded : Icons.error_outline_rounded,
       );
     }
   }
@@ -604,10 +607,10 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
                       onPressed: () async {
                         await Clipboard.setData(ClipboardData(text: url));
                         if (dialogContext.mounted) {
-                          ScaffoldMessenger.of(dialogContext).showSnackBar(
-                            const SnackBar(
-                              content: Text('Private link copied.'),
-                            ),
+                          showTopAlert(
+                            dialogContext,
+                            'Private link copied.',
+                            icon: Icons.copy_rounded,
                           );
                         }
                       },
@@ -751,8 +754,10 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
     final detail = await controller.getDetail(entry);
     if (!context.mounted) return;
     if (detail == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not load this health record.')),
+      showTopAlert(
+        context,
+        'Could not load this health record.',
+        icon: Icons.error_outline_rounded,
       );
       return;
     }
@@ -863,7 +868,10 @@ class _NfcWriteDialogState extends State<_NfcWriteDialog> {
           ),
           if (result == null) ...[
             const SizedBox(height: 18),
-            const LinearProgressIndicator(),
+            const SizedBox(
+              width: 76,
+              child: PettoButtonProgress(onDark: false, width: 76, height: 6),
+            ),
           ],
         ],
       ),
@@ -928,9 +936,7 @@ class _HealthEditDialog extends StatelessWidget {
             colors: [Color(0xFFFFFEFB), Color(0xFFFFF5ED)],
           ),
           borderRadius: BorderRadius.circular(30),
-          border: Border.all(
-            color: AppTheme.primaryColor.withValues(alpha: 0.12),
-          ),
+          border: Border.all(color: Colors.white, width: 3),
           boxShadow: [
             BoxShadow(
               color: AppTheme.primaryColor.withValues(alpha: 0.12),
@@ -940,6 +946,7 @@ class _HealthEditDialog extends StatelessWidget {
           ],
         ),
         child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1120,9 +1127,7 @@ class _HealthDateRangeDialogState extends State<_HealthDateRangeDialog> {
             colors: [Color(0xFFFFFEFB), Color(0xFFFFF6EE)],
           ),
           borderRadius: BorderRadius.circular(30),
-          border: Border.all(
-            color: AppTheme.primaryColor.withValues(alpha: 0.12),
-          ),
+          border: Border.all(color: Colors.white, width: 3),
           boxShadow: [
             BoxShadow(
               color: AppTheme.primaryColor.withValues(alpha: 0.13),
@@ -1346,6 +1351,17 @@ class _HealthEditField extends StatelessWidget {
   Widget build(BuildContext context) => TextField(
     controller: controller,
     maxLines: maxLines,
+    keyboardType: maxLines > 1 ? TextInputType.multiline : TextInputType.text,
+    textCapitalization: TextCapitalization.sentences,
+    textInputAction: maxLines > 1
+        ? TextInputAction.newline
+        : TextInputAction.next,
+    onSubmitted: maxLines > 1
+        ? null
+        : (_) => FocusScope.of(context).nextFocus(),
+    scrollPadding: EdgeInsets.only(
+      bottom: MediaQuery.viewInsetsOf(context).bottom + 140,
+    ),
     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
       color: AppTheme.secondaryText,
       fontWeight: FontWeight.w700,
@@ -1512,9 +1528,7 @@ class _HealthRecordDetailDialog extends StatelessWidget {
             colors: [Color(0xFFFFFEFB), Color(0xFFFFF6EE)],
           ),
           borderRadius: BorderRadius.circular(30),
-          border: Border.all(
-            color: AppTheme.primaryColor.withValues(alpha: 0.12),
-          ),
+          border: Border.all(color: Colors.white, width: 3),
           boxShadow: [
             BoxShadow(
               color: AppTheme.primaryColor.withValues(alpha: 0.13),
@@ -2049,9 +2063,12 @@ class _PublicHealthCardPanel extends StatelessWidget {
               const SizedBox(
                 width: 38,
                 height: 38,
-                child: Padding(
-                  padding: EdgeInsets.all(10),
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                child: Center(
+                  child: PettoButtonProgress(
+                    onDark: false,
+                    width: 22,
+                    height: 5,
+                  ),
                 ),
               )
             else
@@ -2160,10 +2177,10 @@ class _PublicHealthCardPanel extends StatelessWidget {
               if (busy)
                 const Padding(
                   padding: EdgeInsets.only(left: 8, top: 10),
-                  child: SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                  child: PettoButtonProgress(
+                    onDark: false,
+                    width: 22,
+                    height: 5,
                   ),
                 ),
             ],

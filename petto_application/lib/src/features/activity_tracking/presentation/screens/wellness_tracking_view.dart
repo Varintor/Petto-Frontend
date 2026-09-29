@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/navigation/petto_transitions.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/petto_loading.dart';
+import '../../../../core/widgets/top_alert.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../controllers/activity_tracking_controller.dart';
 import '../controllers/device_tracking_controller.dart';
@@ -107,14 +108,12 @@ class _WellnessTrackingViewState extends State<WellnessTrackingView> {
     if (candidate == null || !mounted) return;
     final connected = await controller.connectBle(petId, candidate);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          connected
-              ? '${candidate.name} connected. Waiting for GPS data.'
-              : 'Could not connect to ${candidate.name}.',
-        ),
-      ),
+    showTopAlert(
+      context,
+      connected
+          ? '${candidate.name} connected. Waiting for GPS data.'
+          : 'Could not connect to ${candidate.name}.',
+      icon: connected ? Icons.check_rounded : Icons.error_outline_rounded,
     );
   }
 
@@ -290,14 +289,14 @@ class _WellnessTrackingViewState extends State<WellnessTrackingView> {
                   onPressed: () async {
                     final paired = await deviceController.pairDemo(petId);
                     if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          paired
-                              ? 'Simulator paired.'
-                              : 'Could not pair the simulator.',
-                        ),
-                      ),
+                    showTopAlert(
+                      context,
+                      paired
+                          ? 'Simulator paired.'
+                          : 'Could not pair the simulator.',
+                      icon: paired
+                          ? Icons.check_rounded
+                          : Icons.error_outline_rounded,
                     );
                   },
                 ),

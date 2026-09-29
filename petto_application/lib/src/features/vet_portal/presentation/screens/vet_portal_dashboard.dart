@@ -274,6 +274,8 @@ class _PatientsViewState extends State<_PatientsView> {
               key: const Key('vet-patient-search'),
               controller: _searchController,
               onChanged: (value) => setState(() => _query = value),
+              textInputAction: TextInputAction.search,
+              onSubmitted: (_) => FocusScope.of(context).unfocus(),
               decoration: InputDecoration(
                 hintText: 'Search pet, owner, species...',
                 prefixIcon: const Icon(Icons.search_rounded),
@@ -321,25 +323,33 @@ class _PatientsViewState extends State<_PatientsView> {
           ],
         );
         if (widget.compact) return _VetScroll(child: list);
-        return Row(
-          children: [
-            SizedBox(width: 390, child: _VetScroll(child: list)),
-            Expanded(
-              child: _VetScroll(
-                child: selectedPatient == null
-                    ? const _VetLoadState(
-                        message: 'Select a patient to review their record.',
-                      )
-                    : _PatientDetails(
-                        patient: selectedPatient,
-                        onRequestHealthCard: () =>
-                            widget.onRequestHealthCard(selectedPatient),
-                        onOpenConsultation: () =>
-                            widget.onOpenConsultation(selectedPatient),
-                      ),
-              ),
-            ),
-          ],
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final listWidth = (constraints.maxWidth * 0.38).clamp(280.0, 390.0);
+            return Row(
+              children: [
+                SizedBox(
+                  width: listWidth,
+                  child: _VetScroll(child: list),
+                ),
+                Expanded(
+                  child: _VetScroll(
+                    child: selectedPatient == null
+                        ? const _VetLoadState(
+                            message: 'Select a patient to review their record.',
+                          )
+                        : _PatientDetails(
+                            patient: selectedPatient,
+                            onRequestHealthCard: () =>
+                                widget.onRequestHealthCard(selectedPatient),
+                            onOpenConsultation: () =>
+                                widget.onOpenConsultation(selectedPatient),
+                          ),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -386,11 +396,19 @@ class _BackendMessagesView extends StatelessWidget {
           onSelect: onSelect,
         );
         if (compact) return _VetScroll(child: list);
-        return Row(
-          children: [
-            SizedBox(width: 390, child: _VetScroll(child: list)),
-            const Expanded(child: _BackendConversationPanel()),
-          ],
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final listWidth = (constraints.maxWidth * 0.38).clamp(280.0, 390.0);
+            return Row(
+              children: [
+                SizedBox(
+                  width: listWidth,
+                  child: _VetScroll(child: list),
+                ),
+                const Expanded(child: _BackendConversationPanel()),
+              ],
+            );
+          },
         );
       },
     );
@@ -502,8 +520,7 @@ class _ConsultationRow extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         _MiniTimePill(
-                          text:
-                              '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}',
+                          text: _compactConsultationTimestamp(timestamp),
                         ),
                       ],
                     ),
@@ -531,6 +548,35 @@ class _ConsultationRow extends StatelessWidget {
       ),
     );
   }
+}
+
+String _compactConsultationTimestamp(DateTime value) {
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  final timestamp = value.toLocal();
+  final now = DateTime.now();
+  final time =
+      '${timestamp.hour.toString().padLeft(2, '0')}:'
+      '${timestamp.minute.toString().padLeft(2, '0')}';
+  final isToday =
+      timestamp.year == now.year &&
+      timestamp.month == now.month &&
+      timestamp.day == now.day;
+  return isToday
+      ? 'Today · $time'
+      : '${timestamp.day} ${months[timestamp.month - 1]} · $time';
 }
 
 class _VetLoadState extends StatelessWidget {

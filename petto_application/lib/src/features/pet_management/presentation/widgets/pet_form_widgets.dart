@@ -11,6 +11,9 @@ class PettoTextField extends StatelessWidget {
   final TextInputType keyboardType;
   final String? Function(String?)? validator;
   final Widget? suffix;
+  final TextInputAction? textInputAction;
+  final TextCapitalization textCapitalization;
+  final Iterable<String>? autofillHints;
 
   const PettoTextField({
     super.key,
@@ -21,6 +24,9 @@ class PettoTextField extends StatelessWidget {
     this.keyboardType = TextInputType.text,
     this.validator,
     this.suffix,
+    this.textInputAction,
+    this.textCapitalization = TextCapitalization.sentences,
+    this.autofillHints,
   });
 
   @override
@@ -29,6 +35,16 @@ class PettoTextField extends StatelessWidget {
       controller: controller,
       obscureText: obscure,
       keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      textCapitalization: textCapitalization,
+      autofillHints: autofillHints,
+      onFieldSubmitted: (_) {
+        if (textInputAction == TextInputAction.next) {
+          FocusScope.of(context).nextFocus();
+        } else {
+          FocusScope.of(context).unfocus();
+        }
+      },
       validator: validator,
       scrollPadding: EdgeInsets.only(
         bottom: MediaQuery.viewInsetsOf(context).bottom + 120,

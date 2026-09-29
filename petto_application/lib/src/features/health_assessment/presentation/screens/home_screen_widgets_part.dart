@@ -186,6 +186,8 @@ class _BottomOverlay extends StatelessWidget {
         decoration: AppTheme.glassCardDecoration(
           color: AppTheme.surfaceColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(42)),
+          borderColor: Colors.white,
+          borderWidth: 3,
         ),
         child: Stack(
           children: [
@@ -4174,7 +4176,7 @@ class _SelectionChip extends StatelessWidget {
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOutCubic,
         decoration: BoxDecoration(
-          color: selected ? _homeRoseSurface : _homeCreamSurface,
+          color: selected ? AppTheme.primaryColor : _homeCreamSurface,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: Colors.white, width: 3),
           boxShadow: [
@@ -4197,7 +4199,7 @@ class _SelectionChip extends StatelessWidget {
               height: 42,
               decoration: BoxDecoration(
                 color: selected
-                    ? Colors.white.withValues(alpha: 0.86)
+                    ? Colors.white.withValues(alpha: 0.96)
                     : _homeRoseSurface,
                 borderRadius: BorderRadius.circular(999),
                 border: Border.all(color: Colors.white, width: 2),
@@ -4208,9 +4210,7 @@ class _SelectionChip extends StatelessWidget {
             Text(
               label,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: selected
-                    ? AppTheme.secondaryText
-                    : AppTheme.secondaryText,
+                color: selected ? Colors.white : AppTheme.secondaryText,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.1,
               ),
@@ -4411,7 +4411,7 @@ class _MiniSelectionCard extends StatelessWidget {
         width: 96,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
         decoration: BoxDecoration(
-          color: selected ? _homeRoseSurface : _homeCreamSurface,
+          color: selected ? AppTheme.primaryColor : _homeCreamSurface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Colors.white, width: 3),
           boxShadow: [
@@ -4429,16 +4429,14 @@ class _MiniSelectionCard extends StatelessWidget {
           children: [
             Icon(
               selected ? Icons.visibility_rounded : Icons.star_border_rounded,
-              color: selected ? AppTheme.primaryColor : AppTheme.secondaryText,
+              color: selected ? Colors.white : AppTheme.secondaryText,
             ),
             const SizedBox(height: 8),
             Text(
               label.toUpperCase(),
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: selected
-                    ? AppTheme.primaryColor
-                    : AppTheme.secondaryText,
+                color: selected ? Colors.white : AppTheme.secondaryText,
                 letterSpacing: 0.6,
               ),
             ),
@@ -4475,7 +4473,7 @@ class _AccessoryCard extends StatelessWidget {
         child: Container(
           width: 156,
           decoration: BoxDecoration(
-            color: equipped ? _homeRoseSurface : _homeCreamSurface,
+            color: equipped ? AppTheme.primaryColor : _homeCreamSurface,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: Colors.white, width: 3),
             boxShadow: [
@@ -4510,7 +4508,7 @@ class _AccessoryCard extends StatelessWidget {
                   Text(
                     accessory.name.toUpperCase(),
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppTheme.secondaryText,
+                      color: equipped ? Colors.white : AppTheme.secondaryText,
                       letterSpacing: 0.6,
                     ),
                   ),

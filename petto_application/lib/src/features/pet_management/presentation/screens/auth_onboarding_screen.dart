@@ -892,6 +892,7 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
                   hint: 'Email',
                   controller: _email,
                   keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
                 ),
                 const SizedBox(height: 14),
                 _IconInputField(
@@ -899,6 +900,8 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
                   hint: 'Password',
                   controller: _password,
                   obscure: true,
+                  keyboardType: TextInputType.visiblePassword,
+                  textInputAction: TextInputAction.next,
                 ),
                 const SizedBox(height: 14),
                 _IconInputField(
@@ -906,6 +909,8 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
                   hint: 'Confirm Password',
                   controller: _confirmPassword,
                   obscure: true,
+                  keyboardType: TextInputType.visiblePassword,
+                  textInputAction: TextInputAction.done,
                 ),
                 if (_errorMessage != null) ...[
                   const SizedBox(height: 12),
@@ -2394,6 +2399,7 @@ class _DetailsStep extends StatelessWidget {
                           keyboardType: const TextInputType.numberWithOptions(
                             decimal: true,
                           ),
+                          textInputAction: TextInputAction.next,
                           suffixText: 'kg',
                         ),
                         const SizedBox(height: 14),
@@ -4299,6 +4305,9 @@ class _BigInput extends StatelessWidget {
           controller: controller,
           autofocus: autofocus,
           onChanged: onChanged,
+          textCapitalization: TextCapitalization.words,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => FocusScope.of(context).unfocus(),
           scrollPadding: EdgeInsets.only(
             bottom: MediaQuery.viewInsetsOf(context).bottom + 140,
           ),
@@ -4375,6 +4384,7 @@ class _IconInputField extends StatelessWidget {
     this.obscure = false,
     this.focusNode,
     this.suffixText,
+    this.textInputAction,
   });
 
   final IconData icon;
@@ -4384,6 +4394,7 @@ class _IconInputField extends StatelessWidget {
   final bool obscure;
   final FocusNode? focusNode;
   final String? suffixText;
+  final TextInputAction? textInputAction;
 
   @override
   Widget build(BuildContext context) {
@@ -4394,6 +4405,17 @@ class _IconInputField extends StatelessWidget {
         focusNode: focusNode,
         keyboardType: keyboardType,
         obscureText: obscure,
+        textInputAction: textInputAction,
+        textCapitalization: obscure
+            ? TextCapitalization.none
+            : TextCapitalization.words,
+        onSubmitted: (_) {
+          if (textInputAction == TextInputAction.next) {
+            FocusScope.of(context).nextFocus();
+          } else {
+            FocusScope.of(context).unfocus();
+          }
+        },
         scrollPadding: EdgeInsets.only(
           bottom: MediaQuery.viewInsetsOf(context).bottom + 140,
         ),
@@ -4505,6 +4527,7 @@ class _BreedSuggestionFieldState extends State<_BreedSuggestionField> {
           hint: 'Breed (optional)',
           controller: controller,
           focusNode: focusNode,
+          textInputAction: TextInputAction.next,
         );
       },
       optionsViewBuilder: (context, onSelected, options) {
@@ -4599,6 +4622,7 @@ class _BloodTypeSuggestionFieldState extends State<_BloodTypeSuggestionField> {
           hint: 'Blood type (optional)',
           controller: controller,
           focusNode: focusNode,
+          textInputAction: TextInputAction.done,
         );
       },
       optionsViewBuilder: (context, onSelected, options) {

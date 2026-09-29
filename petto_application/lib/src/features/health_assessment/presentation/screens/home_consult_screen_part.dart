@@ -46,7 +46,7 @@ extension _HomeConsultScreenPart on _HomeScreenState {
   }
 
   void _startVetCall(_VetData vet) {
-    _showPreviewSnackBar('Calling ${vet.name}');
+    _showPreviewAlert('Calling ${vet.name}');
   }
 
   void _sharePetProfileWithVet() {
@@ -163,7 +163,7 @@ extension _HomeConsultScreenPart on _HomeScreenState {
     if (vet == null) {
       final onlineVets = _HomeScreenState._vets.where((v) => v.online);
       if (onlineVets.isEmpty) {
-        _showPreviewSnackBar('No online vet available');
+        _showPreviewAlert('No online vet available');
         return;
       }
       vet = onlineVets.first;

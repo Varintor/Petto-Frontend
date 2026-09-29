@@ -83,10 +83,10 @@ class _BackendConversationPanelState extends State<_BackendConversationPanel> {
     );
     if (schedule == null || !mounted) return;
     if (!schedule.startsAt.isAfter(DateTime.now())) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Choose an appointment time in the future.'),
-        ),
+      showTopAlert(
+        context,
+        'Choose an appointment time in the future.',
+        icon: Icons.info_outline_rounded,
       );
       return;
     }
@@ -114,8 +114,10 @@ class _BackendConversationPanelState extends State<_BackendConversationPanel> {
     );
     if (schedule == null || !mounted) return;
     if (!schedule.startsAt.isAfter(DateTime.now())) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Choose a time in the future.')),
+      showTopAlert(
+        context,
+        'Choose a time in the future.',
+        icon: Icons.info_outline_rounded,
       );
       return;
     }

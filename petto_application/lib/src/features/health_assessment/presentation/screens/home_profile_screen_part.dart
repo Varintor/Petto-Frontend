@@ -61,36 +61,56 @@ extension _HomeProfileScreenPart on _HomeScreenState {
                       child: _buildActivePetProfileMedia(),
                     ),
                     Positioned(
-                      right: -6,
-                      bottom: -6,
-                      child: InkWell(
-                        onTap: () => _showProfileImageSourceSheet(context),
-                        borderRadius: BorderRadius.circular(999),
-                        child: Ink(
-                          width: 56,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            color: AppTheme.secondaryColor,
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.95),
-                              width: 3,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.secondaryColor.withValues(
-                                  alpha: 0.18,
+                      right: -8,
+                      bottom: -8,
+                      child: Tooltip(
+                        message: 'Add or change profile photo',
+                        child: Semantics(
+                          button: true,
+                          label: 'Add or change profile photo',
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              key: const Key('profile-photo-button'),
+                              onTap: () =>
+                                  _showProfileImageSourceSheet(context),
+                              customBorder: const CircleBorder(),
+                              child: Ink(
+                                width: 54,
+                                height: 54,
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      AppTheme.primaryColor,
+                                      AppTheme.dangerColor,
+                                    ],
+                                  ),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 4,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppTheme.primaryColor.withValues(
+                                        alpha: 0.30,
+                                      ),
+                                      blurRadius: 18,
+                                      spreadRadius: -3,
+                                      offset: const Offset(0, 8),
+                                    ),
+                                  ],
                                 ),
-                                blurRadius: 16,
-                                offset: const Offset(0, 8),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.add_a_photo_rounded,
+                                    size: 23,
+                                    color: Colors.white,
+                                  ),
+                                ),
                               ),
-                            ],
-                          ),
-                          child: const Center(
-                            child: Icon(
-                              Icons.camera_alt_rounded,
-                              size: 24,
-                              color: Colors.white,
                             ),
                           ),
                         ),
@@ -214,10 +234,7 @@ extension _HomeProfileScreenPart on _HomeScreenState {
             decoration: BoxDecoration(
               color: AppTheme.surfaceColor,
               borderRadius: BorderRadius.circular(34),
-              border: Border.all(
-                color: AppTheme.primaryColor.withValues(alpha: 0.12),
-                width: 1.2,
-              ),
+              border: Border.all(color: Colors.white, width: 3),
               boxShadow: AppTheme.cardShadow,
             ),
             child: Column(

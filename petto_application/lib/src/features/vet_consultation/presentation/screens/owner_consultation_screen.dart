@@ -63,6 +63,7 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
   final _conversationScrollController = ScrollController();
   int? _visibleConsultationId;
   int _visibleConversationItemCount = -1;
+  double _lastKeyboardInset = 0;
   bool _sending = false;
   bool _includeLatestAssessment = false;
   bool _sharingAssessment = false;
@@ -121,6 +122,24 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
         curve: Curves.easeOut,
       );
     });
+  }
+
+  void _scheduleScrollForKeyboard(double keyboardInset) {
+    if ((_lastKeyboardInset - keyboardInset).abs() < 1) return;
+    _lastKeyboardInset = keyboardInset;
+    if (keyboardInset <= 0) return;
+
+    void scrollToLatest() {
+      if (!mounted || !_conversationScrollController.hasClients) return;
+      _conversationScrollController.animateTo(
+        _conversationScrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOutCubic,
+      );
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => scrollToLatest());
+    Future<void>.delayed(const Duration(milliseconds: 220), scrollToLatest);
   }
 
   Future<void> _startConsultation(
@@ -581,6 +600,8 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
     ConsultationController controller,
     ConsultationModel consultation,
   ) {
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    _scheduleScrollForKeyboard(keyboardInset);
     final hasConversationContent =
         controller.messages.isNotEmpty ||
         controller.appointments.isNotEmpty ||
@@ -696,8 +717,16 @@ class _OwnerConsultationScreenState extends State<OwnerConsultationScreen> {
         ),
         SafeArea(
           top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 8, 18, 132),
+          bottom: keyboardInset == 0,
+          child: AnimatedPadding(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            padding: EdgeInsets.fromLTRB(
+              18,
+              8,
+              18,
+              keyboardInset > 0 ? keyboardInset + 8 : 132,
+            ),
             child: consultation.isClosed
                 ? const _ClosedConsultationComposer()
                 : _MessageComposer(
@@ -1326,14 +1355,7 @@ class _OpeningChatView extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.6,
-                    color: AppTheme.primaryColor,
-                  ),
-                ),
+                const PettoButtonProgress(onDark: false, width: 26, height: 6),
               ],
             ),
           ),
@@ -2925,7 +2947,7 @@ class _ChatShareMenuButton extends StatelessWidget {
           child: _ShareMenuChoice(
             icon: sharingAssessment
                 ? Icons.hourglass_top_rounded
-                : Icons.auto_awesome_rounded,
+                : Icons.assignment_turned_in_rounded,
             label: 'AI assessment',
             surface: _assistantGoldSurface,
             foreground: _assistantGoldAccent,
@@ -2939,7 +2961,7 @@ class _ChatShareMenuButton extends StatelessWidget {
           child: _ShareMenuChoice(
             icon: sharingHealthCard
                 ? Icons.hourglass_top_rounded
-                : Icons.health_and_safety_rounded,
+                : Icons.badge_rounded,
             label: 'Health ID',
             surface: _assistantSageSurface,
             foreground: _assistantSageAccent,
@@ -3326,7 +3348,6 @@ class _OwnerMessageBubble extends StatelessWidget {
         ? 'Delivered'
         : 'Sent';
     final timeLabel = _friendlyTime(message.createdAt);
-    final isAi = message.isAiBriefing;
     return Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
       child: ConstrainedBox(
@@ -3337,8 +3358,6 @@ class _OwnerMessageBubble extends StatelessWidget {
           decoration: BoxDecoration(
             color: mine
                 ? AppTheme.primaryColor
-                : isAi
-                ? AppTheme.creamSurfaceColor.withValues(alpha: 0.92)
                 : AppTheme.surfaceColor.withValues(alpha: 0.98),
             borderRadius: BorderRadius.only(
               topLeft: const Radius.circular(22),
@@ -3349,8 +3368,7 @@ class _OwnerMessageBubble extends StatelessWidget {
             border: mine
                 ? null
                 : Border.all(
-                    color: (isAi ? AppTheme.accentColor : AppTheme.primaryColor)
-                        .withValues(alpha: 0.13),
+                    color: AppTheme.primaryColor.withValues(alpha: 0.13),
                   ),
             boxShadow: [
               BoxShadow(
@@ -3365,36 +3383,6 @@ class _OwnerMessageBubble extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (isAi)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 7),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: AppTheme.accentColor.withValues(alpha: 0.13),
-                          borderRadius: BorderRadius.circular(9),
-                        ),
-                        child: const Icon(
-                          Icons.auto_awesome_rounded,
-                          color: AppTheme.accentColor,
-                          size: 14,
-                        ),
-                      ),
-                      const SizedBox(width: 7),
-                      const Text(
-                        'AI briefing',
-                        style: TextStyle(
-                          color: AppTheme.secondaryText,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               Text(
                 message.content ?? 'Shared attachment',
                 style: TextStyle(

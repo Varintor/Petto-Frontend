@@ -105,6 +105,9 @@ class _AddVaccinationScreenState extends State<AddVaccinationScreen> {
                   // Vaccine Name
                   TextFormField(
                     controller: _vaccineNameController,
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
+                    onFieldSubmitted: (_) => FocusScope.of(context).nextFocus(),
                     scrollPadding: EdgeInsets.only(
                       bottom: MediaQuery.viewInsetsOf(context).bottom + 120,
                     ),
@@ -168,6 +171,9 @@ class _AddVaccinationScreenState extends State<AddVaccinationScreen> {
                   // Clinic Name
                   TextFormField(
                     controller: _clinicNameController,
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
+                    onFieldSubmitted: (_) => FocusScope.of(context).nextFocus(),
                     scrollPadding: EdgeInsets.only(
                       bottom: MediaQuery.viewInsetsOf(context).bottom + 120,
                     ),
@@ -183,6 +189,9 @@ class _AddVaccinationScreenState extends State<AddVaccinationScreen> {
                   // Notes
                   TextFormField(
                     controller: _notesController,
+                    keyboardType: TextInputType.multiline,
+                    textCapitalization: TextCapitalization.sentences,
+                    textInputAction: TextInputAction.newline,
                     scrollPadding: EdgeInsets.only(
                       bottom: MediaQuery.viewInsetsOf(context).bottom + 140,
                     ),
@@ -196,32 +205,34 @@ class _AddVaccinationScreenState extends State<AddVaccinationScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Submit Button
-                  if (!controller.isLoading)
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _submit,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          backgroundColor: Theme.of(context).primaryColor,
-                          foregroundColor: Colors.white,
-                        ),
-                        child: const Text(
-                          'บันทึกวัคซีน',
-                          style: TextStyle(fontSize: 16),
-                        ),
+                  // Keep saving feedback inside the action that started it.
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: controller.isLoading ? null : _submit,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Colors.white,
                       ),
-                    )
-                  else
-                    const Center(
-                      child: PettoInlineProgress(
-                        title: 'Saving vaccination',
-                        subtitle: 'Updating the health record.',
-                        icon: Icons.vaccines_rounded,
-                        compact: true,
-                      ),
+                      child: controller.isLoading
+                          ? const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                PettoButtonProgress(width: 28, height: 6),
+                                SizedBox(width: 10),
+                                Text(
+                                  'กำลังบันทึก...',
+                                  style: TextStyle(fontSize: 16),
+                                ),
+                              ],
+                            )
+                          : const Text(
+                              'บันทึกวัคซีน',
+                              style: TextStyle(fontSize: 16),
+                            ),
                     ),
+                  ),
                 ],
               ),
             ),

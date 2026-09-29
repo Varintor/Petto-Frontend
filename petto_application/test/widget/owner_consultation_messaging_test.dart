@@ -20,6 +20,7 @@ class _OwnerMessagingRepository implements ConsultationRepository {
   int? createdProviderId;
   String? createdPriority;
   bool? urgentAcknowledged;
+  int aiSummaryRequests = 0;
 
   @override
   Future<List<VetModel>> listVets({bool onlineOnly = false}) async => [vet];
@@ -136,6 +137,7 @@ class _OwnerMessagingRepository implements ConsultationRepository {
 
   @override
   Future<ChatMessageModel> requestAiSummary(int consultationId) async {
+    aiSummaryRequests += 1;
     final message = ChatMessageModel(
       id: 99,
       consultationId: consultationId,
@@ -250,7 +252,22 @@ void main() {
   testWidgets('owner starts a backend consultation and sends a message', (
     tester,
   ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetViewInsets);
+
     final repository = _OwnerMessagingRepository();
+    repository.messages.add(
+      ChatMessageModel(
+        id: 98,
+        consultationId: 12,
+        senderType: 'ai',
+        content: 'Assessment briefing',
+        createdAt: DateTime(2026, 8, 14),
+      ),
+    );
     final controller = ConsultationController(repository: repository);
 
     await tester.pumpWidget(
@@ -258,6 +275,7 @@ void main() {
         value: controller,
         child: const MaterialApp(
           home: Scaffold(
+            resizeToAvoidBottomInset: false,
             body: OwnerConsultationScreen(
               petId: 5,
               petName: 'Milo',
@@ -275,7 +293,8 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    expect(find.text('Assessment briefing'), findsOneWidget);
+    expect(find.text('Assessment briefing'), findsNothing);
+    expect(repository.aiSummaryRequests, 0);
     // HomeScreen overlays an approximately 80px persistent navigation bar.
     // The chat composer must stay above it or the owner cannot send messages.
     expect(
@@ -284,7 +303,27 @@ void main() {
         tester.view.physicalSize.height / tester.view.devicePixelRatio - 80,
       ),
     );
-    await tester.enterText(find.byType(TextField), 'Milo needs help.');
+
+    final composer = find.byWidgetPredicate(
+      (widget) =>
+          widget is TextField &&
+          widget.decoration?.hintText == 'Type a message...',
+    );
+    await tester.tap(composer);
+    await tester.showKeyboard(composer);
+    tester.view.viewInsets = const FakeViewPadding(bottom: 320);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(MediaQuery.viewInsetsOf(tester.element(composer)).bottom, 320);
+
+    final keyboardTop =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio - 320;
+    final composerBottom = tester.getBottomRight(composer).dy;
+    expect(composerBottom, lessThanOrEqualTo(keyboardTop));
+    expect(keyboardTop - composerBottom, inInclusiveRange(6, 20));
+    expect(tester.takeException(), isNull);
+
+    await tester.enterText(composer, 'Milo needs help.');
     await tester.tap(find.byIcon(Icons.send_rounded));
     await tester.pump();
     await tester.pump();
@@ -340,6 +379,26 @@ void main() {
 
     expect(calendarRefreshed, isTrue);
     expect(find.text('ACCEPTED'), findsOneWidget);
+    expect(
+      find.text('Added to Calendar with a 30-minute reminder.'),
+      findsNothing,
+    );
+
+    final acceptedAppointment = find.byKey(const ValueKey('appointment-91'));
+    await Scrollable.ensureVisible(
+      tester.element(acceptedAppointment),
+      alignment: 0.5,
+    );
+    await tester.pump();
+    await tester.tap(
+      find.descendant(of: acceptedAppointment, matching: find.byType(InkWell)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Added to Calendar with a 30-minute reminder.'),
+      findsOneWidget,
+    );
 
     await tester.pumpWidget(const SizedBox.shrink());
   });

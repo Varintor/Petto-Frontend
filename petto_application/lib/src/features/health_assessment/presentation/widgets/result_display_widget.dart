@@ -88,7 +88,8 @@ class ResultDisplayWidget extends StatelessWidget {
             decoration: BoxDecoration(
               color: risk.color.withValues(alpha: 0.09),
               borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: risk.color.withValues(alpha: 0.22)),
+              border: Border.all(color: Colors.white, width: 3),
+              boxShadow: AppTheme.subtleShadow,
             ),
             child: Row(
               children: [
@@ -98,6 +99,7 @@ class ResultDisplayWidget extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: risk.color,
                     borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: Colors.white, width: 2),
                   ),
                   child: Icon(risk.icon, color: Colors.white, size: 23),
                 ),
@@ -259,9 +261,8 @@ class ResultDisplayWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.surfaceColor.withValues(alpha: 0.98),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: AppTheme.primaryColor.withValues(alpha: 0.08),
-        ),
+        border: Border.all(color: Colors.white, width: 3),
+        boxShadow: AppTheme.subtleShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -297,9 +298,8 @@ class ResultDisplayWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.surfaceColor.withValues(alpha: 0.98),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: AppTheme.primaryColor.withValues(alpha: 0.08),
-        ),
+        border: Border.all(color: Colors.white, width: 3),
+        boxShadow: AppTheme.subtleShadow,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -360,7 +360,7 @@ class _AssessmentFailurePanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.dangerColor.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppTheme.dangerColor.withValues(alpha: 0.16)),
+        border: Border.all(color: Colors.white, width: 3),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -435,7 +435,7 @@ class _ResultAiAnalysisPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.surfaceColor.withValues(alpha: 0.99),
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: riskColor.withValues(alpha: 0.16)),
+        border: Border.all(color: Colors.white, width: 3),
         boxShadow: [
           BoxShadow(
             color: AppTheme.primaryColor.withValues(alpha: 0.045),
@@ -589,7 +589,7 @@ class _ResultAnalysisSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.045),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: color.withValues(alpha: 0.12)),
+        border: Border.all(color: Colors.white, width: 2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

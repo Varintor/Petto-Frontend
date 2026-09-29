@@ -119,6 +119,9 @@ extension _HomeScreenModalsPart on _HomeScreenState {
             TextField(
               controller: _notesController,
               maxLines: 5,
+              keyboardType: TextInputType.multiline,
+              textCapitalization: TextCapitalization.sentences,
+              textInputAction: TextInputAction.newline,
               scrollPadding: EdgeInsets.only(
                 bottom: MediaQuery.viewInsetsOf(context).bottom + 140,
               ),
@@ -132,7 +135,7 @@ extension _HomeScreenModalsPart on _HomeScreenState {
                 _update(() {
                   _showNotesModal = false;
                 });
-                _showPreviewSnackBar('Save Notes');
+                _showPreviewAlert('Save Notes');
               },
               child: const Text('Save Notes'),
             ),

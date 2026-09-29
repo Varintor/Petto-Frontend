@@ -120,7 +120,7 @@ extension _HomeWardrobeScreenPart on _HomeScreenState {
               width: 232,
               height: 232,
               decoration: BoxDecoration(
-                color: _homeRoseSurface,
+                color: AppTheme.surfaceColor,
                 borderRadius: BorderRadius.circular(42),
                 border: Border.all(color: Colors.white, width: 3),
                 boxShadow: [

@@ -136,9 +136,8 @@ class _PettoSkeletonCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.surfaceColor.withValues(alpha: 0.94),
         borderRadius: BorderRadius.circular(compact ? 22 : 26),
-        border: Border.all(
-          color: AppTheme.primaryColor.withValues(alpha: 0.08),
-        ),
+        border: Border.all(color: Colors.white, width: 3),
+        boxShadow: AppTheme.subtleShadow,
       ),
       child: Row(
         children: [
@@ -235,10 +234,6 @@ class PettoInlineProgress extends StatelessWidget {
     final muted = onDark
         ? Colors.white.withValues(alpha: 0.72)
         : AppTheme.mutedText;
-    final track = onDark
-        ? Colors.white.withValues(alpha: 0.18)
-        : AppTheme.primaryColor.withValues(alpha: 0.10);
-
     return Semantics(
       liveRegion: true,
       label: '$title${subtitle == null ? '' : ', $subtitle'}',
@@ -253,10 +248,8 @@ class PettoInlineProgress extends StatelessWidget {
           border: Border.all(
             color:
                 borderColor ??
-                (onDark
-                    ? Colors.white.withValues(alpha: 0.22)
-                    : AppTheme.primaryColor.withValues(alpha: 0.10)),
-            width: borderColor == null ? 1 : 3,
+                (onDark ? Colors.white.withValues(alpha: 0.45) : Colors.white),
+            width: onDark && borderColor == null ? 2 : 3,
           ),
           boxShadow: onDark ? null : AppTheme.subtleShadow,
         ),
@@ -317,26 +310,210 @@ class PettoInlineProgress extends StatelessWidget {
               ],
             ),
             SizedBox(height: compact ? 12 : 16),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(999),
-              child: Container(
-                height: compact ? 6 : 8,
-                color: track,
-                alignment: Alignment.centerLeft,
-                child: FractionallySizedBox(
-                  widthFactor: 0.62,
-                  child: Shimmer.fromColors(
-                    period: const Duration(milliseconds: 1150),
-                    baseColor: AppTheme.primaryColor,
-                    highlightColor: onDark
-                        ? AppTheme.roseSurfaceColor
-                        : AppTheme.secondaryColor,
-                    child: Container(color: AppTheme.primaryColor),
+            _PettoIndeterminateTrack(height: compact ? 5 : 7, onDark: onDark),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A quiet, centered loader for transitions where the whole screen is waiting.
+/// It deliberately avoids a large card so it does not look like page content.
+class PettoPageProgress extends StatelessWidget {
+  const PettoPageProgress({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.icon = Icons.pets_rounded,
+  });
+
+  final String title;
+  final String? subtitle;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      liveRegion: true,
+      label: '$title${subtitle == null ? '' : ', $subtitle'}',
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 330),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    color: AppTheme.blushSurfaceColor,
+                    borderRadius: BorderRadius.circular(26),
+                    border: Border.all(color: Colors.white, width: 3),
+                    boxShadow: AppTheme.subtleShadow,
+                  ),
+                  child: Icon(icon, color: AppTheme.primaryColor, size: 31),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: AppTheme.displayFontFamily,
+                    fontSize: 21,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.secondaryText,
                   ),
                 ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 5),
+                  Text(
+                    subtitle!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: AppTheme.sansFontFamily,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.mutedText,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 18),
+                const SizedBox(
+                  width: 76,
+                  child: _PettoIndeterminateTrack(height: 6),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A compact status row for loading inside an existing card, map, or panel.
+class PettoStatusProgress extends StatelessWidget {
+  const PettoStatusProgress({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.icon = Icons.sync_rounded,
+    this.onDark = false,
+  });
+
+  final String title;
+  final String? subtitle;
+  final IconData icon;
+  final bool onDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground = onDark ? Colors.white : AppTheme.secondaryText;
+    final muted = onDark
+        ? Colors.white.withValues(alpha: 0.72)
+        : AppTheme.mutedText;
+    return Semantics(
+      liveRegion: true,
+      label: '$title${subtitle == null ? '' : ', $subtitle'}',
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 390),
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+        decoration: AppTheme.glassCardDecoration(
+          color: onDark
+              ? Colors.black.withValues(alpha: 0.18)
+              : AppTheme.surfaceColor,
+          borderRadius: BorderRadius.circular(20),
+          borderColor: Colors.white,
+          borderWidth: onDark ? 2 : 3,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: onDark
+                    ? Colors.white.withValues(alpha: 0.14)
+                    : AppTheme.blushSurfaceColor,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: onDark ? 0.55 : 1),
+                  width: 2,
+                ),
+              ),
+              child: Icon(
+                icon,
+                size: 20,
+                color: onDark ? Colors.white : AppTheme.primaryColor,
               ),
             ),
+            const SizedBox(width: 11),
+            Flexible(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: AppTheme.displayFontFamily,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: foreground,
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 1),
+                    Text(
+                      subtitle!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: AppTheme.sansFontFamily,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w600,
+                        color: muted,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            SizedBox(
+              width: 30,
+              child: _PettoIndeterminateTrack(height: 5, onDark: onDark),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PettoIndeterminateTrack extends StatelessWidget {
+  const _PettoIndeterminateTrack({this.height = 6, this.onDark = false});
+
+  final double height;
+  final bool onDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(999),
+      child: LinearProgressIndicator(
+        minHeight: height,
+        backgroundColor: onDark
+            ? Colors.white.withValues(alpha: 0.18)
+            : AppTheme.primaryColor.withValues(alpha: 0.10),
+        valueColor: AlwaysStoppedAnimation<Color>(
+          onDark ? Colors.white : AppTheme.primaryColor,
         ),
       ),
     );

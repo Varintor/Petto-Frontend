@@ -40,7 +40,10 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _petNameController;
   final _symptomsController = TextEditingController();
+  final _symptomsFocusNode = FocusNode();
   final _scrollController = ScrollController();
+  double _lastKeyboardInset = 0;
+  bool _editingSymptoms = false;
   String _selectedPetType = 'dog';
   String? _selectedPetId;
   dynamic _selectedImage;
@@ -67,8 +70,31 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
   void dispose() {
     _petNameController.dispose();
     _symptomsController.dispose();
+    _symptomsFocusNode.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scheduleKeyboardScroll(double keyboardInset) {
+    if ((_lastKeyboardInset - keyboardInset).abs() < 1) return;
+    _lastKeyboardInset = keyboardInset;
+    if (keyboardInset <= 0) return;
+    if (!_editingSymptoms && widget.availablePets.isEmpty) return;
+
+    void scrollToFormEnd() {
+      if (!mounted || !_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+      );
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => scrollToFormEnd());
+    Future<void>.delayed(const Duration(milliseconds: 240), () {
+      if (!mounted) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) => scrollToFormEnd());
+    });
   }
 
   void _onImageSelected(dynamic image) {
@@ -221,6 +247,7 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
     final content = Consumer<HealthAssessmentController>(
       builder: (context, controller, child) {
         final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+        _scheduleKeyboardScroll(keyboardInset);
 
         if (controller.isLoading) {
           return const Center(
@@ -271,112 +298,133 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
           );
         }
 
-        return ScrollConfiguration(
-          behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-          child: ClipRect(
-            child: Scrollbar(
-              controller: _scrollController,
-              thickness: 3,
-              radius: const Radius.circular(999),
-              child: SingleChildScrollView(
+        return AnimatedPadding(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          padding: EdgeInsets.only(bottom: keyboardInset),
+          onEnd:
+              keyboardInset > 0 &&
+                  (_editingSymptoms || widget.availablePets.isNotEmpty)
+              ? () {
+                  if (!_scrollController.hasClients) return;
+                  _scrollController.animateTo(
+                    _scrollController.position.maxScrollExtent,
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOutCubic,
+                  );
+                }
+              : null,
+          child: ScrollConfiguration(
+            behavior: ScrollConfiguration.of(
+              context,
+            ).copyWith(scrollbars: false),
+            child: ClipRect(
+              child: Scrollbar(
                 controller: _scrollController,
-                physics: const ClampingScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(
-                  widget.compactMode ? 20.0 : 24.0,
-                  widget.compactMode ? 20.0 : 24.0,
-                  widget.compactMode ? 16.0 : 20.0,
-                  (widget.compactMode ? 28.0 : 36.0) + keyboardInset,
-                ),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (widget.showHero) ...[
-                        Text(
-                          'AI Health Scan ✨',
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.secondaryText,
-                              ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Upload a photo and tell us how your pet is doing today.',
-                          style: Theme.of(context).textTheme.labelSmall,
-                        ),
-                        const SizedBox(height: 24),
-                      ],
-                      ImageUploaderWidget(
-                        onImageSelected: _onImageSelected,
-                        initialImage: _selectedImage,
-                        petName: displayPetName.isEmpty
-                            ? 'Your pet'
-                            : displayPetName,
-                        petSpecies: displayPetSpecies,
-                        petColorHex: selectedPet?.colorHex,
-                        petPattern: selectedPet?.pattern ?? 'none',
-                        petEyeType: selectedPet?.eyeType ?? 'default',
-                        petMouthType: selectedPet?.mouthType ?? 'smile',
-                        petEquipped:
-                            selectedPet?.equipped ?? const ['acc_collar'],
-                      ),
-                      const SizedBox(height: 32),
-                      _buildSectionTitle('Who are we checking?'),
-                      const SizedBox(height: 12),
-                      if (widget.availablePets.isNotEmpty)
-                        _buildOwnedPetSelector()
-                      else ...[
-                        _buildInputField(
-                          controller: _petNameController,
-                          hintText: 'Pet name',
-                          icon: Icons.edit_rounded,
-                          validator: (v) =>
-                              (v == null || v.isEmpty) ? 'Name required' : null,
-                        ),
-                        const SizedBox(height: 24),
-                        _buildSectionTitle('Species'),
-                        const SizedBox(height: 12),
-                        _buildSpeciesSelector(),
-                      ],
-                      const SizedBox(height: 24),
-                      _buildSectionTitle('Describe the symptoms'),
-                      const SizedBox(height: 12),
-                      _buildInputField(
-                        controller: _symptomsController,
-                        hintText:
-                            'e.g. Redness on the ear, scratching a lot...',
-                        icon: Icons.notes_rounded,
-                        maxLines: 4,
-                      ),
-                      const SizedBox(height: 32),
-                      FilledButton(
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
+                thickness: 3,
+                radius: const Radius.circular(999),
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  physics: const ClampingScrollPhysics(),
+                  padding: EdgeInsets.fromLTRB(
+                    widget.compactMode ? 20.0 : 24.0,
+                    widget.compactMode ? 20.0 : 24.0,
+                    widget.compactMode ? 16.0 : 20.0,
+                    widget.compactMode ? 28.0 : 36.0,
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (widget.showHero) ...[
+                          Text(
+                            'AI Health Scan ✨',
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.secondaryText,
+                                ),
                           ),
-                          backgroundColor: AppTheme.primaryColor,
+                          const SizedBox(height: 8),
+                          Text(
+                            'Upload a photo and tell us how your pet is doing today.',
+                            style: Theme.of(context).textTheme.labelSmall,
+                          ),
+                          const SizedBox(height: 24),
+                        ],
+                        ImageUploaderWidget(
+                          onImageSelected: _onImageSelected,
+                          initialImage: _selectedImage,
+                          petName: displayPetName.isEmpty
+                              ? 'Your pet'
+                              : displayPetName,
+                          petSpecies: displayPetSpecies,
+                          petColorHex: selectedPet?.colorHex,
+                          petPattern: selectedPet?.pattern ?? 'none',
+                          petEyeType: selectedPet?.eyeType ?? 'default',
+                          petMouthType: selectedPet?.mouthType ?? 'smile',
+                          petEquipped:
+                              selectedPet?.equipped ?? const ['acc_collar'],
                         ),
-                        onPressed: _submitAssessment,
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.auto_awesome_rounded, size: 20),
-                            SizedBox(width: 10),
-                            Text(
-                              'Start AI Analysis',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
+                        const SizedBox(height: 32),
+                        _buildSectionTitle('Who are we checking?'),
+                        const SizedBox(height: 12),
+                        if (widget.availablePets.isNotEmpty)
+                          _buildOwnedPetSelector()
+                        else ...[
+                          _buildInputField(
+                            controller: _petNameController,
+                            hintText: 'Pet name',
+                            icon: Icons.edit_rounded,
+                            validator: (v) => (v == null || v.isEmpty)
+                                ? 'Name required'
+                                : null,
+                          ),
+                          const SizedBox(height: 24),
+                          _buildSectionTitle('Species'),
+                          const SizedBox(height: 12),
+                          _buildSpeciesSelector(),
+                        ],
+                        const SizedBox(height: 24),
+                        _buildSectionTitle('Describe the symptoms'),
+                        const SizedBox(height: 12),
+                        _buildInputField(
+                          controller: _symptomsController,
+                          focusNode: _symptomsFocusNode,
+                          hintText:
+                              'e.g. Redness on the ear, scratching a lot...',
+                          icon: Icons.notes_rounded,
+                          maxLines: 4,
+                        ),
+                        const SizedBox(height: 32),
+                        FilledButton(
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                          ],
+                            backgroundColor: AppTheme.primaryColor,
+                          ),
+                          onPressed: _submitAssessment,
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.auto_awesome_rounded, size: 20),
+                              SizedBox(width: 10),
+                              Text(
+                                'Start AI Analysis',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
+                        const SizedBox(height: 12),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -453,12 +501,7 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
                             : [Colors.white, const Color(0xFFFFFCFA)],
                       ),
                       borderRadius: BorderRadius.circular(28),
-                      border: Border.all(
-                        color: isSelected
-                            ? accent.withValues(alpha: 0.24)
-                            : AppTheme.secondaryText.withValues(alpha: 0.08),
-                        width: 1.3,
-                      ),
+                      border: Border.all(color: Colors.white, width: 3),
                       boxShadow: isSelected
                           ? [
                               BoxShadow(
@@ -492,29 +535,36 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
                               ),
                             ),
                             const Spacer(),
-                            AnimatedContainer(
-                              duration: AppTheme.motionFast,
-                              curve: AppTheme.motionCurve,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 9,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? accent.withValues(alpha: 0.12)
-                                    : const Color(0xFFF9F5EF),
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: Text(
-                                isSelected ? 'Selected' : pet.species,
-                                style: Theme.of(context).textTheme.labelSmall
-                                    ?.copyWith(
-                                      color: isSelected
-                                          ? accent
-                                          : AppTheme.mutedText,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 0.1,
-                                    ),
+                            Flexible(
+                              child: AnimatedContainer(
+                                duration: AppTheme.motionFast,
+                                curve: AppTheme.motionCurve,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 9,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? accent.withValues(alpha: 0.12)
+                                      : const Color(0xFFF9F5EF),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    isSelected ? 'Selected' : pet.species,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelSmall
+                                        ?.copyWith(
+                                          color: isSelected
+                                              ? accent
+                                              : AppTheme.mutedText,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.1,
+                                        ),
+                                  ),
+                                ),
                               ),
                             ),
                           ],
@@ -553,10 +603,8 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.86),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: selectedAccent.withValues(alpha: 0.14),
-              width: 1.1,
-            ),
+            border: Border.all(color: Colors.white, width: 3),
+            boxShadow: AppTheme.subtleShadow,
           ),
           child: Row(
             children: [
@@ -619,6 +667,7 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
 
   Widget _buildInputField({
     required TextEditingController controller,
+    FocusNode? focusNode,
     required String hintText,
     required IconData icon,
     int maxLines = 1,
@@ -628,10 +677,7 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: AppTheme.secondaryText.withValues(alpha: 0.08),
-          width: 1.1,
-        ),
+        border: Border.all(color: Colors.white, width: 3),
         boxShadow: AppTheme.subtleShadow,
       ),
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
@@ -653,11 +699,22 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
           Expanded(
             child: TextFormField(
               controller: controller,
+              focusNode: focusNode,
+              onTap: () =>
+                  _editingSymptoms = identical(controller, _symptomsController),
               maxLines: maxLines,
+              keyboardType: maxLines > 1
+                  ? TextInputType.multiline
+                  : TextInputType.text,
+              textCapitalization: TextCapitalization.sentences,
+              textInputAction: maxLines > 1
+                  ? TextInputAction.newline
+                  : TextInputAction.done,
+              onFieldSubmitted: maxLines > 1
+                  ? null
+                  : (_) => FocusScope.of(context).unfocus(),
               validator: validator,
-              scrollPadding: EdgeInsets.only(
-                bottom: MediaQuery.viewInsetsOf(context).bottom + 140,
-              ),
+              scrollPadding: const EdgeInsets.only(bottom: 28),
               decoration: InputDecoration(
                 hintText: hintText,
                 border: InputBorder.none,
@@ -707,12 +764,7 @@ class _HealthAssessmentScreenState extends State<HealthAssessmentScreen> {
                   ? accent.withValues(alpha: 0.1)
                   : Colors.white.withValues(alpha: 0.78),
               borderRadius: BorderRadius.circular(22),
-              border: Border.all(
-                color: isSelected
-                    ? accent.withValues(alpha: 0.22)
-                    : AppTheme.secondaryText.withValues(alpha: 0.08),
-                width: 1.2,
-              ),
+              border: Border.all(color: Colors.white, width: 3),
               boxShadow: isSelected ? AppTheme.subtleShadow : null,
             ),
             child: Row(

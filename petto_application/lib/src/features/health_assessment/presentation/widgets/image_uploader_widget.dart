@@ -196,41 +196,6 @@ class _ImageUploaderWidgetState extends State<ImageUploaderWidget>
                 ),
               ),
             ),
-            Positioned(
-              top: 18,
-              left: 18,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 11,
-                  vertical: 7,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.94),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.auto_awesome_rounded,
-                      size: 14,
-                      color: AppTheme.primaryColor.withValues(alpha: 0.84),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'CLEAR PHOTO',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppTheme.secondaryText.withValues(alpha: 0.7),
-                        letterSpacing: 0.35,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
             Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -564,10 +529,7 @@ class _ImageUploaderWidgetState extends State<ImageUploaderWidget>
                 ],
               ),
               borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: AppTheme.secondaryText.withValues(alpha: 0.08),
-                width: 1.4,
-              ),
+              border: Border.all(color: Colors.white, width: 3),
               boxShadow: [
                 BoxShadow(
                   color: _petColor().withValues(alpha: 0.09),
@@ -600,6 +562,7 @@ class _ImageUploaderWidgetState extends State<ImageUploaderWidget>
           decoration: BoxDecoration(
             color: AppTheme.surfaceColor,
             borderRadius: BorderRadius.circular(30),
+            border: Border.all(color: Colors.white, width: 3),
             boxShadow: AppTheme.cardShadow,
           ),
           child: Column(
@@ -722,9 +685,7 @@ class _SourceTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFFFFFCFA),
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: AppTheme.secondaryText.withValues(alpha: 0.08),
-          ),
+          border: Border.all(color: Colors.white, width: 2),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

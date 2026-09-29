@@ -108,14 +108,13 @@ class _VetScheduleDialogState extends State<_VetScheduleDialog> {
         child: Container(
           constraints: const BoxConstraints(maxWidth: 560),
           child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: _VetUi.surface,
                 borderRadius: BorderRadius.circular(32),
-                border: Border.all(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.14),
-                ),
+                border: Border.all(color: Colors.white, width: 3),
                 boxShadow: [
                   BoxShadow(
                     color: AppTheme.primaryColor.withValues(alpha: 0.14),
@@ -287,6 +286,12 @@ class _VetScheduleDialogState extends State<_VetScheduleDialog> {
                     controller: _reasonController,
                     minLines: 2,
                     maxLines: 3,
+                    keyboardType: TextInputType.multiline,
+                    textCapitalization: TextCapitalization.sentences,
+                    textInputAction: TextInputAction.newline,
+                    scrollPadding: EdgeInsets.only(
+                      bottom: MediaQuery.viewInsetsOf(context).bottom + 120,
+                    ),
                     style: const TextStyle(
                       color: AppTheme.secondaryText,
                       fontWeight: FontWeight.w800,

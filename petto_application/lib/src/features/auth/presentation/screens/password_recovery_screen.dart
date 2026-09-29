@@ -83,6 +83,7 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: const EdgeInsets.all(24),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 440),
@@ -114,6 +115,9 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
                         key: const Key('recovery-new-password'),
                         controller: _password,
                         obscureText: _obscure,
+                        keyboardType: TextInputType.visiblePassword,
+                        textInputAction: TextInputAction.next,
+                        onSubmitted: (_) => FocusScope.of(context).nextFocus(),
                         autofillHints: const [AutofillHints.newPassword],
                         decoration: InputDecoration(
                           labelText: 'New password',
@@ -134,6 +138,9 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
                         key: const Key('recovery-confirm-password'),
                         controller: _confirmation,
                         obscureText: _obscure,
+                        keyboardType: TextInputType.visiblePassword,
+                        textInputAction: TextInputAction.done,
+                        autofillHints: const [AutofillHints.newPassword],
                         onSubmitted: (_) => _submit(),
                         decoration: const InputDecoration(
                           labelText: 'Confirm new password',

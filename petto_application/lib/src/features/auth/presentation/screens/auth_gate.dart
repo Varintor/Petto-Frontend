@@ -34,15 +34,10 @@ class _AuthGateState extends State<AuthGate> {
         currentScreen = const Scaffold(
           key: ValueKey('auth-loading'),
           backgroundColor: AppTheme.backgroundColor,
-          body: Center(
-            child: Padding(
-              padding: EdgeInsets.all(28),
-              child: PettoInlineProgress(
-                title: 'Welcome back to Petto',
-                subtitle: 'Preparing your pet care space.',
-                icon: Icons.pets_rounded,
-              ),
-            ),
+          body: PettoPageProgress(
+            title: 'Welcome back to Petto',
+            subtitle: 'Preparing your pet care space.',
+            icon: Icons.pets_rounded,
           ),
         );
         break;

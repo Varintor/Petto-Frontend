@@ -171,12 +171,10 @@ class _WalkMapViewState extends State<WalkMapView> {
         children: [
           Padding(
             padding: EdgeInsets.all(20),
-            child: PettoInlineProgress(
+            child: PettoStatusProgress(
               title: 'Finding your location',
               subtitle: 'Preparing the live walk map.',
               icon: Icons.location_searching_rounded,
-              compact: true,
-              borderColor: Colors.white,
             ),
           ),
         ],

@@ -66,7 +66,9 @@ class ConsultationController extends ChangeNotifier {
   List<VetModel> get providerVets => _providerVets;
   List<ConsultationModel> get consultations => _consultations;
   ConsultationModel? get active => _active;
-  List<ChatMessageModel> get messages => _messages;
+  List<ChatMessageModel> get messages => _messages
+      .where((message) => !message.isAiBriefing)
+      .toList(growable: false);
   List<AppointmentModel> get appointments => _appointments;
   List<SharedAssessmentModel> get sharedAssessments => _sharedAssessments;
   List<SharedHealthCardModel> get sharedHealthCards => _sharedHealthCards;
@@ -219,9 +221,9 @@ class ConsultationController extends ChangeNotifier {
     });
   }
 
-  /// Opens (or starts) a consultation, optionally forwarding an AI assessment
-  /// (UD-06). A forwarded assessment immediately gets an AI briefing posted
-  /// into the chat so the vet has context before the first human message.
+  /// Opens (or starts) a consultation, optionally forwarding an assessment.
+  /// The shared assessment card already carries the clinical context, so the
+  /// chat does not create a second AI briefing message.
   Future<void> startConsultation({
     required int petId,
     required int vetId,
@@ -255,14 +257,6 @@ class ConsultationController extends ChangeNotifier {
       // remaining reads can populate it without keeping the owner on the
       // directory screen.
       notifyListeners();
-      if (assessmentId != null) {
-        try {
-          await repository.requestAiSummary(_active!.id);
-        } catch (_) {
-          // The consultation is already created and the assessment is shared.
-          // A failed AI briefing must not strand the owner outside the chat.
-        }
-      }
       final results = await Future.wait<Object?>([
         repository.listMessages(_active!.id),
         repository.listAppointments(_active!.id),

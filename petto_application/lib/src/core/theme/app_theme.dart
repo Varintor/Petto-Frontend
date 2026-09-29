@@ -143,6 +143,15 @@ class AppTheme {
       ),
       cardColor: surfaceColor,
       dividerColor: Colors.transparent,
+      dialogTheme: DialogThemeData(
+        backgroundColor: backgroundColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(30),
+          side: const BorderSide(color: Colors.white, width: 3),
+        ),
+      ),
       fontFamily: sansFontFamily,
       textTheme: textTheme,
       primaryTextTheme: textTheme,

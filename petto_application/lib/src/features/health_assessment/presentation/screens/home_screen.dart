@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
-import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -623,11 +623,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Opens the pet form, creates the pet via the backend, then refreshes Home.
   Future<void> _addPet() async {
-    final messenger = ScaffoldMessenger.of(context);
     final token = context.read<AuthController>().token;
     if (token == null) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Please log in to add a pet.')),
+      showTopAlert(
+        context,
+        'Please log in to add a pet.',
+        icon: Icons.info_outline_rounded,
       );
       return;
     }
@@ -648,10 +649,14 @@ class _HomeScreenState extends State<HomeScreen> {
       );
       if (!mounted) return;
       await _loadPets();
-      messenger.showSnackBar(SnackBar(content: Text('${result.name} added!')));
+      if (!mounted) return;
+      showTopAlert(context, '${result.name} added!');
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(ApiClient.describeError(e))),
+      if (!mounted) return;
+      showTopAlert(
+        context,
+        ApiClient.describeError(e),
+        icon: Icons.error_outline_rounded,
       );
     }
   }
@@ -1286,30 +1291,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          if (kDebugMode && !kIsWeb) ...[
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              key: const Key('send-test-notification'),
-              onPressed: () async {
-                try {
-                  await NotificationService.instance
-                      .showAcceptanceTestNotification();
-                  if (context.mounted) {
-                    showTopAlert(context, 'Test notification sent.');
-                  }
-                } catch (_) {
-                  if (context.mounted) {
-                    showTopAlert(
-                      context,
-                      'Could not send the test notification. Check device permissions.',
-                    );
-                  }
-                }
-              },
-              icon: const Icon(Icons.notification_add_rounded),
-              label: const Text('Send test notification'),
-            ),
-          ],
           const SizedBox(height: 20),
           Row(
             children: [
@@ -1349,7 +1330,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showPreviewSnackBar(String label) {
+  void _showPreviewAlert(String label) {
     showTopAlert(context, '$label is shown as UI-only preview.');
   }
 

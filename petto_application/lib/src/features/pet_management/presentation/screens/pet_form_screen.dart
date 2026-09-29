@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/top_alert.dart';
 import '../../../health_assessment/presentation/widgets/pet_avatar_widget.dart';
 import '../../domain/entities/pet_entity.dart';
 import '../../domain/pet_blood_type_catalog.dart';
@@ -131,16 +132,7 @@ class _PetFormScreenState extends State<PetFormScreen> {
   }
 
   void _showHint(String message) {
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.fromLTRB(22, 18, 22, 0),
-          dismissDirection: DismissDirection.up,
-        ),
-      );
+    showTopAlert(context, message, icon: Icons.info_outline_rounded);
   }
 
   @override
@@ -188,6 +180,7 @@ class _PetFormScreenState extends State<PetFormScreen> {
                         _PetTextField(
                           controller: _name,
                           icon: Icons.favorite_rounded,
+                          iconColor: const Color(0xFFA66F79),
                           hint: 'Pet name',
                           textInputAction: TextInputAction.next,
                         ),
@@ -206,7 +199,9 @@ class _PetFormScreenState extends State<PetFormScreen> {
                                   _PetTextField(
                                     controller: _weight,
                                     icon: Icons.monitor_weight_rounded,
+                                    iconColor: const Color(0xFF748066),
                                     hint: 'Weight (kg)',
+                                    textInputAction: TextInputAction.done,
                                     keyboardType:
                                         const TextInputType.numberWithOptions(
                                           decimal: true,
@@ -228,7 +223,9 @@ class _PetFormScreenState extends State<PetFormScreen> {
                                   child: _PetTextField(
                                     controller: _weight,
                                     icon: Icons.monitor_weight_rounded,
+                                    iconColor: const Color(0xFF748066),
                                     hint: 'Weight (kg)',
+                                    textInputAction: TextInputAction.done,
                                     keyboardType:
                                         const TextInputType.numberWithOptions(
                                           decimal: true,
@@ -370,6 +367,83 @@ class _AddPetHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final avatar = SizedBox(
+      width: 132,
+      height: 132,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: 116,
+            height: 116,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withValues(alpha: 0.075),
+              shape: BoxShape.circle,
+            ),
+          ),
+          PetAvatarWidget(
+            species: species,
+            color: color,
+            mouthType: 'smile',
+            eyeType: 'default',
+          ),
+        ],
+      ),
+    );
+    final profileInfo = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppTheme.primaryColor,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            species == 'cat' ? 'CAT PROFILE' : 'DOG PROFILE',
+            style: const TextStyle(
+              fontFamily: AppTheme.sansFontFamily,
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          petName,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+            color: AppTheme.secondaryText,
+            fontWeight: FontWeight.w900,
+            height: 0.95,
+          ),
+        ),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            Expanded(
+              child: _SpeciesSegment(
+                value: 'dog',
+                selected: species == 'dog',
+                onTap: onSpeciesChanged,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _SpeciesSegment(
+                value: 'cat',
+                selected: species == 'cat',
+                onTap: onSpeciesChanged,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -385,92 +459,26 @@ class _AddPetHeroCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: 132,
-            height: 132,
-            child: Stack(
-              alignment: Alignment.center,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < 330) {
+            return Column(
               children: [
-                Container(
-                  width: 116,
-                  height: 116,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.075),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                PetAvatarWidget(
-                  species: species,
-                  color: color,
-                  mouthType: 'smile',
-                  eyeType: 'default',
-                ),
+                avatar,
+                const SizedBox(height: 8),
+                SizedBox(width: double.infinity, child: profileInfo),
               ],
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 11,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    species == 'cat' ? 'CAT PROFILE' : 'DOG PROFILE',
-                    style: const TextStyle(
-                      fontFamily: AppTheme.sansFontFamily,
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  petName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: AppTheme.secondaryText,
-                    fontWeight: FontWeight.w900,
-                    height: 0.95,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _SpeciesSegment(
-                        value: 'dog',
-                        selected: species == 'dog',
-                        onTap: onSpeciesChanged,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _SpeciesSegment(
-                        value: 'cat',
-                        selected: species == 'cat',
-                        onTap: onSpeciesChanged,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              avatar,
+              const SizedBox(width: 14),
+              Expanded(child: profileInfo),
+            ],
+          );
+        },
       ),
     );
   }
@@ -627,6 +635,7 @@ class _PetTextField extends StatelessWidget {
   const _PetTextField({
     required this.controller,
     required this.icon,
+    this.iconColor = AppTheme.primaryColor,
     required this.hint,
     this.keyboardType,
     this.textInputAction,
@@ -635,6 +644,7 @@ class _PetTextField extends StatelessWidget {
 
   final TextEditingController controller;
   final IconData icon;
+  final Color iconColor;
   final String hint;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
@@ -647,6 +657,16 @@ class _PetTextField extends StatelessWidget {
       focusNode: focusNode,
       keyboardType: keyboardType,
       textInputAction: textInputAction,
+      textCapitalization: keyboardType == null
+          ? TextCapitalization.words
+          : TextCapitalization.none,
+      onSubmitted: (_) {
+        if (textInputAction == TextInputAction.next) {
+          FocusScope.of(context).nextFocus();
+        } else {
+          FocusScope.of(context).unfocus();
+        }
+      },
       scrollPadding: EdgeInsets.only(
         bottom: MediaQuery.viewInsetsOf(context).bottom + 160,
       ),
@@ -671,10 +691,10 @@ class _PetTextField extends StatelessWidget {
           height: 42,
           margin: const EdgeInsets.only(left: 12, right: 10),
           decoration: BoxDecoration(
-            color: AppTheme.primaryColor.withValues(alpha: 0.08),
+            color: iconColor.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: AppTheme.primaryColor, size: 19),
+          child: Icon(icon, color: iconColor, size: 19),
         ),
         prefixIconConstraints: const BoxConstraints(
           minWidth: 64,
@@ -734,6 +754,7 @@ class _PetBreedFieldState extends State<_PetBreedField> {
           controller: controller,
           focusNode: focusNode,
           icon: Icons.pets_rounded,
+          iconColor: const Color(0xFFA58043),
           hint: 'Breed (optional)',
           textInputAction: TextInputAction.next,
         );
@@ -759,7 +780,7 @@ class _PetBreedFieldState extends State<_PetBreedField> {
                     dense: true,
                     leading: const Icon(
                       Icons.pets_rounded,
-                      color: AppTheme.primaryColor,
+                      color: Color(0xFFA58043),
                     ),
                     title: Text(
                       option,
@@ -812,15 +833,22 @@ class _GenderCard extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: selected ? Colors.white : AppTheme.primaryColor),
+            Icon(
+              icon,
+              color: selected ? Colors.white : const Color(0xFFA66F79),
+            ),
             const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: AppTheme.sansFontFamily,
-                color: selected ? Colors.white : AppTheme.secondaryText,
-                fontSize: 14,
-                fontWeight: FontWeight.w900,
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: AppTheme.sansFontFamily,
+                  color: selected ? Colors.white : AppTheme.secondaryText,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
           ],
@@ -867,6 +895,7 @@ class _PetBloodTypeFieldState extends State<_PetBloodTypeField> {
           controller: controller,
           focusNode: focusNode,
           icon: Icons.bloodtype_rounded,
+          iconColor: const Color(0xFF99545B),
           hint: 'Blood type (optional)',
           textInputAction: TextInputAction.next,
         );
@@ -892,7 +921,7 @@ class _PetBloodTypeFieldState extends State<_PetBloodTypeField> {
                     dense: true,
                     leading: const Icon(
                       Icons.bloodtype_rounded,
-                      color: AppTheme.primaryColor,
+                      color: Color(0xFF99545B),
                     ),
                     title: Text(
                       option,
@@ -945,24 +974,24 @@ class _BirthdayCard extends StatelessWidget {
     final selectedBirthday = birthday;
     if (selectedBirthday == null) {
       return Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
         decoration: BoxDecoration(
           color: AppTheme.primaryColor.withValues(alpha: 0.045),
-          borderRadius: BorderRadius.circular(26),
-          border: Border.all(color: Colors.white, width: 2),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: Colors.white, width: 3),
         ),
         child: Row(
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: 42,
+              height: 42,
               decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withValues(alpha: 0.08),
-                shape: BoxShape.circle,
+                color: const Color(0xFF826F86).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(14),
               ),
               child: const Icon(
                 Icons.cake_rounded,
-                color: AppTheme.primaryColor,
+                color: Color(0xFF826F86),
                 size: 20,
               ),
             ),
@@ -991,10 +1020,24 @@ class _BirthdayCard extends StatelessWidget {
                 ],
               ),
             ),
-            TextButton(
+            const SizedBox(width: 8),
+            FilledButton(
               onPressed: () =>
                   onChanged(DateTime(DateTime.now().year - 1, 1, 1)),
-              child: const Text('SET'),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(58, 38),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.09),
+                foregroundColor: AppTheme.primaryColor,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: const Text(
+                'SET',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
             ),
           ],
         ),
@@ -1006,82 +1049,106 @@ class _BirthdayCard extends StatelessWidget {
       (index) => index + 1,
     );
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppTheme.primaryColor.withValues(alpha: 0.045),
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: Colors.white, width: 2),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withValues(alpha: 0.08),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.cake_rounded,
-              color: AppTheme.primaryColor,
-              size: 20,
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final showLeadingIcon = constraints.maxWidth >= 300;
+        return Container(
+          padding: const EdgeInsets.fromLTRB(9, 9, 8, 9),
+          decoration: BoxDecoration(
+            color: AppTheme.primaryColor.withValues(alpha: 0.045),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: Colors.white, width: 3),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _SlotDropdown<int>(
-              value: selectedBirthday.day,
-              values: days,
-              labelBuilder: (value) => value.toString().padLeft(2, '0'),
-              onChanged: (day) {
-                onChanged(
-                  DateTime(selectedBirthday.year, selectedBirthday.month, day),
-                );
-              },
-            ),
+          child: Row(
+            children: [
+              if (showLeadingIcon) ...[
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF826F86).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.cake_rounded,
+                    color: Color(0xFF826F86),
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Expanded(
+                flex: 6,
+                child: _SlotDropdown<int>(
+                  value: selectedBirthday.day,
+                  values: days,
+                  semanticLabel: 'Day',
+                  labelBuilder: (value) => value.toString().padLeft(2, '0'),
+                  onChanged: (day) {
+                    onChanged(
+                      DateTime(
+                        selectedBirthday.year,
+                        selectedBirthday.month,
+                        day,
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                flex: 8,
+                child: _SlotDropdown<int>(
+                  value: selectedBirthday.month,
+                  values: List.generate(12, (index) => index + 1),
+                  semanticLabel: 'Month',
+                  labelBuilder: (value) => _months[value - 1],
+                  onChanged: (month) {
+                    final day = selectedBirthday.day.clamp(
+                      1,
+                      DateUtils.getDaysInMonth(selectedBirthday.year, month),
+                    );
+                    onChanged(DateTime(selectedBirthday.year, month, day));
+                  },
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                flex: 10,
+                child: _SlotDropdown<int>(
+                  value: selectedBirthday.year,
+                  values: years,
+                  semanticLabel: 'Year',
+                  labelBuilder: (value) => '$value',
+                  onChanged: (year) {
+                    final day = selectedBirthday.day.clamp(
+                      1,
+                      DateUtils.getDaysInMonth(year, selectedBirthday.month),
+                    );
+                    onChanged(DateTime(year, selectedBirthday.month, day));
+                  },
+                ),
+              ),
+              const SizedBox(width: 6),
+              IconButton(
+                tooltip: 'Clear birthday',
+                onPressed: onClear,
+                style: IconButton.styleFrom(
+                  fixedSize: const Size(38, 38),
+                  minimumSize: const Size(38, 38),
+                  padding: EdgeInsets.zero,
+                  backgroundColor: AppTheme.surfaceColor,
+                ),
+                icon: const Icon(
+                  Icons.close_rounded,
+                  color: AppTheme.mutedText,
+                  size: 20,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _SlotDropdown<int>(
-              value: selectedBirthday.month,
-              values: List.generate(12, (index) => index + 1),
-              labelBuilder: (value) => _months[value - 1],
-              onChanged: (month) {
-                final day = selectedBirthday.day.clamp(
-                  1,
-                  DateUtils.getDaysInMonth(selectedBirthday.year, month),
-                );
-                onChanged(DateTime(selectedBirthday.year, month, day));
-              },
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _SlotDropdown<int>(
-              value: selectedBirthday.year,
-              values: years,
-              labelBuilder: (value) => '$value',
-              onChanged: (year) {
-                final day = selectedBirthday.day.clamp(
-                  1,
-                  DateUtils.getDaysInMonth(year, selectedBirthday.month),
-                );
-                onChanged(DateTime(year, selectedBirthday.month, day));
-              },
-            ),
-          ),
-          IconButton(
-            tooltip: 'Clear birthday',
-            onPressed: onClear,
-            icon: const Icon(
-              Icons.close_rounded,
-              color: AppTheme.mutedText,
-              size: 20,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -1090,45 +1157,91 @@ class _SlotDropdown<T> extends StatelessWidget {
   const _SlotDropdown({
     required this.value,
     required this.values,
+    required this.semanticLabel,
     required this.labelBuilder,
     required this.onChanged,
   });
 
   final T value;
   final List<T> values;
+  final String semanticLabel;
   final String Function(T value) labelBuilder;
   final ValueChanged<T> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return DropdownButtonHideUnderline(
-      child: DropdownButton<T>(
-        value: value,
-        isExpanded: true,
-        borderRadius: BorderRadius.circular(20),
-        dropdownColor: AppTheme.surfaceColor,
-        icon: const Icon(
-          Icons.keyboard_arrow_down_rounded,
-          color: AppTheme.primaryColor,
-          size: 20,
+    return Semantics(
+      label: semanticLabel,
+      button: true,
+      child: Container(
+        height: 42,
+        padding: const EdgeInsets.only(left: 8, right: 4),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: AppTheme.primaryColor.withValues(alpha: 0.07),
+          ),
         ),
-        style: const TextStyle(
-          fontFamily: AppTheme.displayFontFamily,
-          color: AppTheme.secondaryText,
-          fontSize: 15,
-          fontWeight: FontWeight.w900,
-        ),
-        items: values
-            .map(
-              (item) => DropdownMenuItem<T>(
-                value: item,
-                child: Center(child: Text(labelBuilder(item))),
+        child: PopupMenuButton<T>(
+          initialValue: value,
+          tooltip: 'Select $semanticLabel',
+          position: PopupMenuPosition.under,
+          constraints: const BoxConstraints(maxHeight: 280, minWidth: 76),
+          color: AppTheme.surfaceColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          onSelected: onChanged,
+          itemBuilder: (context) => values
+              .map(
+                (item) => PopupMenuItem<T>(
+                  value: item,
+                  height: 42,
+                  child: Center(
+                    child: Text(
+                      labelBuilder(item),
+                      maxLines: 1,
+                      style: const TextStyle(
+                        fontFamily: AppTheme.displayFontFamily,
+                        color: AppTheme.secondaryText,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
+          child: Row(
+            children: [
+              Expanded(
+                child: Center(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      labelBuilder(value),
+                      maxLines: 1,
+                      softWrap: false,
+                      style: const TextStyle(
+                        fontFamily: AppTheme.displayFontFamily,
+                        color: AppTheme.secondaryText,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
               ),
-            )
-            .toList(),
-        onChanged: (value) {
-          if (value != null) onChanged(value);
-        },
+              const SizedBox(width: 2),
+              const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: AppTheme.primaryColor,
+                size: 16,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1156,13 +1269,19 @@ class _SavePetButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              label,
-              style: const TextStyle(
-                fontFamily: AppTheme.displayFontFamily,
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 1.5,
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  style: const TextStyle(
+                    fontFamily: AppTheme.displayFontFamily,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.5,
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 10),

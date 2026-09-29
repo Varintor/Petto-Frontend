@@ -59,10 +59,7 @@ class _LiveWalkScreenState extends State<LiveWalkScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(34),
-              border: Border.all(
-                color: AppTheme.primaryColor.withValues(alpha: 0.10),
-                width: 1.2,
-              ),
+              border: Border.all(color: Colors.white, width: 3),
               boxShadow: [
                 BoxShadow(
                   color: AppTheme.primaryColor.withValues(alpha: 0.14),

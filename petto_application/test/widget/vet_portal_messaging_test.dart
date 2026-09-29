@@ -191,6 +191,7 @@ void main() {
     await tester.tap(find.text('Messages'));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Milo'), findsWidgets);
+    expect(find.text('13 Aug · 09:00'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('vet-consultation-1')).last);
     await tester.pump(const Duration(milliseconds: 300));

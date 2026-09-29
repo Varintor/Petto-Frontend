@@ -859,7 +859,9 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
                         const SizedBox(height: 18),
                         TextField(
                           controller: titleController,
+                          textCapitalization: TextCapitalization.sentences,
                           textInputAction: TextInputAction.done,
+                          onSubmitted: (_) => FocusScope.of(context).unfocus(),
                           scrollPadding: EdgeInsets.only(
                             bottom:
                                 MediaQuery.viewInsetsOf(context).bottom + 120,
@@ -870,48 +872,60 @@ extension _HomeCalendarScreenPart on _HomeScreenState {
                           ),
                         ),
                         const SizedBox(height: 14),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: () async {
-                                  final picked = await showDatePicker(
-                                    context: context,
-                                    initialDate: selectedDate,
-                                    firstDate: DateTime.now().subtract(
-                                      const Duration(days: 365),
-                                    ),
-                                    lastDate: DateTime.now().add(
-                                      const Duration(days: 365 * 3),
-                                    ),
-                                  );
-                                  if (picked != null) {
-                                    setSheetState(() => selectedDate = picked);
-                                  }
-                                },
-                                icon: const Icon(Icons.calendar_today_rounded),
-                                label: Text(dateButtonLabel(selectedDate)),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: () async {
-                                  final picked = await showTimePicker(
-                                    context: context,
-                                    initialTime:
-                                        selectedTime ??
-                                        const TimeOfDay(hour: 9, minute: 0),
-                                  );
-                                  if (picked != null) {
-                                    setSheetState(() => selectedTime = picked);
-                                  }
-                                },
-                                icon: const Icon(Icons.access_time_rounded),
-                                label: Text(timeButtonLabel()),
-                              ),
-                            ),
-                          ],
+                        LayoutBuilder(
+                          builder: (context, fieldConstraints) {
+                            final dateButton = OutlinedButton.icon(
+                              onPressed: () async {
+                                final picked = await showDatePicker(
+                                  context: context,
+                                  initialDate: selectedDate,
+                                  firstDate: DateTime.now().subtract(
+                                    const Duration(days: 365),
+                                  ),
+                                  lastDate: DateTime.now().add(
+                                    const Duration(days: 365 * 3),
+                                  ),
+                                );
+                                if (picked != null) {
+                                  setSheetState(() => selectedDate = picked);
+                                }
+                              },
+                              icon: const Icon(Icons.calendar_today_rounded),
+                              label: Text(dateButtonLabel(selectedDate)),
+                            );
+                            final timeButton = OutlinedButton.icon(
+                              onPressed: () async {
+                                final picked = await showTimePicker(
+                                  context: context,
+                                  initialTime:
+                                      selectedTime ??
+                                      const TimeOfDay(hour: 9, minute: 0),
+                                );
+                                if (picked != null) {
+                                  setSheetState(() => selectedTime = picked);
+                                }
+                              },
+                              icon: const Icon(Icons.access_time_rounded),
+                              label: Text(timeButtonLabel()),
+                            );
+                            if (fieldConstraints.maxWidth < 340) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  dateButton,
+                                  const SizedBox(height: 8),
+                                  timeButton,
+                                ],
+                              );
+                            }
+                            return Row(
+                              children: [
+                                Expanded(child: dateButton),
+                                const SizedBox(width: 10),
+                                Expanded(child: timeButton),
+                              ],
+                            );
+                          },
                         ),
                         const SizedBox(height: 14),
                         Wrap(

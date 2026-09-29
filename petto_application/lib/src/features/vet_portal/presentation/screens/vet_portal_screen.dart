@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/navigation/petto_transitions.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/petto_loading.dart';
+import '../../../../core/widgets/top_alert.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../auth/presentation/screens/auth_gate.dart';
 import '../../../vet_consultation/data/models/consultation_models.dart';
@@ -112,14 +113,12 @@ class _VetPortalScreenState extends State<VetPortalScreen> {
       "Please share ${patient.name}'s Pet Health Card so I can review the latest health information.",
     );
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          sent
-              ? 'Health Card request sent to ${patient.owner}.'
-              : (controller.error ?? 'Could not request the Health Card.'),
-        ),
-      ),
+    showTopAlert(
+      context,
+      sent
+          ? 'Health Card request sent to ${patient.owner}.'
+          : (controller.error ?? 'Could not request the Health Card.'),
+      icon: sent ? Icons.check_rounded : Icons.error_outline_rounded,
     );
   }
 
