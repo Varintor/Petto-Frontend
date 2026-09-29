@@ -6,8 +6,6 @@
 	<string>Petto uses your location to track walks with your pet in real time.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>Petto uses Bluetooth to receive live GPS and battery data from your pet's collar.</string>
-	<key>NFCReaderUsageDescription</key>
-	<string>Petto writes a revocable Pet Health Card link to your pet's NFC tag.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Petto needs the camera to take a photo of your pet for the AI health scan.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

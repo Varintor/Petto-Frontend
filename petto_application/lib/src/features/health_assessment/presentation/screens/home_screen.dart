@@ -73,6 +73,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int _confettiSeed = 0;
   Offset _confettiOrigin = const Offset(0, 0);
   String? _burstMissionId;
+  String? _missionRewardMessage;
+  Timer? _missionRewardTimer;
   _JourneyNodeData? _selectedNode;
   _VetData? _activeChatVet;
 
@@ -263,11 +265,9 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   ];
 
-  /// Every accessory the user can equip. The Golden Collar is a starter — all
-  /// others are unlocked by completing the daily mission that maps to them in
-  /// [_missionAccessoryMap]. The `unlocked` field here is the *default* state;
-  /// runtime unlocks live in [_unlockedAccessoryIds] and the wardrobe reads
-  /// availability via [_isAccessoryUnlocked].
+  /// Every accessory the user can equip. The Golden Collar is a starter; daily
+  /// missions randomly unlock one of the remaining items. The `unlocked` field
+  /// is the default state and runtime rewards live in [WardrobeController].
   static const List<_AccessoryData> _accessories = [
     _AccessoryData(
       id: 'acc_collar',
@@ -367,42 +367,16 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   ];
 
-  /// Maps a backend mission_type to the cosmetic it grants on completion.
-  /// Keep aligned with backend `_CORE_MISSIONS` + `_BONUS_MISSIONS` types.
-  static const Map<String, String> _missionAccessoryMap = {
-    'walk': 'acc_hat',
-    'water': 'acc_water_bowl',
-    'ai_check': 'acc_doctor_coat',
-    'grooming': 'acc_brush',
-    'play': 'acc_ball',
-    'photo': 'acc_camera',
-    'dental_check': 'acc_toothbrush',
-    'nail_check': 'acc_nail_file',
-    'ear_check': 'acc_ear_tag',
-    'weight_log': 'acc_scale',
-    'bonding': 'acc_heart',
-    'training': 'acc_diploma',
-    'feeding_check': 'acc_bowl',
-    'eye_nose_check': 'acc_glasses',
-    'social': 'acc_friendship',
-  };
-
-  /// Runtime unlock set across this app session. Seeded with the starter
-  /// collar; missions add to this when completed.
-  // TODO(persistence): hoist to backend/local storage so unlocks survive a
-  // restart. For now they reset per session — fine for the MVP/demo flow.
   List<CalendarEventData> get _calendarEvents => _calendarController.events;
 
-  /// Resolves the cosmetic reward for a backend mission type. Returns null
-  /// when the mission type isn't mapped (caller falls back to the legacy
-  /// "+X treats XP" badge).
-  static _AccessoryData? _accessoryForMission(String missionType) {
-    final id = _missionAccessoryMap[missionType];
-    if (id == null) return null;
-    for (final a in _accessories) {
-      if (a.id == id) return a;
-    }
-    return null;
+  _AccessoryData? _randomLockedAccessory(int missionId) {
+    final available = _accessories
+        .where((item) => !_isAccessoryUnlocked(item))
+        .toList(growable: false);
+    if (available.isEmpty) return null;
+    final seed =
+        DateTime.now().microsecondsSinceEpoch ^ missionId ^ _activePet.id;
+    return available[math.Random(seed).nextInt(available.length)];
   }
 
   /// True if the user has earned (or starts with) this accessory.
@@ -683,6 +657,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    _missionRewardTimer?.cancel();
     _calendarController
       ..removeListener(_onFeatureControllerChanged)
       ..dispose();
@@ -829,6 +804,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 origin: _confettiOrigin,
                 seed: _confettiSeed,
               ),
+            if (_missionRewardMessage case final message?)
+              _MissionRewardBanner(key: ValueKey(message), message: message),
           ],
         ),
       ),

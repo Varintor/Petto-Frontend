@@ -7,14 +7,18 @@ const _homeSageAccent = Color(0xFF6F7E5A);
 const _homeGoldAccent = Color(0xFFB18636);
 
 extension _HomeDashboardScreenPart on _HomeScreenState {
+  void _showMissionReward(String message) {
+    _missionRewardTimer?.cancel();
+    _update(() => _missionRewardMessage = message);
+    _missionRewardTimer = Timer(const Duration(milliseconds: 4200), () {
+      if (!mounted || _missionRewardMessage != message) return;
+      _update(() => _missionRewardMessage = null);
+    });
+  }
+
   Future<void> _triggerMission(int missionId, Offset origin) async {
     final controller = context.read<MissionsController>();
     if (controller.isMissionCompleted(missionId)) return;
-    // Look up the mission so we know which cosmetic to unlock.
-    final mission = controller.missions.firstWhere(
-      (m) => m.id == missionId,
-      orElse: () => controller.missions.first,
-    );
     _update(() {
       _showConfetti = true;
       _confettiOrigin = origin;
@@ -29,20 +33,34 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
       });
     });
 
-    // Grant the wardrobe reward only after the backend confirms completion —
-    // if the PUT fails the mission stays open and no accessory is unlocked
-    // (UD-09 E1). Persisted so the cosmetic survives app restarts (URS-F4-03).
-    await controller.completeMission(missionId);
+    // completeMission marks the card optimistically before its network request
+    // finishes. Present the matching reward at the same moment so the user can
+    // see what they earned without waiting for the API round-trip.
+    final completion = controller.completeMission(missionId);
     if (!mounted || !controller.isMissionCompleted(missionId)) return;
 
-    final reward = _HomeScreenState._accessoryForMission(mission.missionType);
-    if (reward != null && await _wardrobeController.unlock(reward.id)) {
-      if (!mounted) return;
-      showTopAlert(
-        context,
-        'Unlocked ${reward.emoji} ${reward.name}!',
-        icon: Icons.celebration_rounded,
+    final reward = _randomLockedAccessory(missionId);
+    if (reward == null) {
+      _showMissionReward(
+        'Mission complete! Every accessory is already unlocked ✨',
       );
+      await completion;
+      return;
+    }
+
+    final newlyUnlocked = await _wardrobeController.unlock(reward.id);
+    if (!mounted) return;
+    _showMissionReward(
+      newlyUnlocked
+          ? 'Mission complete! You got ${reward.emoji} ${reward.name}'
+          : 'Mission complete! ${reward.emoji} ${reward.name} is in your wardrobe',
+    );
+
+    final saved = await completion;
+    if (!saved && newlyUnlocked) {
+      await _wardrobeController.revoke(reward.id);
+      if (!mounted) return;
+      _showMissionReward('Could not save the mission. Please try again.');
     }
   }
 
@@ -605,6 +623,87 @@ extension _HomeDashboardScreenPart on _HomeScreenState {
   }
 }
 
+class _MissionRewardBanner extends StatelessWidget {
+  const _MissionRewardBanner({super.key, required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: 0,
+      left: 18,
+      right: 18,
+      child: SafeArea(
+        bottom: false,
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0, end: 1),
+          duration: AppTheme.motionFast,
+          curve: Curves.easeOutBack,
+          builder: (context, value, child) => Opacity(
+            opacity: value.clamp(0, 1),
+            child: Transform.translate(
+              offset: Offset(0, -18 * (1 - value)),
+              child: child,
+            ),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(12, 10, 16, 10),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: Colors.white, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.26),
+                    blurRadius: 24,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.16),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.redeem_rounded,
+                      color: Colors.white,
+                      size: 21,
+                    ),
+                  ),
+                  const SizedBox(width: 11),
+                  Expanded(
+                    child: Text(
+                      message,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: AppTheme.sansFontFamily,
+                        color: Colors.white,
+                        fontSize: 14,
+                        height: 1.2,
+                        fontWeight: FontWeight.w800,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _HomeContentDotPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -947,56 +1046,84 @@ class _GardenAtmospherePainter extends CustomPainter {
   }
 
   void _drawRain(Canvas canvas, Size size) {
+    final dropColor = isNight
+        ? const Color(0xFFE8F8FF)
+        : const Color(0xFF6FA7B8);
     for (var layer = 0; layer < 3; layer++) {
       final depth = layer / 2;
-      final rain = Paint()
-        ..color = const Color(0xFFEAF5F7).withValues(
-          alpha:
-              (weather == _GardenWeather.stormy ? 0.24 : 0.18) + depth * 0.22,
-        )
-        ..strokeWidth = 0.75 + depth * 0.75
-        ..strokeCap = StrokeCap.round;
-      final count = 13 + layer * 6;
-      final speed = 135.0 + layer * 62;
+      final count = 13 + layer * 5;
+      final speed = 118.0 + layer * 54;
+      final rain = Paint()..strokeCap = StrokeCap.round;
+      final rainGlow = Paint()
+        ..strokeCap = StrokeCap.round
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.2);
       for (var i = 0; i < count; i++) {
+        final seed = layer * 101 + i * 17;
+        final horizontalSeed = _rainNoise(seed + 3);
+        final verticalSeed = _rainNoise(seed + 11);
+        final shapeSeed = _rainNoise(seed + 29);
+        final opacitySeed = _rainNoise(seed + 47);
+        final speedVariation = 0.72 + _rainNoise(seed + 61) * 0.58;
         final x =
-            (i * (67.0 - layer * 13) + progress * (62 + layer * 34)) %
+            (horizontalSeed * (size.width + 52) +
+                    progress * (16 + layer * 13)) %
                 (size.width + 52) -
             26;
         final y =
-            (i * (79.0 - layer * 9) + progress * speed) % (size.height + 36) -
-            18;
-        final length = 7.5 + depth * 9 + (i % 3) * 1.2;
+            (verticalSeed * (size.height + 58) +
+                    progress * speed * speedVariation) %
+                (size.height + 58) -
+            29;
+        final length = 6.5 + depth * 10 + shapeSeed * 7.5;
+        final lean = 1.8 + shapeSeed * 4.4 + depth * 1.1;
+        final baseAlpha = weather == _GardenWeather.stormy ? 0.38 : 0.30;
+        rain
+          ..color = dropColor.withValues(
+            alpha: baseAlpha + depth * 0.15 + opacitySeed * 0.12,
+          )
+          ..strokeWidth = 0.8 + depth * 0.72 + shapeSeed * 0.28;
         final drop = Path()
           ..moveTo(x, y)
           ..quadraticBezierTo(
-            x - 1.8 - depth,
-            y + length * 0.48,
-            x - 4.0 - depth * 1.8,
+            x - lean * 0.38,
+            y + length * (0.42 + shapeSeed * 0.12),
+            x - lean,
             y + length,
           );
+        if (layer == 2 && opacitySeed > 0.58) {
+          rainGlow
+            ..color = dropColor.withValues(alpha: 0.10 + opacitySeed * 0.05)
+            ..strokeWidth = rain.strokeWidth + 1.8;
+          canvas.drawPath(drop, rainGlow);
+        }
         canvas.drawPath(drop, rain);
       }
     }
 
     final ripplePaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.9
-      ..color = const Color(0xFFEAF5F7).withValues(alpha: 0.24);
-    for (var i = 0; i < 7; i++) {
-      final phase = (progress * 1.7 + i * 0.173) % 1;
-      final x = size.width * (0.08 + ((i * 31) % 83) / 100);
-      final y = size.height * (0.74 + (i % 3) * 0.075);
+      ..strokeWidth = 1.15
+      ..color = dropColor.withValues(alpha: 0.38);
+    for (var i = 0; i < 5; i++) {
+      final phase =
+          (progress * (1.25 + _rainNoise(i + 90) * 0.8) + _rainNoise(i + 120)) %
+          1;
+      final x = size.width * (0.06 + _rainNoise(i + 150) * 0.88);
+      final y = size.height * (0.76 + _rainNoise(i + 180) * 0.17);
       canvas.drawOval(
         Rect.fromCenter(
           center: Offset(x, y),
-          width: 3 + phase * 16,
-          height: 1.2 + phase * 4.2,
+          width: 2.5 + phase * (11 + _rainNoise(i + 210) * 7),
+          height: 1 + phase * (2.8 + _rainNoise(i + 240) * 1.8),
         ),
-        ripplePaint
-          ..color = ripplePaint.color.withValues(alpha: 0.28 * (1 - phase)),
+        ripplePaint..color = dropColor.withValues(alpha: 0.34 * (1 - phase)),
       );
     }
+  }
+
+  double _rainNoise(int seed) {
+    final value = math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+    return value - value.floorToDouble();
   }
 
   @override

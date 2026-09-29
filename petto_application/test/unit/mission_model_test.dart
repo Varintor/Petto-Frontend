@@ -30,6 +30,7 @@ void main() {
       expect(m.isCompleted, true);
       expect(m.completedAt, isNotNull);
       expect(m.createdAt, DateTime.parse('2026-06-18T00:00:00'));
+      expect(m.rewardDisplay, 'Random accessory');
     });
 
     test('UTC-09-TC-02: handles missing/nullable fields', () {
@@ -48,18 +49,18 @@ void main() {
       expect(m.targetValue, isNull);
       expect(m.unit, isNull);
       expect(m.completedAt, isNull);
-      expect(m.rewardDisplay, '0 Treats');
+      expect(m.rewardDisplay, 'Random accessory');
     });
 
     test('UTC-09-TC-03: maps mission_type to an icon', () {
       MissionModel build(String type) => MissionModel.fromJson({
-            'id': 1,
-            'pet_id': 5,
-            'mission_date': '2026-06-18',
-            'title': 't',
-            'mission_type': type,
-            'created_at': '2026-06-18T00:00:00',
-          });
+        'id': 1,
+        'pet_id': 5,
+        'mission_date': '2026-06-18',
+        'title': 't',
+        'mission_type': type,
+        'created_at': '2026-06-18T00:00:00',
+      });
 
       expect(build('walk').icon, Icons.pets_rounded);
       expect(build('water').icon, Icons.water_drop_rounded);

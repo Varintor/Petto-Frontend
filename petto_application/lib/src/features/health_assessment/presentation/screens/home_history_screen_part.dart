@@ -245,71 +245,143 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
       isScrollControlled: true,
       useSafeArea: true,
       builder: (sheetContext) => StatefulBuilder(
-        builder: (context, setSheetState) => Padding(
-          padding: EdgeInsets.fromLTRB(
-            24,
-            20,
-            24,
-            24 + MediaQuery.viewInsetsOf(context).bottom,
+        builder: (context, setSheetState) => Container(
+          decoration: BoxDecoration(
+            color: AppTheme.backgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            border: Border.all(color: Colors.white, width: 3),
           ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Public Pet Health Card',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Only selected fields appear when someone scans the QR or NFC tag. Do not share the link publicly.',
-                ),
-                const SizedBox(height: 14),
-                for (final option in options)
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    value: selected.contains(option.$1),
-                    title: Text(option.$2),
-                    onChanged: (checked) => setSheetState(() {
-                      if (checked == true) {
-                        selected.add(option.$1);
-                      } else {
-                        selected.remove(option.$1);
-                      }
-                    }),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              18,
+              10,
+              18,
+              18 + MediaQuery.viewInsetsOf(context).bottom,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
                   ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: contact,
-                  maxLength: 255,
-                  decoration: const InputDecoration(
-                    labelText: 'Owner contact shown in an emergency',
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor,
+                          borderRadius: BorderRadius.circular(17),
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: const Icon(
+                          Icons.qr_code_2_rounded,
+                          color: Colors.white,
+                          size: 25,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Public Health Card',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'Choose what appears in an emergency.',
+                              style: TextStyle(color: AppTheme.mutedText),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: emergency,
-                  maxLength: 2000,
-                  minLines: 2,
-                  maxLines: 4,
-                  decoration: const InputDecoration(
-                    labelText: 'Emergency notes',
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: AppTheme.glassCardDecoration(
+                      color: AppTheme.surfaceColor,
+                      borderRadius: BorderRadius.circular(24),
+                      borderColor: Colors.white,
+                      borderWidth: 2,
+                    ),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) => Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final option in options)
+                            SizedBox(
+                              width: (constraints.maxWidth - 8) / 2,
+                              child: _PublicFieldOption(
+                                label: option.$2,
+                                selected: selected.contains(option.$1),
+                                onChanged: (checked) => setSheetState(() {
+                                  checked
+                                      ? selected.add(option.$1)
+                                      : selected.remove(option.$1);
+                                }),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: selected.isEmpty
-                        ? null
-                        : () => Navigator.pop(sheetContext, true),
-                    icon: const Icon(Icons.qr_code_2_rounded),
-                    label: const Text('SAVE AND GENERATE LINK'),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: contact,
+                    maxLength: 255,
+                    decoration: _publicCardInputDecoration(
+                      label: 'Emergency contact',
+                      icon: Icons.contact_phone_rounded,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: emergency,
+                    maxLength: 2000,
+                    minLines: 2,
+                    maxLines: 3,
+                    decoration: _publicCardInputDecoration(
+                      label: 'Emergency notes',
+                      icon: Icons.medical_information_rounded,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: selected.isEmpty
+                          ? null
+                          : () => Navigator.pop(sheetContext, true),
+                      icon: const Icon(Icons.qr_code_2_rounded),
+                      label: const Text('SAVE & GENERATE LINK'),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(54),
+                        backgroundColor: AppTheme.primaryColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          side: const BorderSide(color: Colors.white, width: 2),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -348,21 +420,14 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Replace the public link?'),
-        content: const Text(
-          'The previous QR code and NFC link will stop working immediately.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('CANCEL'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('REPLACE LINK'),
-          ),
-        ],
+      builder: (dialogContext) => _PublicCardConfirmDialog(
+        icon: Icons.refresh_rounded,
+        title: 'Replace the public link?',
+        message:
+            'The previous QR code and NFC link will stop working immediately.',
+        confirmLabel: 'Replace link',
+        onCancel: () => Navigator.pop(dialogContext, false),
+        onConfirm: () => Navigator.pop(dialogContext, true),
       ),
     );
     if (confirmed != true) return;
@@ -384,21 +449,14 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Disable public card?'),
-        content: const Text(
-          'Anyone using the current QR code or NFC tag will lose access immediately.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('CANCEL'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('DISABLE'),
-          ),
-        ],
+      builder: (dialogContext) => _PublicCardConfirmDialog(
+        icon: Icons.link_off_rounded,
+        title: 'Disable public card?',
+        message:
+            'Anyone using the current QR code or NFC tag will lose access immediately.',
+        confirmLabel: 'Disable',
+        onCancel: () => Navigator.pop(dialogContext, false),
+        onConfirm: () => Navigator.pop(dialogContext, true),
       ),
     );
     if (confirmed != true) return;
@@ -420,72 +478,176 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
     final url = AppConfig.publicPetCardUrl(token);
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Pet Health Card QR'),
-        content: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 340),
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 360),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppTheme.backgroundColor,
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(color: Colors.white, width: 3),
+            boxShadow: AppTheme.subtleShadow,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              QrImageView(
-                data: url,
-                version: QrVersions.auto,
-                size: 230,
-                backgroundColor: Colors.white,
-                eyeStyle: const QrEyeStyle(
-                  eyeShape: QrEyeShape.square,
-                  color: AppTheme.primaryColor,
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor,
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: const Icon(
+                      Icons.qr_code_2_rounded,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 11),
+                  Expanded(
+                    child: Text(
+                      'Pet Health Card QR',
+                      style: Theme.of(dialogContext).textTheme.titleLarge,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    icon: const Icon(Icons.close_rounded),
+                    color: AppTheme.primaryColor,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                  ),
                 ),
-                dataModuleStyle: const QrDataModuleStyle(
-                  dataModuleShape: QrDataModuleShape.square,
-                  color: Color(0xFF402327),
+                child: QrImageView(
+                  data: url,
+                  version: QrVersions.auto,
+                  size: 210,
+                  backgroundColor: Colors.white,
+                  eyeStyle: const QrEyeStyle(
+                    eyeShape: QrEyeShape.square,
+                    color: AppTheme.primaryColor,
+                  ),
+                  dataModuleStyle: const QrDataModuleStyle(
+                    dataModuleShape: QrDataModuleShape.square,
+                    color: Color(0xFF402327),
+                  ),
                 ),
               ),
-              const SizedBox(height: 12),
-              const Text(
-                'This is a private bearer link. Only place it on your pet\'s QR or NFC tag.',
-                textAlign: TextAlign.center,
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.blushSurfaceColor,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(
+                      Icons.lock_outline_rounded,
+                      size: 19,
+                      color: AppTheme.primaryColor,
+                    ),
+                    SizedBox(width: 9),
+                    Expanded(
+                      child: Text(
+                        'Private link — place it only on your pet\'s QR or NFC tag.',
+                        style: TextStyle(
+                          color: AppTheme.mutedText,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              if (!kIsWeb && Platform.isAndroid) ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      Navigator.pop(dialogContext);
+                      await showDialog<void>(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (_) => _NfcWriteDialog(url: url),
+                      );
+                    },
+                    icon: const Icon(Icons.nfc_rounded),
+                    label: const Text('Write to NFC tag'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        await Clipboard.setData(ClipboardData(text: url));
+                        if (dialogContext.mounted) {
+                          ScaffoldMessenger.of(dialogContext).showSnackBar(
+                            const SnackBar(
+                              content: Text('Private link copied.'),
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.copy_rounded, size: 18),
+                      label: const Text('Copy'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => launchUrl(
+                        Uri.parse(url),
+                        mode: LaunchMode.externalApplication,
+                      ),
+                      icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                      label: const Text('Open'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(50),
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      side: const BorderSide(color: Colors.white, width: 2),
+                    ),
+                  ),
+                  child: const Text('Done'),
+                ),
               ),
             ],
           ),
         ),
-        actions: [
-          if (!kIsWeb && (Platform.isAndroid || Platform.isIOS))
-            TextButton.icon(
-              onPressed: () async {
-                Navigator.pop(dialogContext);
-                await showDialog<void>(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (_) => _NfcWriteDialog(url: url),
-                );
-              },
-              icon: const Icon(Icons.nfc_rounded),
-              label: const Text('WRITE NFC'),
-            ),
-          TextButton.icon(
-            onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: url));
-              if (dialogContext.mounted) {
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  const SnackBar(content: Text('Private link copied.')),
-                );
-              }
-            },
-            icon: const Icon(Icons.copy_rounded),
-            label: const Text('COPY'),
-          ),
-          TextButton.icon(
-            onPressed: () =>
-                launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
-            icon: const Icon(Icons.open_in_new_rounded),
-            label: const Text('OPEN'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('DONE'),
-          ),
-        ],
       ),
     );
   }
@@ -1645,6 +1807,184 @@ class _HealthRecordFieldTile extends StatelessWidget {
   );
 }
 
+InputDecoration _publicCardInputDecoration({
+  required String label,
+  required IconData icon,
+}) => InputDecoration(
+  labelText: label,
+  prefixIcon: Icon(icon, color: AppTheme.primaryColor),
+  filled: true,
+  fillColor: AppTheme.surfaceColor,
+  counterStyle: const TextStyle(fontSize: 10, color: AppTheme.mutedText),
+  enabledBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(18),
+    borderSide: const BorderSide(color: Colors.white, width: 2),
+  ),
+  focusedBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(18),
+    borderSide: const BorderSide(color: AppTheme.primaryColor, width: 2),
+  ),
+);
+
+ButtonStyle _publicCardSecondaryButtonStyle() => OutlinedButton.styleFrom(
+  minimumSize: const Size.fromHeight(46),
+  backgroundColor: AppTheme.blushSurfaceColor.withValues(alpha: 0.58),
+  foregroundColor: AppTheme.primaryColor,
+  side: const BorderSide(color: Colors.white, width: 2),
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(17)),
+);
+
+class _PublicFieldOption extends StatelessWidget {
+  const _PublicFieldOption({
+    required this.label,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  final String label;
+  final bool selected;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: () => onChanged(!selected),
+    borderRadius: BorderRadius.circular(16),
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 160),
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        color: selected ? AppTheme.blushSurfaceColor : AppTheme.backgroundColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white, width: 2),
+      ),
+      child: Row(
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: selected ? AppTheme.primaryColor : AppTheme.surfaceColor,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: selected
+                    ? AppTheme.primaryColor
+                    : AppTheme.primaryColor.withValues(alpha: 0.15),
+              ),
+            ),
+            child: selected
+                ? const Icon(Icons.check_rounded, color: Colors.white, size: 17)
+                : null,
+          ),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: AppTheme.secondaryText,
+                fontSize: 11,
+                fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _PublicCardConfirmDialog extends StatelessWidget {
+  const _PublicCardConfirmDialog({
+    required this.icon,
+    required this.title,
+    required this.message,
+    required this.confirmLabel,
+    required this.onCancel,
+    required this.onConfirm,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+  final String confirmLabel;
+  final VoidCallback onCancel;
+  final VoidCallback onConfirm;
+
+  @override
+  Widget build(BuildContext context) => Dialog(
+    backgroundColor: Colors.transparent,
+    insetPadding: const EdgeInsets.symmetric(horizontal: 26),
+    child: Container(
+      constraints: const BoxConstraints(maxWidth: 380),
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundColor,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.white, width: 3),
+        boxShadow: AppTheme.subtleShadow,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: AppTheme.blushSurfaceColor,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.white, width: 2),
+            ),
+            child: Icon(icon, color: AppTheme.primaryColor, size: 26),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: onCancel,
+                  style: _publicCardSecondaryButtonStyle(),
+                  child: const Text('Cancel'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton(
+                  onPressed: onConfirm,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(46),
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(17),
+                      side: const BorderSide(color: Colors.white, width: 2),
+                    ),
+                  ),
+                  child: Text(confirmLabel),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 class _PublicHealthCardPanel extends StatelessWidget {
   const _PublicHealthCardPanel({
     required this.card,
@@ -1667,94 +2007,231 @@ class _PublicHealthCardPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final active = card?.isActive == true;
-    return Container(
-      padding: const EdgeInsets.all(17),
-      decoration: BoxDecoration(
-        color: active ? const Color(0xFFF0F8F1) : AppTheme.blushSurfaceColor,
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: Colors.white, width: 3),
-        boxShadow: AppTheme.subtleShadow,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: active ? const Color(0xFF2E7D46) : AppTheme.primaryColor,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white, width: 2),
+    if (!active) {
+      return Container(
+        padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+        decoration: AppTheme.glassCardDecoration(
+          color: AppTheme.surfaceColor,
+          borderRadius: BorderRadius.circular(24),
+          borderColor: Colors.white,
+          borderWidth: 3,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: AppTheme.blushSurfaceColor,
+                borderRadius: BorderRadius.circular(13),
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: const Icon(
+                Icons.nfc_rounded,
+                color: AppTheme.primaryColor,
+                size: 21,
+              ),
             ),
-            child: Icon(
-              active ? Icons.qr_code_2_rounded : Icons.nfc_rounded,
-              color: Colors.white,
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'QR / NFC Health Card',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: AppTheme.secondaryText,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  active
-                      ? 'Public Health Card enabled'
-                      : 'QR / NFC Health Card',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
+            const SizedBox(width: 8),
+            if (busy)
+              const SizedBox(
+                width: 38,
+                height: 38,
+                child: Padding(
+                  padding: EdgeInsets.all(10),
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
+            else
+              IconButton(
+                onPressed: onConfigure,
+                tooltip: 'Set up health card',
+                style: IconButton.styleFrom(
+                  fixedSize: const Size(38, 38),
+                  minimumSize: const Size(38, 38),
+                  padding: EdgeInsets.zero,
+                  backgroundColor: AppTheme.blushSurfaceColor,
+                  foregroundColor: AppTheme.primaryColor,
+                  side: const BorderSide(color: Colors.white, width: 2),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(13),
                   ),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  active
-                      ? hasCurrentLink
-                            ? 'The private link is ready on this device.'
-                            : 'Settings are active. Replace the secret link to display a new QR.'
-                      : 'Share only the emergency details you explicitly choose.',
-                  style: Theme.of(context).textTheme.bodySmall,
+                icon: const Icon(Icons.tune_rounded, size: 20),
+              ),
+          ],
+        ),
+      );
+    }
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: AppTheme.glassCardDecoration(
+        color: AppTheme.surfaceColor,
+        borderRadius: BorderRadius.circular(28),
+        borderColor: Colors.white,
+        borderWidth: 3,
+      ),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: active
+                      ? AppTheme.successColor.withValues(alpha: 0.14)
+                      : AppTheme.blushSurfaceColor,
+                  borderRadius: BorderRadius.circular(17),
+                  border: Border.all(color: Colors.white, width: 2),
                 ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                child: Icon(
+                  active ? Icons.qr_code_2_rounded : Icons.nfc_rounded,
+                  color: active ? AppTheme.successColor : AppTheme.primaryColor,
+                  size: 25,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    OutlinedButton.icon(
-                      onPressed: busy ? null : onConfigure,
-                      icon: const Icon(Icons.tune_rounded, size: 18),
-                      label: Text(active ? 'EDIT FIELDS' : 'SET UP'),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            active
+                                ? 'Public Health Card'
+                                : 'QR / NFC Health Card',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                        if (active)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 9,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.successColor.withValues(
+                                alpha: 0.12,
+                              ),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                            child: const Text(
+                              'ACTIVE',
+                              style: TextStyle(
+                                color: AppTheme.successColor,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                    if (active && hasCurrentLink)
-                      FilledButton.icon(
-                        onPressed: busy ? null : onShowQr,
-                        icon: const Icon(Icons.qr_code_rounded, size: 18),
-                        label: const Text('SHOW QR'),
-                      ),
-                    if (active)
-                      TextButton.icon(
-                        onPressed: busy ? null : onRotate,
-                        icon: const Icon(Icons.refresh_rounded, size: 18),
-                        label: const Text('NEW LINK'),
-                      ),
-                    if (active)
-                      TextButton.icon(
-                        onPressed: busy ? null : onRevoke,
-                        icon: const Icon(Icons.link_off_rounded, size: 18),
-                        label: const Text('DISABLE'),
-                      ),
+                    const SizedBox(height: 4),
+                    Text(
+                      active
+                          ? hasCurrentLink
+                                ? 'Your private emergency card is ready.'
+                                : 'Settings saved. Create a new secure link.'
+                          : 'Share only the emergency details you choose.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   ],
+                ),
+              ),
+              if (busy)
+                const Padding(
+                  padding: EdgeInsets.only(left: 8, top: 10),
+                  child: SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: busy ? null : onConfigure,
+                  icon: const Icon(Icons.tune_rounded, size: 18),
+                  label: Text(active ? 'Edit fields' : 'Set up card'),
+                  style: _publicCardSecondaryButtonStyle(),
+                ),
+              ),
+              if (active && hasCurrentLink) ...[
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: busy ? null : onShowQr,
+                    icon: const Icon(Icons.qr_code_rounded, size: 18),
+                    label: const Text('Show QR'),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(46),
+                      backgroundColor: AppTheme.primaryColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(17),
+                        side: const BorderSide(color: Colors.white, width: 2),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          if (active) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton.icon(
+                    onPressed: busy ? null : onRotate,
+                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                    label: const Text('New link'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppTheme.primaryColor,
+                    ),
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  height: 24,
+                  color: AppTheme.primaryColor.withValues(alpha: 0.10),
+                ),
+                Expanded(
+                  child: TextButton.icon(
+                    onPressed: busy ? null : onRevoke,
+                    icon: const Icon(Icons.link_off_rounded, size: 18),
+                    label: const Text('Disable'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppTheme.primaryColor,
+                    ),
+                  ),
                 ),
               ],
             ),
-          ),
-          if (busy)
-            const Padding(
-              padding: EdgeInsets.all(8),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
+          ],
         ],
       ),
     );
@@ -1847,12 +2324,9 @@ class _HealthIdCardCanvas extends StatelessWidget {
   final VoidCallback onEdit;
 
   @override
-  Widget build(BuildContext context) => Container(
-    clipBehavior: Clip.antiAlias,
+  Widget build(BuildContext context) => DecoratedBox(
     decoration: BoxDecoration(
-      color: const Color(0xFFFFFAF5),
-      borderRadius: BorderRadius.circular(30),
-      border: Border.all(color: Colors.white, width: 3),
+      borderRadius: BorderRadius.circular(46),
       boxShadow: [
         BoxShadow(
           color: AppTheme.primaryColor.withValues(alpha: 0.09),
@@ -1861,40 +2335,60 @@ class _HealthIdCardCanvas extends StatelessWidget {
         ),
       ],
     ),
-    child: Stack(
-      children: [
-        Positioned(
-          left: 0,
-          top: 0,
-          bottom: 0,
-          child: Container(width: 226, color: AppTheme.primaryColor),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(22, 20, 22, 20),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SizedBox(
-                width: 182,
-                child: _HealthCardPortrait(card: card, appearance: appearance),
-              ),
-              const SizedBox(width: 30),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 8, right: 2),
-                  child: _HealthCardInformation(
-                    card: card,
-                    healthId: healthId,
-                    birthday: birthday,
-                    value: value,
-                    onEdit: onEdit,
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(46),
+      clipBehavior: Clip.antiAliasWithSaveLayer,
+      child: ColoredBox(
+        color: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(3),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(43),
+            clipBehavior: Clip.antiAliasWithSaveLayer,
+            child: ColoredBox(
+              color: const Color(0xFFFFFAF5),
+              child: Stack(
+                children: [
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    child: Container(width: 226, color: AppTheme.primaryColor),
                   ),
-                ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(22, 20, 22, 20),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(
+                          width: 182,
+                          child: _HealthCardPortrait(
+                            card: card,
+                            appearance: appearance,
+                          ),
+                        ),
+                        const SizedBox(width: 30),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 8, right: 2),
+                            child: _HealthCardInformation(
+                              card: card,
+                              healthId: healthId,
+                              birthday: birthday,
+                              value: value,
+                              onEdit: onEdit,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
-      ],
+      ),
     ),
   );
 }

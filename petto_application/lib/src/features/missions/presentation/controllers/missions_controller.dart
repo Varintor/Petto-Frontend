@@ -58,9 +58,9 @@ class MissionsController extends ChangeNotifier {
     }
   }
 
-  Future<void> completeMission(int missionId) async {
+  Future<bool> completeMission(int missionId) async {
     final idx = _missions.indexWhere((m) => m.id == missionId);
-    if (idx == -1 || _missions[idx].isCompleted) return;
+    if (idx == -1 || _missions[idx].isCompleted) return false;
 
     final previous = _missions[idx];
     _missions[idx] = previous.copyWith(
@@ -76,11 +76,13 @@ class MissionsController extends ChangeNotifier {
       if (currentIdx != -1) _missions[currentIdx] = updated;
       notifyListeners();
       unawaited(loadDashboardStats());
+      return true;
     } catch (e) {
       final currentIdx = _missions.indexWhere((m) => m.id == missionId);
       if (currentIdx != -1) _missions[currentIdx] = previous;
       _error = ApiClient.describeError(e);
       notifyListeners();
+      return false;
     }
   }
 

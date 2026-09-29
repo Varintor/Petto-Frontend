@@ -65,5 +65,12 @@ void main() {
     await controller.setEquipped(null);
     expect(repository.unequippedPetId, 21);
     expect(controller.equippedId, isNull);
+
+    expect(await controller.unlock('acc_ball'), true);
+    expect(controller.isUnlocked('acc_ball'), true);
+
+    final restored = WardrobeController(repository: repository);
+    await restored.load(userId: 4, petId: 21);
+    expect(restored.isUnlocked('acc_ball'), true);
   });
 }

@@ -37,9 +37,7 @@ class NfcPetCardService {
   bool _handlingTag = false;
 
   bool get isSupportedPlatform =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.android ||
-          defaultTargetPlatform == TargetPlatform.iOS);
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   Future<NfcWriteResult> writeUrl(
     String url, {
@@ -48,7 +46,7 @@ class NfcPetCardService {
     if (!isSupportedPlatform) {
       return const NfcWriteResult(
         NfcWriteStatus.unsupported,
-        'NFC writing is available on supported Android and iOS phones.',
+        'NFC writing is available on supported Android phones.',
       );
     }
     final uri = Uri.tryParse(url);

@@ -98,7 +98,7 @@ class MissionModel {
     }
   }
 
-  String get rewardDisplay => reward ?? '0 Treats';
+  String get rewardDisplay => 'Random accessory';
 }
 
 class DashboardStatsModel {

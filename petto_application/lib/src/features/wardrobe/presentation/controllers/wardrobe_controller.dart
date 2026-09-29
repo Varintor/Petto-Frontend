@@ -47,15 +47,20 @@ class WardrobeController extends ChangeNotifier {
   }
 
   Future<bool> unlock(String accessoryId) async {
-    if (_useBackend) {
-      final wasUnlocked = _unlockedIds.contains(accessoryId);
-      await _refreshFromBackend(_loadGeneration);
-      return !wasUnlocked && _unlockedIds.contains(accessoryId);
-    }
     if (!_unlockedIds.add(accessoryId)) return false;
     notifyListeners();
     await _persist();
     return true;
+  }
+
+  Future<void> revoke(String accessoryId) async {
+    if (_starterIds.contains(accessoryId) ||
+        !_unlockedIds.remove(accessoryId)) {
+      return;
+    }
+    if (_equippedId == accessoryId) _equippedId = null;
+    notifyListeners();
+    await _persist();
   }
 
   bool isUnlocked(String accessoryId) => _unlockedIds.contains(accessoryId);
@@ -82,9 +87,11 @@ class WardrobeController extends ChangeNotifier {
   Future<void> _refreshFromBackend(int generation) async {
     final items = await _repository.listItems(_requirePetId());
     if (generation != _loadGeneration) return;
+    final locallyUnlocked = Set<String>.of(_unlockedIds);
     _unlockedIds
       ..clear()
       ..addAll(_starterIds)
+      ..addAll(locallyUnlocked)
       ..addAll(items.map((item) => item.accessoryId));
     _equippedId = items
         .where((item) => item.isEquipped)
