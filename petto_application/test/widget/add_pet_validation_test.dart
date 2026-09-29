@@ -5,6 +5,8 @@
 // NOTE: the pet avatar has an infinitely-repeating animation, so `pumpAndSettle`
 // can never settle here — the test uses fixed-duration pumps, and flushes the
 // avatar's one-shot timer and the SnackBar auto-dismiss timer at the end.
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -136,5 +138,39 @@ void main() {
     expect(find.text('Add Pet'), findsOneWidget);
 
     await tester.pump(const Duration(seconds: 5));
+  });
+
+  testWidgets('add pet shows a full-page loading state while saving', (
+    WidgetTester tester,
+  ) async {
+    _setUpSurface(tester);
+    final saving = Completer<void>();
+    var submissions = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PetFormScreen(
+          onSubmit: (_) {
+            submissions += 1;
+            return saving.future;
+          },
+        ),
+      ),
+    );
+    await _advance(tester);
+    await tester.enterText(find.widgetWithText(TextField, 'Pet name'), 'Milo');
+    await tester.ensureVisible(find.text('ADD PET'));
+    await tester.tap(find.text('ADD PET'));
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('pet-creation-loading')), findsOneWidget);
+    expect(find.text('Creating your pet profile'), findsOneWidget);
+    expect(find.text('Saving health details securely.'), findsOneWidget);
+    expect(find.text('ADD PET'), findsNothing);
+    expect(submissions, 1);
+
+    saving.complete();
+    await tester.pump();
+    expect(submissions, 1);
   });
 }

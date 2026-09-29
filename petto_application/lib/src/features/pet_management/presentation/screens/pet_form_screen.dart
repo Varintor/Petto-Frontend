@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/petto_loading.dart';
 import '../../../health_assessment/presentation/widgets/pet_avatar_widget.dart';
 import '../../domain/entities/pet_entity.dart';
 import '../../domain/pet_blood_type_catalog.dart';
@@ -12,8 +14,9 @@ import '../../domain/pet_breed_catalog.dart';
 /// for both Home and Profile entry points.
 class PetFormScreen extends StatefulWidget {
   final PetEntity? initial;
+  final Future<void> Function(PetEntity pet)? onSubmit;
 
-  const PetFormScreen({super.key, this.initial});
+  const PetFormScreen({super.key, this.initial, this.onSubmit});
 
   bool get isEdit => initial != null;
 
@@ -30,6 +33,7 @@ class _PetFormScreenState extends State<PetFormScreen> {
   String _species = 'dog';
   String? _gender;
   DateTime? _birthday;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -95,7 +99,8 @@ class _PetFormScreenState extends State<PetFormScreen> {
     });
   }
 
-  void _save() {
+  Future<void> _save() async {
+    if (_isSaving) return;
     FocusManager.instance.primaryFocus?.unfocus();
     final name = _name.text.trim();
     if (name.isEmpty) {
@@ -113,21 +118,34 @@ class _PetFormScreenState extends State<PetFormScreen> {
       return;
     }
 
-    Navigator.of(context).pop(
-      PetEntity(
-        id: widget.initial?.id,
-        name: name,
-        species: _species,
-        breed: _breed.text.trim().isEmpty ? null : _breed.text.trim(),
-        gender: _gender,
-        dateOfBirth: _birthday,
-        weightKg: weight,
-        bloodType: _bloodType.text.trim().isEmpty
-            ? null
-            : _bloodType.text.trim(),
-        avatarUri: widget.initial?.avatarUri,
-      ),
+    final pet = PetEntity(
+      id: widget.initial?.id,
+      name: name,
+      species: _species,
+      breed: _breed.text.trim().isEmpty ? null : _breed.text.trim(),
+      gender: _gender,
+      dateOfBirth: _birthday,
+      weightKg: weight,
+      bloodType: _bloodType.text.trim().isEmpty ? null : _bloodType.text.trim(),
+      avatarUri: widget.initial?.avatarUri,
     );
+
+    final submit = widget.onSubmit;
+    if (submit == null) {
+      Navigator.of(context).pop(pet);
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      await submit(pet);
+      if (!mounted) return;
+      Navigator.of(context).pop(pet);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      _showHint(ApiClient.describeError(error));
+    }
   }
 
   void _showHint(String message) {
@@ -145,6 +163,34 @@ class _PetFormScreenState extends State<PetFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isSaving) {
+      return const PopScope(
+        canPop: false,
+        child: Scaffold(
+          key: ValueKey('pet-creation-loading'),
+          backgroundColor: AppTheme.backgroundColor,
+          body: DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppTheme.backgroundColor,
+              gradient: AppTheme.appBackgroundGradient,
+            ),
+            child: SafeArea(
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.all(28),
+                  child: PettoInlineProgress(
+                    title: 'Creating your pet profile',
+                    subtitle: 'Saving health details securely.',
+                    icon: Icons.pets_rounded,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
 
     return Scaffold(
