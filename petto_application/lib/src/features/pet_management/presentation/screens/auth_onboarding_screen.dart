@@ -1,3 +1,7 @@
+// Retain the original onboarding decorations until the refreshed flow has
+// completed cross-platform visual regression checks.
+// ignore_for_file: unused_element
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';

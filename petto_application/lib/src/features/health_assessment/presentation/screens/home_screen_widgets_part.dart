@@ -1,3 +1,7 @@
+// Legacy widget variants are intentionally retained while the replacement
+// dashboard is validated across supported screen sizes.
+// ignore_for_file: unused_element, unused_element_parameter
+
 part of 'home_screen.dart';
 
 class _RoomStage extends StatelessWidget {

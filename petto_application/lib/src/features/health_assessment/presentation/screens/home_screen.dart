@@ -150,6 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
             time: dateLabel,
             icon: event.icon,
             tint: event.color,
+            unread: false,
           );
         })
         .toList(growable: false);

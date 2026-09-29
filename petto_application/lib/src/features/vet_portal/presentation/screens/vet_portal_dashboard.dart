@@ -210,7 +210,6 @@ class _PatientsViewState extends State<_PatientsView> {
   }
 
   bool _matchesFilter(_Patient patient) {
-    final status = patient.consultation.status.toLowerCase();
     return switch (_filter) {
       'urgent' => patient.consultation.priority.toLowerCase() == 'urgent',
       'open' => !patient.consultation.isClosed,

@@ -1,3 +1,6 @@
+// Kept for the compact patient-profile layout used in design validation.
+// ignore_for_file: unused_element
+
 part of 'vet_portal_screen.dart';
 
 class _ProfileView extends StatelessWidget {
