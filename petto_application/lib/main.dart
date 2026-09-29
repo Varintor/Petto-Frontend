@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -34,6 +35,7 @@ void main() async {
     url: AppConfig.supabaseUrl,
     publishableKey: AppConfig.supabasePublishableKey,
   );
+  await _recoverWebOAuthCallback();
   ApiClient.initializeAuthSync();
 
   runApp(const PettoApp());
@@ -45,6 +47,24 @@ void main() async {
   // Notification setup is not required for the first frame. Initialize it in
   // the background so a slow platform channel cannot delay app startup.
   unawaited(_initializeNotifications());
+}
+
+/// Supabase Flutter normally exchanges the PKCE `code` while initializing.
+/// Keep an explicit fallback for static Flutter Web hosting, where an older
+/// service worker or a slow initial-link event can leave the callback in the
+/// address bar without creating a session.
+Future<void> _recoverWebOAuthCallback() async {
+  if (!kIsWeb || Supabase.instance.client.auth.currentSession != null) return;
+  final code = Uri.base.queryParameters['code'];
+  if (code == null || code.isEmpty) return;
+  try {
+    await Supabase.instance.client.auth.exchangeCodeForSession(code);
+  } on AuthException catch (error) {
+    // The SDK may already have consumed a one-time code while this fallback
+    // was scheduled. Only surface the failure through the normal auth stream;
+    // never prevent the login screen from rendering.
+    debugPrint('Google OAuth callback could not be restored: ${error.message}');
+  }
 }
 
 Future<void> _initializeNotifications() async {

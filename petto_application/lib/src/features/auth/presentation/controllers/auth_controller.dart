@@ -30,6 +30,8 @@ class AuthController extends ChangeNotifier {
   bool _completingOAuthSession = false;
   StreamSubscription<AuthState>? _supabaseAuthSubscription;
   final GoogleOAuthLauncher? _googleOAuthLauncher;
+  final Stream<AuthState>? _supabaseAuthStateChanges;
+  final Session? Function()? _supabaseSessionProvider;
 
   /// Handlers invoked when [logout] runs, so other controllers can clear
   /// per-account in-memory state (stats, missions) before the new account
@@ -40,8 +42,12 @@ class AuthController extends ChangeNotifier {
     required this.repository,
     TokenStorage? storage,
     GoogleOAuthLauncher? googleOAuthLauncher,
+    Stream<AuthState>? supabaseAuthStateChanges,
+    Session? Function()? supabaseSessionProvider,
   }) : storage = storage ?? TokenStorage(),
-       _googleOAuthLauncher = googleOAuthLauncher {
+       _googleOAuthLauncher = googleOAuthLauncher,
+       _supabaseAuthStateChanges = supabaseAuthStateChanges,
+       _supabaseSessionProvider = supabaseSessionProvider {
     _watchSupabaseTokenRefresh();
   }
 
@@ -343,30 +349,13 @@ class AuthController extends ChangeNotifier {
   void _watchSupabaseTokenRefresh() {
     if (_supabaseAuthSubscription != null) return;
     try {
-      _supabaseAuthSubscription = Supabase
-          .instance
-          .client
-          .auth
-          .onAuthStateChange
-          .listen((state) {
-            final session = state.session;
-            if (session == null) return;
-            if (_googleSignInPending &&
-                (state.event == AuthChangeEvent.signedIn ||
-                    state.event == AuthChangeEvent.initialSession)) {
-              unawaited(_completeSupabaseOAuthSession(session));
-              return;
-            }
-            if (_status != AuthStatus.authenticated) return;
-            _token = session.accessToken;
-            unawaited(
-              Future.wait<void>([
-                storage.saveToken(session.accessToken),
-                if (session.refreshToken != null)
-                  storage.saveRefreshToken(session.refreshToken!),
-              ]),
-            );
-          }, onError: (_) {});
+      final changes =
+          _supabaseAuthStateChanges ??
+          Supabase.instance.client.auth.onAuthStateChange;
+      _supabaseAuthSubscription = changes.listen(
+        (state) => unawaited(_handleSupabaseAuthState(state)),
+        onError: (_) {},
+      );
     } catch (_) {
       // Unit/widget tests may construct the controller before Supabase.init.
     }
@@ -374,10 +363,39 @@ class AuthController extends ChangeNotifier {
 
   Session? _currentSupabaseSession() {
     try {
-      return Supabase.instance.client.auth.currentSession;
+      return _supabaseSessionProvider?.call() ??
+          Supabase.instance.client.auth.currentSession;
     } catch (_) {
       return null;
     }
+  }
+
+  Future<void> _handleSupabaseAuthState(AuthState state) async {
+    final session = state.session;
+    if (session == null) return;
+
+    final isSignInEvent =
+        state.event == AuthChangeEvent.signedIn ||
+        state.event == AuthChangeEvent.initialSession;
+
+    // A web OAuth redirect reloads the entire Flutter application, so the
+    // in-memory `_googleSignInPending` flag is lost before Supabase emits the
+    // completed session. Treat an initial/signed-in Supabase session as a
+    // backend-login candidate whenever Petto has not restored its own user.
+    if (isSignInEvent &&
+        (_googleSignInPending ||
+            (_status != AuthStatus.authenticated && _token == null))) {
+      await _completeSupabaseOAuthSession(session);
+      return;
+    }
+
+    if (_status != AuthStatus.authenticated) return;
+    _token = session.accessToken;
+    await Future.wait<void>([
+      storage.saveToken(session.accessToken),
+      if (session.refreshToken != null)
+        storage.saveRefreshToken(session.refreshToken!),
+    ]);
   }
 
   Future<void> _completeSupabaseOAuthSession(Session session) async {
