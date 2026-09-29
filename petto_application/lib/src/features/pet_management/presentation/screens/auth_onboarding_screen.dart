@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../core/config/app_config.dart';
 import '../../../../core/navigation/petto_transitions.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/petto_loading.dart';
@@ -252,11 +251,13 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     }
   }
 
-  Future<void> _handleGuestMode() async {
+  void _handleGoogleLogin() {
     FocusManager.instance.primaryFocus?.unfocus();
-    await context.read<AuthController>().enterGuestMode();
-    if (!mounted) return;
-    _openHome();
+    showTopAlert(
+      context,
+      'Google sign-in is being connected.',
+      icon: Icons.info_outline_rounded,
+    );
   }
 
   /// Registers user + pet in ONE backend call (single DB transaction), so a
@@ -700,7 +701,7 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
             onLogin: _handleLogin,
             onRegister: _openRegisterFlow,
             onForgotPassword: _openForgotPassword,
-            onGuest: _handleGuestMode,
+            onGoogle: _handleGoogleLogin,
           ),
         );
       case _AuthScreen.forgotPassword:
@@ -1296,7 +1297,7 @@ class _GatewayPage extends StatelessWidget {
     required this.onLogin,
     required this.onRegister,
     required this.onForgotPassword,
-    required this.onGuest,
+    required this.onGoogle,
   });
 
   final TextEditingController emailController;
@@ -1312,7 +1313,7 @@ class _GatewayPage extends StatelessWidget {
   final VoidCallback onLogin;
   final VoidCallback onRegister;
   final VoidCallback onForgotPassword;
-  final VoidCallback onGuest;
+  final VoidCallback onGoogle;
 
   @override
   Widget build(BuildContext context) {
@@ -1399,17 +1400,13 @@ class _GatewayPage extends StatelessWidget {
                       Expanded(child: _RegisterActionButton(onTap: onRegister)),
                     ],
                   ),
-                  if (AppConfig.environment != 'production') ...[
-                    const SizedBox(height: 18),
-                    const _OrDivider(),
-                    const SizedBox(height: 16),
-                    Center(
-                      child: SizedBox(
-                        width: 184,
-                        child: _ReferenceButton(label: 'GUEST', onTap: onGuest),
-                      ),
-                    ),
-                  ],
+                  const SizedBox(height: 18),
+                  const _OrDivider(),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: _GoogleButton(onTap: onGoogle),
+                  ),
                   const SizedBox(height: 32),
                   TextButton.icon(
                     onPressed: onBack,
@@ -4861,12 +4858,8 @@ class _GatewayAuthFieldState extends State<_GatewayAuthField> {
   }
 }
 
-// Kept ready for the deferred Google Login scope; intentionally not rendered
-// in Progress 2 builds.
-// ignore: unused_element
 class _GoogleButton extends StatelessWidget {
-  // ignore: unused_element_parameter
-  const _GoogleButton({required this.onTap, this.compact = false});
+  const _GoogleButton({required this.onTap});
 
   static const _googleLogoSvg = '''
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
@@ -4878,12 +4871,10 @@ class _GoogleButton extends StatelessWidget {
 ''';
 
   final VoidCallback onTap;
-  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final height = compact ? 56.0 : 64.0;
-    final radius = compact ? 24.0 : 16.0;
+    const radius = 26.0;
     return Material(
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(radius),
@@ -4891,24 +4882,24 @@ class _GoogleButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(radius),
         child: Container(
-          height: height,
-          padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 24),
+          height: 64,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: const Color(0xFFFFFCF8),
             borderRadius: BorderRadius.circular(radius),
             border: Border.all(
-              color: _AuthOnboardingScreenState._paleRose.withValues(
-                alpha: 0.34,
+              color: _AuthOnboardingScreenState._deepRed.withValues(
+                alpha: 0.20,
               ),
-              width: 1.4,
+              width: 1.6,
             ),
             boxShadow: [
               BoxShadow(
                 color: _AuthOnboardingScreenState._deepRed.withValues(
-                  alpha: 0.06,
+                  alpha: 0.08,
                 ),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
+                blurRadius: 20,
+                offset: const Offset(0, 9),
               ),
             ],
           ),
@@ -4916,11 +4907,11 @@ class _GoogleButton extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: compact ? 34 : 38,
-                height: compact ? 34 : 38,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(compact ? 999 : 12),
+                  borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: const Color(0xFFF2ECEA), width: 1),
                   boxShadow: [
                     BoxShadow(
@@ -4935,21 +4926,21 @@ class _GoogleButton extends StatelessWidget {
                 child: Center(
                   child: SvgPicture.string(
                     _googleLogoSvg,
-                    width: compact ? 20 : 23,
-                    height: compact ? 20 : 23,
+                    width: 23,
+                    height: 23,
                   ),
                 ),
               ),
-              SizedBox(width: compact ? 10 : 18),
+              const SizedBox(width: 18),
               Flexible(
                 child: Text(
-                  compact ? 'GOOGLE' : 'Continue with Google',
+                  'Continue with Google',
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontFamily: AppTheme.sansFontFamily,
                     color: _AuthOnboardingScreenState._deepRed,
-                    fontSize: compact ? 12 : 15,
-                    letterSpacing: compact ? 1.2 : 0.2,
+                    fontSize: 15,
+                    letterSpacing: 0.2,
                     fontWeight: FontWeight.w900,
                   ),
                 ),

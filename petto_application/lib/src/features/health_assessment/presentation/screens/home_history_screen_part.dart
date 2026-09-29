@@ -16,7 +16,7 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
     return RefreshIndicator(
       onRefresh: () => controller.load(petId: petId),
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 150),
+        padding: const EdgeInsets.fromLTRB(18, 8, 18, 150),
         children: [
           _historyHeader(context),
           const SizedBox(height: 20),
@@ -123,6 +123,7 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
         decoration: BoxDecoration(
           color: AppTheme.blushSurfaceColor,
           borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: Colors.white, width: 2),
         ),
         child: const Icon(Icons.badge_rounded, color: AppTheme.primaryColor),
       ),
@@ -130,7 +131,7 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
   );
 
   Widget _buildDemoHistory(BuildContext context) => ListView(
-    padding: const EdgeInsets.fromLTRB(24, 8, 24, 150),
+    padding: const EdgeInsets.fromLTRB(18, 8, 18, 150),
     children: [
       _historyHeader(context),
       const SizedBox(height: 20),
@@ -1562,15 +1563,12 @@ class _PublicHealthCardPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final active = card?.isActive == true;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(17),
       decoration: BoxDecoration(
         color: active ? const Color(0xFFF0F8F1) : AppTheme.blushSurfaceColor,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: active
-              ? const Color(0xFF9BC6A0)
-              : AppTheme.primaryColor.withValues(alpha: 0.16),
-        ),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: Colors.white, width: 3),
+        boxShadow: AppTheme.subtleShadow,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1581,6 +1579,7 @@ class _PublicHealthCardPanel extends StatelessWidget {
             decoration: BoxDecoration(
               color: active ? const Color(0xFF2E7D46) : AppTheme.primaryColor,
               borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white, width: 2),
             ),
             child: Icon(
               active ? Icons.qr_code_2_rounded : Icons.nfc_rounded,
@@ -1748,10 +1747,7 @@ class _HealthIdCardCanvas extends StatelessWidget {
     decoration: BoxDecoration(
       color: const Color(0xFFFFFAF5),
       borderRadius: BorderRadius.circular(30),
-      border: Border.all(
-        color: AppTheme.primaryColor.withValues(alpha: 0.22),
-        width: 1.6,
-      ),
+      border: Border.all(color: Colors.white, width: 3),
       boxShadow: [
         BoxShadow(
           color: AppTheme.primaryColor.withValues(alpha: 0.09),
@@ -2216,7 +2212,7 @@ class _HealthCardFact extends StatelessWidget {
     decoration: BoxDecoration(
       color: const Color(0xFFFFFDF9),
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: accent.withValues(alpha: 0.16)),
+      border: Border.all(color: Colors.white, width: 2),
       boxShadow: [
         BoxShadow(
           color: accent.withValues(alpha: 0.05),
@@ -2233,6 +2229,7 @@ class _HealthCardFact extends StatelessWidget {
           decoration: BoxDecoration(
             color: surface,
             borderRadius: BorderRadius.circular(11),
+            border: Border.all(color: Colors.white, width: 1.5),
           ),
           child: Icon(icon, size: 20, color: accent),
         ),
@@ -2298,9 +2295,7 @@ class _HistoryFilterPill extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? accent : const Color(0xFFFFFCF8),
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: selected ? accent : accent.withValues(alpha: 0.15),
-          ),
+          border: Border.all(color: Colors.white, width: 2),
           boxShadow: [
             BoxShadow(
               color: accent.withValues(alpha: selected ? 0.13 : 0.035),
@@ -2373,6 +2368,7 @@ class _HealthSectionHeading extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppTheme.primaryColor,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white, width: 2),
           boxShadow: [
             BoxShadow(
               color: AppTheme.primaryColor.withValues(alpha: 0.13),
@@ -2490,14 +2486,19 @@ class _HealthTimelineCard extends StatelessWidget {
           SizedBox(
             width: 34,
             child: Stack(
+              clipBehavior: Clip.none,
               alignment: Alignment.center,
               children: [
-                Positioned.fill(
+                Positioned(
+                  top: 0,
+                  bottom: -12,
+                  left: 0,
+                  right: 0,
                   child: Center(
                     child: Container(
-                      width: 3,
+                      width: 4,
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.12),
+                        color: AppTheme.primaryColor.withValues(alpha: 0.20),
                         borderRadius: BorderRadius.circular(999),
                       ),
                     ),
@@ -2538,12 +2539,16 @@ class _HealthTimelineCard extends StatelessWidget {
                 child: Ink(
                   padding: const EdgeInsets.fromLTRB(13, 12, 12, 12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFFCF8),
+                    color: Color.lerp(const Color(0xFFFFFCF8), _softTint, 0.26),
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: _tint.withValues(alpha: 0.16),
-                      width: 1.15,
-                    ),
+                    border: Border.all(color: Colors.white, width: 3),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.06),
+                        blurRadius: 16,
+                        offset: const Offset(0, 7),
+                      ),
+                    ],
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -2688,7 +2693,8 @@ class _HealthHistoryStateCard extends StatelessWidget {
     decoration: BoxDecoration(
       color: AppTheme.surfaceColor,
       borderRadius: BorderRadius.circular(22),
-      border: Border.all(color: AppTheme.primaryColor.withValues(alpha: 0.10)),
+      border: Border.all(color: Colors.white, width: 3),
+      boxShadow: AppTheme.subtleShadow,
     ),
     child: Padding(
       padding: const EdgeInsets.all(24),
@@ -2700,6 +2706,7 @@ class _HealthHistoryStateCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppTheme.blushSurfaceColor,
               borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white, width: 2),
             ),
             child: const Icon(
               Icons.folder_open_rounded,

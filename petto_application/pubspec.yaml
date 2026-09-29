@@ -100,6 +100,12 @@ flutter:
       fonts:
         - asset: assets/fonts/PlusJakartaSans-Variable.ttf
 
+  assets:
+    - assets/icons/feature_activity_tracking.png
+    - assets/icons/feature_health_records.png
+    - assets/icons/feature_care_planning.png
+    - assets/icons/feature_health_assessment.png
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg
