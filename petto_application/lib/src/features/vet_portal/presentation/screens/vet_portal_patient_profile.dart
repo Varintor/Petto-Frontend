@@ -2,86 +2,189 @@ part of 'vet_portal_screen.dart';
 
 class _ProfileView extends StatelessWidget {
   const _ProfileView({
+    required this.vetId,
     required this.vetName,
     required this.email,
     required this.onLogout,
   });
 
+  final int? vetId;
   final String vetName;
   final String email;
   final VoidCallback onLogout;
 
   @override
   Widget build(BuildContext context) {
-    return _VetScroll(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _PageTitle(
-            title: 'Profile',
-            subtitle: 'Clinic account and working preferences.',
-          ),
-          const SizedBox(height: 18),
-          _Panel(
-            child: Row(
-              children: [
-                const _InitialBadge(initial: 'S', large: true),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        vetName,
-                        style: const TextStyle(
-                          color: AppTheme.secondaryText,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w900,
-                          fontFamily: AppTheme.displayFontFamily,
-                        ),
+    return Consumer<ConsultationController>(
+      builder: (context, controller, _) {
+        VetModel? profile;
+        for (final vet in controller.vets) {
+          if (vet.id == vetId) {
+            profile = vet;
+            break;
+          }
+        }
+        final displayName = profile?.name.trim().isNotEmpty == true
+            ? profile!.name.trim()
+            : vetName;
+        final displayEmail = profile?.email?.trim().isNotEmpty == true
+            ? profile!.email!.trim()
+            : email;
+        final initial = displayName.trim().isEmpty
+            ? 'V'
+            : displayName.trim().characters.first.toUpperCase();
+        String valueOrNotSet(String? value) =>
+            value == null || value.trim().isEmpty ? 'Not set' : value.trim();
+
+        return _VetScroll(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _PageTitle(
+                title: 'Profile',
+                subtitle: 'Verified veterinarian account information.',
+              ),
+              const SizedBox(height: 18),
+              _Panel(
+                child: Row(
+                  children: [
+                    _InitialBadge(initial: initial, large: true),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            displayName,
+                            style: const TextStyle(
+                              color: AppTheme.secondaryText,
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                              fontFamily: AppTheme.displayFontFamily,
+                            ),
+                          ),
+                          Text(
+                            displayEmail,
+                            style: TextStyle(
+                              color: AppTheme.mutedText,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 9),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              _ProfileStatusChip(
+                                icon: Icons.verified_rounded,
+                                label: profile == null
+                                    ? 'Profile unavailable'
+                                    : profile.verificationStatus == 'approved'
+                                    ? 'Verified'
+                                    : profile.verificationStatus,
+                                active:
+                                    profile?.verificationStatus == 'approved',
+                              ),
+                              _ProfileStatusChip(
+                                icon: Icons.circle,
+                                label: profile?.isOnline == true
+                                    ? 'Online'
+                                    : 'Offline',
+                                active: profile?.isOnline == true,
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                      Text(
-                        email,
-                        style: TextStyle(
-                          color: AppTheme.mutedText,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              _ProfileTile(
+                icon: Icons.medical_services_rounded,
+                title: 'Specialty',
+                value: valueOrNotSet(profile?.specialty),
+              ),
+              _ProfileTile(
+                icon: Icons.local_hospital_rounded,
+                title: 'Clinic / Hospital',
+                value: valueOrNotSet(profile?.clinicName),
+              ),
+              _ProfileTile(
+                icon: Icons.badge_rounded,
+                title: 'Professional license',
+                value: valueOrNotSet(profile?.licenseNumber),
+              ),
+              _ProfileTile(
+                icon: Icons.forum_rounded,
+                title: 'Consultation status',
+                value: profile?.isAcceptingConsultations == true
+                    ? 'Accepting new consultations'
+                    : 'Not accepting new consultations',
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Professional details are verified and managed by the Petto administrator.',
+                style: TextStyle(
+                  color: AppTheme.mutedText,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: 220,
+                height: 58,
+                child: FilledButton.icon(
+                  onPressed: onLogout,
+                  icon: const Icon(Icons.logout_rounded),
+                  label: const Text('Log out'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    textStyle: const TextStyle(fontWeight: FontWeight.w900),
                   ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-          const _ProfileTile(
-            icon: Icons.medical_services_rounded,
-            title: 'Specialty',
-            value: 'General wellness',
-          ),
-          const _ProfileTile(
-            icon: Icons.schedule_rounded,
-            title: 'Clinic hours',
-            value: '09:00 - 18:00',
-          ),
-          const _ProfileTile(
-            icon: Icons.verified_rounded,
-            title: 'Status',
-            value: 'Available for care team chat',
-          ),
-          const SizedBox(height: 18),
-          SizedBox(
-            width: 220,
-            height: 58,
-            child: FilledButton.icon(
-              onPressed: onLogout,
-              icon: const Icon(Icons.logout_rounded),
-              label: const Text('Log out'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
-                foregroundColor: Colors.white,
-                textStyle: const TextStyle(fontWeight: FontWeight.w900),
               ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ProfileStatusChip extends StatelessWidget {
+  const _ProfileStatusChip({
+    required this.icon,
+    required this.label,
+    required this.active,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active ? const Color(0xFF3B7A4A) : AppTheme.mutedText;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
             ),
           ),
         ],
@@ -91,9 +194,15 @@ class _ProfileView extends StatelessWidget {
 }
 
 class _PatientDetailsScreen extends StatelessWidget {
-  const _PatientDetailsScreen({required this.patient});
+  const _PatientDetailsScreen({
+    required this.patient,
+    required this.onRequestHealthCard,
+    required this.onOpenConsultation,
+  });
 
   final _Patient patient;
+  final VoidCallback onRequestHealthCard;
+  final VoidCallback onOpenConsultation;
 
   @override
   Widget build(BuildContext context) {
@@ -113,7 +222,11 @@ class _PatientDetailsScreen extends StatelessWidget {
                     color: AppTheme.primaryColor,
                   ),
                   const SizedBox(height: 8),
-                  _PatientDetails(patient: patient),
+                  _PatientDetails(
+                    patient: patient,
+                    onRequestHealthCard: onRequestHealthCard,
+                    onOpenConsultation: onOpenConsultation,
+                  ),
                 ],
               ),
             ),
@@ -543,66 +656,275 @@ class _ListCard extends StatelessWidget {
 }
 
 class _PatientDetails extends StatelessWidget {
-  const _PatientDetails({required this.patient});
+  const _PatientDetails({
+    required this.patient,
+    required this.onRequestHealthCard,
+    required this.onOpenConsultation,
+  });
 
   final _Patient patient;
+  final VoidCallback onRequestHealthCard;
+  final VoidCallback onOpenConsultation;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _Panel(
-          padding: const EdgeInsets.all(18),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final compact = constraints.maxWidth < 520;
-              final identity = Row(
-                children: [
-                  _PetBadge(species: patient.species, large: true),
-                  const SizedBox(width: 16),
-                  Expanded(child: _PatientIdentity(patient: patient)),
-                ],
-              );
-              if (compact) {
-                return Column(
+    return Consumer<ConsultationController>(
+      builder: (context, controller, _) {
+        final activeMatches = controller.active?.id == patient.consultation.id;
+        SharedHealthCardModel? sharedCard;
+        if (activeMatches) {
+          for (final card in controller.sharedHealthCards) {
+            if (card.petId == patient.petId && card.revokedAt == null) {
+              sharedCard = card;
+              break;
+            }
+          }
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _Panel(
+              padding: const EdgeInsets.all(18),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final compact = constraints.maxWidth < 520;
+                  final identity = Row(
+                    children: [
+                      _PetBadge(species: patient.species, large: true),
+                      const SizedBox(width: 16),
+                      Expanded(child: _PatientIdentity(patient: patient)),
+                    ],
+                  );
+                  if (compact) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        identity,
+                        const SizedBox(height: 14),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _RiskPill(label: patient.risk),
+                            const _CareTag(label: 'Assigned consultation'),
+                          ],
+                        ),
+                      ],
+                    );
+                  }
+                  return Row(
+                    children: [
+                      Expanded(child: identity),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          _RiskPill(label: patient.risk),
+                          const SizedBox(height: 8),
+                          const _CareTag(label: 'Assigned consultation'),
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 14),
+            if (controller.loading && activeMatches)
+              const PettoCardSkeleton(height: 210)
+            else if (sharedCard != null) ...[
+              _MedicalAlertPanel(card: sharedCard),
+              const SizedBox(height: 10),
+              SharedHealthCardPanel(
+                key: const Key('vet-patient-health-card'),
+                card: sharedCard,
+                initiallyExpanded: true,
+              ),
+            ] else
+              _HealthCardAccessPanel(
+                patient: patient,
+                requestAlreadySent: controller.messages.any(
+                  (message) =>
+                      message.senderType.toLowerCase() == 'vet' &&
+                      (message.content ?? '').contains(
+                        "share ${patient.name}'s Pet Health Card",
+                      ),
+                ),
+                onRequest: onRequestHealthCard,
+                onOpenConsultation: onOpenConsultation,
+              ),
+            const SizedBox(height: 14),
+            _ClinicalNotesPanel(patient: patient),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _HealthCardAccessPanel extends StatelessWidget {
+  const _HealthCardAccessPanel({
+    required this.patient,
+    required this.requestAlreadySent,
+    required this.onRequest,
+    required this.onOpenConsultation,
+  });
+
+  final _Patient patient;
+  final bool requestAlreadySent;
+  final VoidCallback onRequest;
+  final VoidCallback onOpenConsultation;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Panel(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const _TintIcon(icon: Icons.health_and_safety_rounded),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    identity,
-                    const SizedBox(height: 14),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _RiskPill(label: patient.risk),
-                        const _CareTag(label: 'Shared record'),
-                      ],
+                    const Text(
+                      'Pet Health Card not shared',
+                      style: TextStyle(
+                        color: AppTheme.secondaryText,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        fontFamily: AppTheme.displayFontFamily,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${patient.owner} controls access to this medical summary.',
+                      style: const TextStyle(
+                        color: AppTheme.mutedText,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
-                );
-              }
-              return Row(
-                children: [
-                  Expanded(child: identity),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      _RiskPill(label: patient.risk),
-                      const SizedBox(height: 8),
-                      const _CareTag(label: 'Shared record'),
-                    ],
-                  ),
-                ],
-              );
-            },
+                ),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(height: 14),
-        _PatientInfoGrid(patient: patient),
-        const SizedBox(height: 14),
-        _ClinicalNotesPanel(patient: patient),
-      ],
+          const SizedBox(height: 14),
+          const Text(
+            'Request the card to review allergies, conditions, medication, vaccination, activity, and the latest assessment.',
+            style: TextStyle(
+              color: AppTheme.secondaryText,
+              fontWeight: FontWeight.w700,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              FilledButton.icon(
+                key: const Key('vet-patient-request-health-card'),
+                onPressed: requestAlreadySent ? null : onRequest,
+                icon: Icon(
+                  requestAlreadySent
+                      ? Icons.mark_email_read_rounded
+                      : Icons.mark_email_unread_rounded,
+                ),
+                label: Text(
+                  requestAlreadySent ? 'Request sent' : 'Request Health Card',
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: onOpenConsultation,
+                icon: const Icon(Icons.forum_rounded),
+                label: const Text('Open consultation'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MedicalAlertPanel extends StatelessWidget {
+  const _MedicalAlertPanel({required this.card});
+
+  final SharedHealthCardModel card;
+
+  @override
+  Widget build(BuildContext context) {
+    final latestAssessment = card.snapshot['latest_assessment'] as Map?;
+    final risk = (latestAssessment?['risk_level'] as String? ?? '').trim();
+    final alerts = <String>[
+      if (card.allergies.isNotEmpty) 'Allergies: ${card.allergies.join(', ')}',
+      if (card.chronicConditions.isNotEmpty)
+        'Conditions: ${card.chronicConditions.join(', ')}',
+      if (risk.toLowerCase() == 'high' || risk.toLowerCase() == 'high risk')
+        'Latest assessment: $risk',
+    ];
+    final hasAlerts = alerts.isNotEmpty;
+    final foreground = hasAlerts
+        ? const Color(0xFF8A1C1C)
+        : const Color(0xFF356140);
+    final background = hasAlerts
+        ? const Color(0xFFFFECEC)
+        : const Color(0xFFEAF6ED);
+    return Container(
+      key: const Key('vet-patient-medical-alerts'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: foreground.withValues(alpha: 0.22)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            hasAlerts
+                ? Icons.warning_amber_rounded
+                : Icons.verified_user_rounded,
+            color: foreground,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  hasAlerts ? 'Medical alerts' : 'No critical alerts recorded',
+                  style: TextStyle(
+                    color: foreground,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                if (hasAlerts) ...[
+                  const SizedBox(height: 6),
+                  for (final alert in alerts)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 3),
+                      child: Text(
+                        '• $alert',
+                        style: TextStyle(
+                          color: foreground,
+                          fontWeight: FontWeight.w700,
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

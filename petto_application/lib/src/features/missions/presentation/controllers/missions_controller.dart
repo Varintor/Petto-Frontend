@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/network/api_client.dart';
 import '../../data/models/mission_model.dart';
 import '../../data/repositories/missions_repository.dart';
 
@@ -50,7 +51,7 @@ class MissionsController extends ChangeNotifier {
         _missions = await repository.seedTodayMissions(id);
       }
     } catch (e) {
-      _error = e.toString();
+      _error = ApiClient.describeError(e);
     } finally {
       _missionsLoading = false;
       notifyListeners();
@@ -78,7 +79,7 @@ class MissionsController extends ChangeNotifier {
     } catch (e) {
       final currentIdx = _missions.indexWhere((m) => m.id == missionId);
       if (currentIdx != -1) _missions[currentIdx] = previous;
-      _error = e.toString();
+      _error = ApiClient.describeError(e);
       notifyListeners();
     }
   }

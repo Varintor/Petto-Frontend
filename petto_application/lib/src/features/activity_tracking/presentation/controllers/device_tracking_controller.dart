@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/network/api_client.dart';
 import '../../data/repositories/device_repository.dart';
 import '../../data/services/ble_gps_service.dart';
 import '../../data/services/device_realtime_service.dart';
@@ -33,6 +34,7 @@ class DeviceTrackingController extends ChangeNotifier {
   bool _scanning = false;
   bool _uploadingTelemetry = false;
   String? _connectedBleId;
+  int? _connectedDeviceId;
 
   List<DeviceModel> get devices => List.unmodifiable(_devices);
   bool get loading => _loading;
@@ -68,7 +70,7 @@ class DeviceTrackingController extends ChangeNotifier {
       }
       if (_petId == petId) await _subscribe(petId, devices);
     } catch (error) {
-      _error = error.toString();
+      _error = ApiClient.describeError(error);
     } finally {
       _loading = false;
       notifyListeners();
@@ -170,7 +172,7 @@ class DeviceTrackingController extends ChangeNotifier {
         _error = 'No BLE devices found. Ensure the collar is advertising.';
       }
     } catch (error) {
-      _error = error.toString();
+      _error = ApiClient.describeError(error);
     } finally {
       _scanning = false;
       notifyListeners();
@@ -208,6 +210,7 @@ class DeviceTrackingController extends ChangeNotifier {
           );
       _petId = petId;
       _connectedBleId = candidate.id;
+      _connectedDeviceId = stored.id;
       _devices = [stored, ..._devices.where((item) => item.id != stored.id)];
       try {
         await _subscribe(petId, _devices);
@@ -219,7 +222,7 @@ class DeviceTrackingController extends ChangeNotifier {
     } catch (error) {
       await ble.disconnect();
       _connectedBleId = null;
-      _error = error.toString();
+      _error = ApiClient.describeError(error);
       return false;
     } finally {
       _loading = false;
@@ -235,7 +238,14 @@ class DeviceTrackingController extends ChangeNotifier {
   Future<void> _flushBlePackets() async {
     _uploadTimer?.cancel();
     _uploadTimer = null;
-    final device = activeDevice;
+    DeviceModel? device;
+    for (final item in _devices) {
+      if (item.id == _connectedDeviceId) {
+        device = item;
+        break;
+      }
+    }
+    device ??= activeDevice;
     if (device == null || _pendingPackets.isEmpty || _uploadingTelemetry) {
       return;
     }
@@ -271,6 +281,7 @@ class DeviceTrackingController extends ChangeNotifier {
     _bleSubscription = null;
     await ble.disconnect();
     _connectedBleId = null;
+    _connectedDeviceId = null;
     notifyListeners();
   }
 
@@ -295,7 +306,7 @@ class DeviceTrackingController extends ChangeNotifier {
       }
       return true;
     } catch (error) {
-      _error = error.toString();
+      _error = ApiClient.describeError(error);
       return false;
     } finally {
       _loading = false;
@@ -340,7 +351,7 @@ class DeviceTrackingController extends ChangeNotifier {
       if (_petId != null) _deviceAlerts = await repository.listAlerts(_petId!);
       return true;
     } catch (error) {
-      _error = error.toString();
+      _error = ApiClient.describeError(error);
       return false;
     } finally {
       _loading = false;
@@ -369,7 +380,7 @@ class DeviceTrackingController extends ChangeNotifier {
       await disconnectBle();
       return true;
     } catch (error) {
-      _error = error.toString();
+      _error = ApiClient.describeError(error);
       return false;
     } finally {
       _loading = false;
@@ -387,6 +398,8 @@ class DeviceTrackingController extends ChangeNotifier {
     _history = [];
     _summary = MotionSummaryModel.empty;
     _bleCandidates = [];
+    _connectedBleId = null;
+    _connectedDeviceId = null;
     _loading = false;
     _error = null;
     notifyListeners();

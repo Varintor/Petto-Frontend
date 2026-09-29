@@ -29,6 +29,8 @@ class _UnusedAuthRepository implements AuthRepository {
 }
 
 class _MessagingRepository implements ConsultationRepository {
+  final List<String> sentMessages = [];
+
   final consultation = ConsultationModel(
     id: 1,
     petId: 9,
@@ -63,13 +65,17 @@ class _MessagingRepository implements ConsultationRepository {
     int consultationId,
     String content, {
     required String clientMessageId,
-  }) async => ChatMessageModel(
-    id: 2,
-    consultationId: consultationId,
-    senderType: 'vet',
-    content: content,
-    createdAt: DateTime(2026, 8, 13, 9, 35),
-  );
+  }) async {
+    sentMessages.add(content);
+    return ChatMessageModel(
+      id: sentMessages.length + 1,
+      consultationId: consultationId,
+      senderType: 'vet',
+      content: content,
+      createdAt: DateTime(2026, 8, 13, 9, 35),
+    );
+  }
+
   @override
   Future<void> markMessagesRead(int consultationId) async {}
   @override
@@ -134,6 +140,26 @@ class _MessagingRepository implements ConsultationRepository {
       throw UnimplementedError();
 }
 
+class _HealthCardRepository implements HealthCardSharingRepository {
+  _HealthCardRepository({required this.cards});
+
+  final List<SharedHealthCardModel> cards;
+
+  @override
+  Future<List<SharedHealthCardModel>> listSharedHealthCards(
+    int consultationId,
+  ) async => cards
+      .where((card) => card.consultationId == consultationId)
+      .toList(growable: false);
+
+  @override
+  Future<void> revokeHealthCard(int consultationId, int sharedCardId) async {}
+
+  @override
+  Future<SharedHealthCardModel> shareHealthCard(int consultationId) =>
+      throw UnimplementedError();
+}
+
 void main() {
   testWidgets('vet opens assigned thread and sends a backend reply', (
     tester,
@@ -192,5 +218,105 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('Please send a new photo.'), findsOneWidget);
+  });
+
+  testWidgets('patients shows an owner-shared Health Card read-only', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    tester.view.physicalSize = const Size(1440, 1100);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final auth = AuthController(repository: _UnusedAuthRepository());
+    final consultationRepository = _MessagingRepository();
+    final sharedCard = SharedHealthCardModel(
+      id: 31,
+      consultationId: 1,
+      petId: 9,
+      snapshot: {
+        'name': 'Milo',
+        'species': 'Cat',
+        'breed': 'Domestic Shorthair',
+        'blood_type': 'A',
+        'allergies': ['Chicken'],
+        'chronic_conditions': ['Dermatitis'],
+        'current_medications': ['Topical cream'],
+        'latest_vaccination': {'title': 'Rabies'},
+      },
+      sharedAt: DateTime(2026, 8, 13, 10),
+    );
+    final consultation = ConsultationController(
+      repository: consultationRepository,
+      healthCardRepository: _HealthCardRepository(cards: [sharedCard]),
+    );
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<AuthController>.value(value: auth),
+          ChangeNotifierProvider<ConsultationController>.value(
+            value: consultation,
+          ),
+        ],
+        child: const MaterialApp(home: VetPortalScreen()),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.text('Patients').first);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byKey(const Key('vet-patient-health-card')), findsOneWidget);
+    expect(find.text('Chicken'), findsOneWidget);
+    expect(find.text('Dermatitis'), findsOneWidget);
+    expect(find.text('Topical cream'), findsOneWidget);
+    expect(find.text('Rabies'), findsOneWidget);
+    expect(find.text('Request Health Card'), findsNothing);
+  });
+
+  testWidgets('patients can request a Health Card when it is not shared', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    tester.view.physicalSize = const Size(1440, 1100);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final auth = AuthController(repository: _UnusedAuthRepository());
+    final consultationRepository = _MessagingRepository();
+    final consultation = ConsultationController(
+      repository: consultationRepository,
+      healthCardRepository: _HealthCardRepository(cards: []),
+    );
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<AuthController>.value(value: auth),
+          ChangeNotifierProvider<ConsultationController>.value(
+            value: consultation,
+          ),
+        ],
+        child: const MaterialApp(home: VetPortalScreen()),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.text('Patients').first);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Pet Health Card not shared'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('vet-patient-request-health-card')));
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(consultationRepository.sentMessages, [
+      "Please share Milo's Pet Health Card so I can review the latest health information.",
+    ]);
+    expect(find.text('Health Card request sent to Warit.'), findsOneWidget);
   });
 }

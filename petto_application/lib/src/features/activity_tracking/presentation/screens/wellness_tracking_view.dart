@@ -15,9 +15,8 @@ import 'live_device_tracking_screen.dart';
 
 /// Content of the "wellness" tab (map icon in the dock).
 ///
-/// Phase 0 = Mode A only: an activity summary + a big "Start a Walk" CTA that
-/// launches the live GPS session. Mode B (device) is shown as a coming-soon
-/// teaser so the two-mode design is visible in the UI.
+/// Presents both tracking modes: phone GPS for recorded walks and a BLE/GPS
+/// collar for persistent live location, motion trends and anomaly alerts.
 class WellnessTrackingView extends StatefulWidget {
   const WellnessTrackingView({super.key, this.petName});
 

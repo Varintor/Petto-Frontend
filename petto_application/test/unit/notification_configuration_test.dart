@@ -12,10 +12,22 @@ void main() {
 
       expect(manifest, contains('android.permission.RECEIVE_BOOT_COMPLETED'));
       expect(manifest, contains('android.permission.SCHEDULE_EXACT_ALARM'));
+      expect(manifest, contains('android.permission.POST_NOTIFICATIONS'));
       expect(manifest, contains('ScheduledNotificationReceiver'));
       expect(manifest, contains('ScheduledNotificationBootReceiver'));
       expect(manifest, contains('android.intent.action.BOOT_COMPLETED'));
       expect(manifest, contains('android.intent.action.MY_PACKAGE_REPLACED'));
+    });
+
+    test('mobile password recovery deep links are registered', () {
+      final androidManifest = File(
+        'android/app/src/main/AndroidManifest.xml',
+      ).readAsStringSync();
+      final iosInfo = File('ios/Runner/Info.plist').readAsStringSync();
+
+      expect(androidManifest, contains('android:scheme="petto"'));
+      expect(androidManifest, contains('android:host="reset-password"'));
+      expect(iosInfo, contains('<string>petto</string>'));
     });
 
     test('calendar reminder ids are stable and separated from daily ids', () {

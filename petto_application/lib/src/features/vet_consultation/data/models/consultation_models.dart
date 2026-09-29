@@ -2,27 +2,40 @@
 class VetModel {
   final int id;
   final String name;
+  final String? email;
   final String? clinicName;
+  final String? licenseNumber;
   final String? specialty;
   final String? avatarUri;
   final bool isOnline;
+  final String verificationStatus;
+  final bool isAcceptingConsultations;
 
   VetModel({
     required this.id,
     required this.name,
+    this.email,
     this.clinicName,
+    this.licenseNumber,
     this.specialty,
     this.avatarUri,
     required this.isOnline,
+    this.verificationStatus = 'approved',
+    this.isAcceptingConsultations = false,
   });
 
   factory VetModel.fromJson(Map<String, dynamic> json) => VetModel(
     id: json['id'] as int,
     name: json['name'] as String,
+    email: json['email'] as String?,
     clinicName: json['clinic_name'] as String?,
+    licenseNumber: json['license_number'] as String?,
     specialty: json['specialty'] as String?,
     avatarUri: json['avatar_uri'] as String?,
     isOnline: json['is_online'] as bool? ?? false,
+    verificationStatus: json['verification_status'] as String? ?? 'approved',
+    isAcceptingConsultations:
+        json['is_accepting_consultations'] as bool? ?? false,
   );
 }
 

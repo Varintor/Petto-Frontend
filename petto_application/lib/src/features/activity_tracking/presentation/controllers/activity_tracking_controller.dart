@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/network/api_client.dart';
 import '../../../../core/services/location_service.dart';
 import '../../data/models/activity_model.dart';
 import '../../data/repositories/activity_repository.dart';
@@ -227,7 +228,7 @@ class ActivityTrackingController extends ChangeNotifier {
       return true;
     } catch (e) {
       _state = WalkState.error;
-      _error = e.toString();
+      _error = ApiClient.describeError(e);
       notifyListeners();
       return false;
     }

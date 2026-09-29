@@ -450,6 +450,19 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
           ),
         ),
         actions: [
+          if (!kIsWeb && (Platform.isAndroid || Platform.isIOS))
+            TextButton.icon(
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                await showDialog<void>(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (_) => _NfcWriteDialog(url: url),
+                );
+              },
+              icon: const Icon(Icons.nfc_rounded),
+              label: const Text('WRITE NFC'),
+            ),
           TextButton.icon(
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: url));
@@ -624,6 +637,98 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
             MapEntry(label(field.key), value(field.value)),
         ],
       ),
+    );
+  }
+}
+
+class _NfcWriteDialog extends StatefulWidget {
+  const _NfcWriteDialog({required this.url});
+
+  final String url;
+
+  @override
+  State<_NfcWriteDialog> createState() => _NfcWriteDialogState();
+}
+
+class _NfcWriteDialogState extends State<_NfcWriteDialog> {
+  final NfcPetCardService _service = NfcPetCardService();
+  NfcWriteResult? _result;
+
+  @override
+  void initState() {
+    super.initState();
+    _write();
+  }
+
+  Future<void> _write() async {
+    final result = await _service.writeUrl(widget.url);
+    if (mounted) setState(() => _result = result);
+  }
+
+  @override
+  void dispose() {
+    if (_result == null) _service.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final result = _result;
+    final succeeded = result?.succeeded == true;
+    return AlertDialog(
+      title: Text(succeeded ? 'NFC tag ready' : 'Write Pet Health Card'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            result == null
+                ? Icons.nfc_rounded
+                : succeeded
+                ? Icons.check_circle_rounded
+                : Icons.error_outline_rounded,
+            size: 58,
+            color: result == null
+                ? AppTheme.primaryColor
+                : succeeded
+                ? Colors.green
+                : AppTheme.dangerColor,
+          ),
+          const SizedBox(height: 14),
+          Text(
+            result?.message ??
+                'Hold a writable NFC tag against the back of this phone and keep it still.',
+            textAlign: TextAlign.center,
+          ),
+          if (result == null) ...[
+            const SizedBox(height: 18),
+            const LinearProgressIndicator(),
+          ],
+        ],
+      ),
+      actions: [
+        if (result == null)
+          TextButton(
+            onPressed: () async {
+              await _service.cancel();
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('CANCEL'),
+          )
+        else ...[
+          if (!succeeded)
+            TextButton(
+              onPressed: () {
+                setState(() => _result = null);
+                _write();
+              },
+              child: const Text('TRY AGAIN'),
+            ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('DONE'),
+          ),
+        ],
+      ],
     );
   }
 }

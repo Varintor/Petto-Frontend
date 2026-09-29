@@ -4,10 +4,16 @@ import '../../../../core/theme/app_theme.dart';
 import '../../data/models/consultation_models.dart';
 
 class SharedHealthCardPanel extends StatelessWidget {
-  const SharedHealthCardPanel({super.key, required this.card, this.onRevoke});
+  const SharedHealthCardPanel({
+    super.key,
+    required this.card,
+    this.onRevoke,
+    this.initiallyExpanded = false,
+  });
 
   final SharedHealthCardModel card;
   final VoidCallback? onRevoke;
+  final bool initiallyExpanded;
 
   String _items(List<String> values) =>
       values.isEmpty ? 'None recorded' : values.join(', ');
@@ -35,6 +41,7 @@ class SharedHealthCardPanel extends StatelessWidget {
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
+          initiallyExpanded: initiallyExpanded,
           dense: true,
           visualDensity: VisualDensity.compact,
           minTileHeight: 48,

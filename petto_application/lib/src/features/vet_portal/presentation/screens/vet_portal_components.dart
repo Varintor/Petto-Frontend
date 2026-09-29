@@ -354,6 +354,8 @@ class _SmallDot extends StatelessWidget {
 
 class _Patient {
   const _Patient({
+    required this.petId,
+    required this.consultation,
     required this.name,
     required this.species,
     required this.owner,
@@ -367,6 +369,8 @@ class _Patient {
     required this.timeline,
   });
 
+  final int petId;
+  final ConsultationModel consultation;
   final String name;
   final String species;
   final String owner;
@@ -396,6 +400,8 @@ List<_Patient> _patientsFromConsultations(
           ? consultation.notes!.trim()
           : 'Veterinary consultation';
       return _Patient(
+        petId: consultation.petId,
+        consultation: consultation,
         name: consultation.petName ?? 'Pet #${consultation.petId}',
         species: consultation.petSpecies ?? 'Pet',
         owner: consultation.ownerName ?? 'Owner not available',
