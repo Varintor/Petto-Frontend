@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../health_assessment/presentation/widgets/pet_avatar_widget.dart';
 import '../../domain/entities/pet_entity.dart';
+import '../../domain/pet_breed_catalog.dart';
 
 /// Add / edit pet profile.
 ///
@@ -27,7 +28,7 @@ class _PetFormScreenState extends State<PetFormScreen> {
   String _species = 'dog';
   String? _gender;
   String? _bloodType;
-  DateTime _birthday = DateTime(DateTime.now().year - 1, 1, 1);
+  DateTime? _birthday;
 
   @override
   void initState() {
@@ -39,7 +40,7 @@ class _PetFormScreenState extends State<PetFormScreen> {
     _species = (pet?.species ?? 'dog').toLowerCase() == 'cat' ? 'cat' : 'dog';
     _gender = pet?.gender;
     _bloodType = pet?.bloodType;
-    _birthday = pet?.dateOfBirth ?? DateTime(DateTime.now().year - 1, 1, 1);
+    _birthday = pet?.dateOfBirth;
     _name.addListener(_refreshNamePreview);
   }
 
@@ -67,6 +68,21 @@ class _PetFormScreenState extends State<PetFormScreen> {
     return value.isEmpty ? 'New buddy' : value;
   }
 
+  void _changeSpecies(String value) {
+    if (value == _species) return;
+    final currentBreed = _breed.text.trim();
+    final oldKnownBreed = PetBreedCatalog.forSpecies(
+      _species,
+    ).contains(currentBreed);
+    final validForNewSpecies = PetBreedCatalog.forSpecies(
+      value,
+    ).contains(currentBreed);
+    setState(() {
+      _species = value;
+      if (oldKnownBreed && !validForNewSpecies) _breed.clear();
+    });
+  }
+
   void _save() {
     FocusManager.instance.primaryFocus?.unfocus();
     final name = _name.text.trim();
@@ -79,7 +95,8 @@ class _PetFormScreenState extends State<PetFormScreen> {
     final weight = weightText.isEmpty ? null : double.tryParse(weightText);
     // Weight is optional, but if provided it must parse to a positive number —
     // reject blanks-that-aren't-numbers, zero, and negatives like "-3".
-    if (weightText.isNotEmpty && (weight == null || weight <= 0)) {
+    if (weightText.isNotEmpty &&
+        (weight == null || weight <= 0 || weight > 999.99)) {
       _showHint('Invalid weight');
       return;
     }
@@ -146,9 +163,7 @@ class _PetFormScreenState extends State<PetFormScreen> {
                       species: _species,
                       color: _avatarColor,
                       petName: _petName,
-                      onSpeciesChanged: (value) {
-                        setState(() => _species = value);
-                      },
+                      onSpeciesChanged: _changeSpecies,
                     ),
                     const SizedBox(height: 18),
                     _FormSection(
@@ -169,11 +184,9 @@ class _PetFormScreenState extends State<PetFormScreen> {
                             if (stacked) {
                               return Column(
                                 children: [
-                                  _PetTextField(
+                                  _PetBreedField(
+                                    species: _species,
                                     controller: _breed,
-                                    icon: Icons.pets_rounded,
-                                    hint: 'Breed',
-                                    textInputAction: TextInputAction.next,
                                   ),
                                   const SizedBox(height: 12),
                                   _PetTextField(
@@ -191,11 +204,9 @@ class _PetFormScreenState extends State<PetFormScreen> {
                             return Row(
                               children: [
                                 Expanded(
-                                  child: _PetTextField(
+                                  child: _PetBreedField(
+                                    species: _species,
                                     controller: _breed,
-                                    icon: Icons.pets_rounded,
-                                    hint: 'Breed',
-                                    textInputAction: TextInputAction.next,
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -258,6 +269,7 @@ class _PetFormScreenState extends State<PetFormScreen> {
                           onChanged: (value) {
                             setState(() => _birthday = value);
                           },
+                          onClear: () => setState(() => _birthday = null),
                         ),
                       ],
                     ),
@@ -608,6 +620,7 @@ class _PetTextField extends StatelessWidget {
     required this.hint,
     this.keyboardType,
     this.textInputAction,
+    this.focusNode,
   });
 
   final TextEditingController controller;
@@ -615,11 +628,13 @@ class _PetTextField extends StatelessWidget {
   final String hint;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
+      focusNode: focusNode,
       keyboardType: keyboardType,
       textInputAction: textInputAction,
       scrollPadding: EdgeInsets.only(
@@ -668,6 +683,90 @@ class _PetTextField extends StatelessWidget {
           borderSide: const BorderSide(color: Colors.white, width: 3),
         ),
       ),
+    );
+  }
+}
+
+class _PetBreedField extends StatefulWidget {
+  const _PetBreedField({required this.species, required this.controller});
+
+  final String species;
+  final TextEditingController controller;
+
+  @override
+  State<_PetBreedField> createState() => _PetBreedFieldState();
+}
+
+class _PetBreedFieldState extends State<_PetBreedField> {
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RawAutocomplete<String>(
+      textEditingController: widget.controller,
+      focusNode: _focusNode,
+      optionsBuilder: (value) =>
+          PetBreedCatalog.suggestions(widget.species, value.text),
+      onSelected: (option) {
+        widget.controller.value = TextEditingValue(
+          text: option,
+          selection: TextSelection.collapsed(offset: option.length),
+        );
+      },
+      fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
+        return _PetTextField(
+          controller: controller,
+          focusNode: focusNode,
+          icon: Icons.pets_rounded,
+          hint: 'Breed (optional)',
+          textInputAction: TextInputAction.next,
+        );
+      },
+      optionsViewBuilder: (context, onSelected, options) {
+        final visibleOptions = options.take(8).toList(growable: false);
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 8,
+            color: AppTheme.surfaceColor,
+            borderRadius: BorderRadius.circular(18),
+            clipBehavior: Clip.antiAlias,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 360, maxHeight: 240),
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                shrinkWrap: true,
+                itemCount: visibleOptions.length,
+                itemBuilder: (context, index) {
+                  final option = visibleOptions[index];
+                  return ListTile(
+                    dense: true,
+                    leading: const Icon(
+                      Icons.pets_rounded,
+                      color: AppTheme.primaryColor,
+                    ),
+                    title: Text(
+                      option,
+                      style: const TextStyle(
+                        fontFamily: AppTheme.sansFontFamily,
+                        color: AppTheme.secondaryText,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    onTap: () => onSelected(option),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -833,10 +932,15 @@ class _BloodTypePicker extends StatelessWidget {
 }
 
 class _BirthdayCard extends StatelessWidget {
-  const _BirthdayCard({required this.birthday, required this.onChanged});
+  const _BirthdayCard({
+    required this.birthday,
+    required this.onChanged,
+    required this.onClear,
+  });
 
-  final DateTime birthday;
+  final DateTime? birthday;
   final ValueChanged<DateTime> onChanged;
+  final VoidCallback onClear;
 
   static const _months = [
     'Jan',
@@ -855,9 +959,67 @@ class _BirthdayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final selectedBirthday = birthday;
+    if (selectedBirthday == null) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppTheme.primaryColor.withValues(alpha: 0.045),
+          borderRadius: BorderRadius.circular(26),
+          border: Border.all(color: Colors.white, width: 2),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.cake_rounded,
+                color: AppTheme.primaryColor,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Birthday not set',
+                    style: TextStyle(
+                      fontFamily: AppTheme.displayFontFamily,
+                      color: AppTheme.secondaryText,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    'Optional — add it if known',
+                    style: TextStyle(
+                      fontFamily: AppTheme.sansFontFamily,
+                      color: AppTheme.mutedText,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            TextButton(
+              onPressed: () =>
+                  onChanged(DateTime(DateTime.now().year - 1, 1, 1)),
+              child: const Text('SET'),
+            ),
+          ],
+        ),
+      );
+    }
     final years = List.generate(26, (index) => DateTime.now().year - index);
     final days = List.generate(
-      DateUtils.getDaysInMonth(birthday.year, birthday.month),
+      DateUtils.getDaysInMonth(selectedBirthday.year, selectedBirthday.month),
       (index) => index + 1,
     );
 
@@ -886,42 +1048,53 @@ class _BirthdayCard extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: _SlotDropdown<int>(
-              value: birthday.day,
+              value: selectedBirthday.day,
               values: days,
               labelBuilder: (value) => value.toString().padLeft(2, '0'),
               onChanged: (day) {
-                onChanged(DateTime(birthday.year, birthday.month, day));
+                onChanged(
+                  DateTime(selectedBirthday.year, selectedBirthday.month, day),
+                );
               },
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: _SlotDropdown<int>(
-              value: birthday.month,
+              value: selectedBirthday.month,
               values: List.generate(12, (index) => index + 1),
               labelBuilder: (value) => _months[value - 1],
               onChanged: (month) {
-                final day = birthday.day.clamp(
+                final day = selectedBirthday.day.clamp(
                   1,
-                  DateUtils.getDaysInMonth(birthday.year, month),
+                  DateUtils.getDaysInMonth(selectedBirthday.year, month),
                 );
-                onChanged(DateTime(birthday.year, month, day));
+                onChanged(DateTime(selectedBirthday.year, month, day));
               },
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: _SlotDropdown<int>(
-              value: birthday.year,
+              value: selectedBirthday.year,
               values: years,
               labelBuilder: (value) => '$value',
               onChanged: (year) {
-                final day = birthday.day.clamp(
+                final day = selectedBirthday.day.clamp(
                   1,
-                  DateUtils.getDaysInMonth(year, birthday.month),
+                  DateUtils.getDaysInMonth(year, selectedBirthday.month),
                 );
-                onChanged(DateTime(year, birthday.month, day));
+                onChanged(DateTime(year, selectedBirthday.month, day));
               },
+            ),
+          ),
+          IconButton(
+            tooltip: 'Clear birthday',
+            onPressed: onClear,
+            icon: const Icon(
+              Icons.close_rounded,
+              color: AppTheme.mutedText,
+              size: 20,
             ),
           ),
         ],

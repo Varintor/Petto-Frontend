@@ -13,6 +13,8 @@ import '../../../auth/data/repositories/auth_repository.dart';
 import '../../../health_assessment/presentation/screens/home_screen.dart';
 import '../../../health_assessment/presentation/widgets/pet_avatar_widget.dart';
 import '../../data/repositories/pet_repository.dart';
+import '../../domain/pet_age_formatter.dart';
+import '../../domain/pet_breed_catalog.dart';
 
 enum _AuthScreen {
   intro,
@@ -28,8 +30,8 @@ enum _RegisterStep {
   credentials,
   petType,
   petName,
-  petDetails,
   birthday,
+  petDetails,
 }
 
 class AuthOnboardingScreen extends StatefulWidget {
@@ -79,7 +81,6 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
   final _petName = TextEditingController();
   final _breed = TextEditingController();
   final _bloodType = TextEditingController();
-  final _age = TextEditingController();
   final _weight = TextEditingController();
   int _birthDay = 1;
   int _birthMonth = 1;
@@ -117,7 +118,6 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     _petName.dispose();
     _breed.dispose();
     _bloodType.dispose();
-    _age.dispose();
     _weight.dispose();
     super.dispose();
   }
@@ -143,6 +143,8 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
+
+  String get _calculatedAgeLabel => PetAgeFormatter.english(_birthday);
 
   int _daysInMonth(int year, int month) {
     return DateTime(year, month + 1, 0).day;
@@ -183,7 +185,7 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     setState(() {
       _birthday = DateTime(_birthYear, _birthMonth, _birthDay);
     });
-    _openSummary();
+    _nextStep();
   }
 
   void _skipBirthday() {
@@ -191,7 +193,7 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
       _birthday = null;
       _hasSelectedBirthday = false;
     });
-    _openSummary();
+    _nextStep();
   }
 
   void _openHome({Pet? initialPet}) {
@@ -594,6 +596,22 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     _nextStep();
   }
 
+  void _selectSpecies(String value) {
+    if (value == _species) return;
+    final currentSpecies = _species;
+    final currentBreed = _breed.text.trim();
+    final oldKnownBreed =
+        currentSpecies != null &&
+        PetBreedCatalog.forSpecies(currentSpecies).contains(currentBreed);
+    final validForNewSpecies = PetBreedCatalog.forSpecies(
+      value,
+    ).contains(currentBreed);
+    setState(() {
+      _species = value;
+      if (oldKnownBreed && !validForNewSpecies) _breed.clear();
+    });
+  }
+
   void _submitPetName() {
     FocusManager.instance.primaryFocus?.unfocus();
     if (_petName.text.trim().isEmpty) {
@@ -609,23 +627,13 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
 
   void _submitAdditionalInfo() {
     FocusManager.instance.primaryFocus?.unfocus();
-    final ageText = _age.text.trim();
-    final age = int.tryParse(ageText);
-    if (ageText.isNotEmpty && (age == null || age <= 0)) {
-      showTopAlert(
-        context,
-        'Age must be greater than 0',
-        icon: Icons.info_outline_rounded,
-      );
-      return;
-    }
-
     final weightText = _weight.text.trim();
     final weight = double.tryParse(weightText);
-    if (weightText.isNotEmpty && (weight == null || weight <= 0)) {
+    if (weightText.isNotEmpty &&
+        (weight == null || weight <= 0 || weight > 999.99)) {
       showTopAlert(
         context,
-        'Weight must be greater than 0',
+        'Enter a valid weight between 0.01 and 999.99 kg',
         icon: Icons.info_outline_rounded,
       );
       return;
@@ -755,7 +763,7 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
                 species: _species!,
                 petColor: _petColor,
                 gender: _gender,
-                age: _age.text.trim(),
+                age: _calculatedAgeLabel,
                 weight: _weight.text.trim(),
                 breed: _breed.text.trim(),
                 bloodType: _bloodType.text.trim(),
@@ -766,7 +774,7 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
                     _transitionDirection = -1;
                     _errorMessage = null;
                     _screen = _AuthScreen.register;
-                    _step = _RegisterStep.birthday;
+                    _step = _RegisterStep.petDetails;
                   });
                 },
                 onContinue: _handleRegisterAndCreatePet,
@@ -926,9 +934,7 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
           showHeader: false,
           species: _species,
           petColor: _petColor,
-          onSelect: (value) {
-            setState(() => _species = value);
-          },
+          onSelect: _selectSpecies,
           onBack: _back,
           onNext: _submitSpecies,
         );
@@ -961,8 +967,9 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
         return _DetailsStep(
           showHeader: false,
           name: _petName.text.trim(),
+          species: _species!,
+          ageLabel: _calculatedAgeLabel,
           gender: _gender,
-          age: _age,
           weight: _weight,
           breed: _breed,
           bloodType: _bloodType,
@@ -2231,8 +2238,9 @@ class _DetailsStep extends StatelessWidget {
   const _DetailsStep({
     required this.showHeader,
     required this.name,
+    required this.species,
+    required this.ageLabel,
     required this.gender,
-    required this.age,
     required this.weight,
     required this.breed,
     required this.bloodType,
@@ -2243,8 +2251,9 @@ class _DetailsStep extends StatelessWidget {
 
   final bool showHeader;
   final String name;
+  final String species;
+  final String ageLabel;
   final String? gender;
-  final TextEditingController age;
   final TextEditingController weight;
   final TextEditingController breed;
   final TextEditingController bloodType;
@@ -2297,6 +2306,45 @@ class _DetailsStep extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _AuthOnboardingScreenState._paleRose
+                                .withValues(alpha: 0.32),
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.cake_rounded,
+                                color: _AuthOnboardingScreenState._red,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 10),
+                              const Text(
+                                'Calculated age',
+                                style: TextStyle(
+                                  fontFamily: AppTheme.sansFontFamily,
+                                  color: _AuthOnboardingScreenState._rose,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const Spacer(),
+                              Text(
+                                ageLabel,
+                                style: const TextStyle(
+                                  fontFamily: AppTheme.sansFontFamily,
+                                  color: _AuthOnboardingScreenState._deepRed,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
                         Row(
                           children: [
                             Expanded(
@@ -2317,31 +2365,18 @@ class _DetailsStep extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 14),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _IconInputField(
-                                icon: Icons.cake_rounded,
-                                hint: 'Age',
-                                controller: age,
-                                keyboardType: TextInputType.number,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _IconInputField(
-                                icon: Icons.monitor_weight_rounded,
-                                hint: 'Weight',
-                                controller: weight,
-                                keyboardType: TextInputType.number,
-                              ),
-                            ),
-                          ],
+                        _IconInputField(
+                          icon: Icons.monitor_weight_rounded,
+                          hint: 'Weight (optional)',
+                          controller: weight,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          suffixText: 'kg',
                         ),
                         const SizedBox(height: 14),
-                        _IconInputField(
-                          icon: Icons.badge_rounded,
-                          hint: 'Breed',
+                        _BreedSuggestionField(
+                          species: species,
                           controller: breed,
                         ),
                         const SizedBox(height: 14),
@@ -3007,7 +3042,6 @@ class _ProfileSummaryPage extends StatelessWidget {
   String get _ownerLabel => ownerName.isEmpty ? 'Pet Parent' : ownerName;
   String get _breedLabel => breed.isEmpty ? 'Not set' : breed;
   String get _bloodTypeLabel => bloodType.isEmpty ? 'Not set' : bloodType;
-  String get _ageLabel => age.isEmpty ? 'Not set' : '$age years';
   String get _weightLabel => weight.isEmpty ? 'Not set' : '$weight kg';
 
   @override
@@ -3214,10 +3248,7 @@ class _ProfileSummaryPage extends StatelessWidget {
                       Row(
                         children: [
                           Expanded(
-                            child: _SummaryMiniTile(
-                              label: 'Age',
-                              value: _ageLabel,
-                            ),
+                            child: _SummaryMiniTile(label: 'Age', value: age),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
@@ -4321,6 +4352,8 @@ class _IconInputField extends StatelessWidget {
     required this.controller,
     this.keyboardType,
     this.obscure = false,
+    this.focusNode,
+    this.suffixText,
   });
 
   final IconData icon;
@@ -4328,6 +4361,8 @@ class _IconInputField extends StatelessWidget {
   final TextEditingController controller;
   final TextInputType? keyboardType;
   final bool obscure;
+  final FocusNode? focusNode;
+  final String? suffixText;
 
   @override
   Widget build(BuildContext context) {
@@ -4335,6 +4370,7 @@ class _IconInputField extends StatelessWidget {
       height: 62,
       child: TextField(
         controller: controller,
+        focusNode: focusNode,
         keyboardType: keyboardType,
         obscureText: obscure,
         scrollPadding: EdgeInsets.only(
@@ -4349,6 +4385,13 @@ class _IconInputField extends StatelessWidget {
         ),
         decoration: InputDecoration(
           hintText: hint,
+          suffixText: suffixText,
+          suffixStyle: const TextStyle(
+            fontFamily: AppTheme.sansFontFamily,
+            color: _AuthOnboardingScreenState._rose,
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+          ),
           hintStyle: const TextStyle(
             fontFamily: AppTheme.sansFontFamily,
             color: _AuthOnboardingScreenState._rose,
@@ -4395,6 +4438,99 @@ class _IconInputField extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _BreedSuggestionField extends StatefulWidget {
+  const _BreedSuggestionField({
+    required this.species,
+    required this.controller,
+  });
+
+  final String species;
+  final TextEditingController controller;
+
+  @override
+  State<_BreedSuggestionField> createState() => _BreedSuggestionFieldState();
+}
+
+class _BreedSuggestionFieldState extends State<_BreedSuggestionField> {
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RawAutocomplete<String>(
+      textEditingController: widget.controller,
+      focusNode: _focusNode,
+      displayStringForOption: (option) => option,
+      optionsBuilder: (value) =>
+          PetBreedCatalog.suggestions(widget.species, value.text),
+      onSelected: (option) {
+        widget.controller.value = TextEditingValue(
+          text: option,
+          selection: TextSelection.collapsed(offset: option.length),
+        );
+      },
+      fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
+        return _IconInputField(
+          icon: Icons.badge_rounded,
+          hint: 'Breed (optional)',
+          controller: controller,
+          focusNode: focusNode,
+        );
+      },
+      optionsViewBuilder: (context, onSelected, options) {
+        final visibleOptions = options.take(8).toList(growable: false);
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 8,
+            color: AppTheme.surfaceColor,
+            borderRadius: BorderRadius.circular(18),
+            clipBehavior: Clip.antiAlias,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 380, maxHeight: 240),
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                shrinkWrap: true,
+                itemCount: visibleOptions.length,
+                separatorBuilder: (_, _) => Divider(
+                  height: 1,
+                  color: _AuthOnboardingScreenState._paleRose.withValues(
+                    alpha: 0.45,
+                  ),
+                ),
+                itemBuilder: (context, index) {
+                  final option = visibleOptions[index];
+                  return ListTile(
+                    dense: true,
+                    leading: const Icon(
+                      Icons.pets_rounded,
+                      color: _AuthOnboardingScreenState._red,
+                    ),
+                    title: Text(
+                      option,
+                      style: const TextStyle(
+                        fontFamily: AppTheme.sansFontFamily,
+                        color: _AuthOnboardingScreenState._deepRed,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    onTap: () => onSelected(option),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

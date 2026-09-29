@@ -144,14 +144,17 @@ void main() {
       await tester.tap(find.text('NEXT'));
       await _advance(tester);
 
-      // Additional Info is genuinely optional. Its empty fields must remain
-      // empty and the unset gender must not become Male.
-      await tester.tap(find.text('NEXT'));
+      // Birthday now comes before Additional Info. NOT SURE must preserve null
+      // rather than the date currently visible in the picker.
+      await tester.tap(find.text('NOT SURE'));
       await _advance(tester);
 
-      // Birthday is also optional. NOT SURE must preserve null rather than the
-      // date currently visible in the picker.
-      await tester.tap(find.text('NOT SURE'));
+      // Additional Info is genuinely optional. The derived age is read-only
+      // and remains unset when no birthday was provided.
+      expect(find.text('Additional Info'), findsOneWidget);
+      expect(find.text('Calculated age'), findsOneWidget);
+      expect(find.text('Not set'), findsOneWidget);
+      await tester.tap(find.text('NEXT'));
       await _advance(tester);
 
       expect(find.text('All Set!'), findsOneWidget);
@@ -179,12 +182,21 @@ void main() {
     await tester.tap(find.text('NEXT'));
     await _advance(tester);
 
-    await tester.enterText(find.widgetWithText(TextField, 'Weight'), '0');
+    await tester.tap(find.text('NOT SURE'));
+    await _advance(tester);
+
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Weight (optional)'),
+      '0',
+    );
     await tester.tap(find.text('NEXT'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
 
-    expect(find.text('Weight must be greater than 0'), findsOneWidget);
+    expect(
+      find.text('Enter a valid weight between 0.01 and 999.99 kg'),
+      findsOneWidget,
+    );
     expect(find.text('Additional Info'), findsOneWidget);
     await tester.pump(const Duration(seconds: 3));
   });
@@ -196,8 +208,6 @@ void main() {
     final repository = await _pumpRegistration(tester);
     await _reachPetName(tester);
     await tester.enterText(find.byType(TextField).last, 'Buddy');
-    await tester.tap(find.text('NEXT'));
-    await _advance(tester);
     await tester.tap(find.text('NEXT'));
     await _advance(tester);
 
