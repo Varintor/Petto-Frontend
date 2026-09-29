@@ -14,6 +14,7 @@ import '../../../health_assessment/presentation/screens/home_screen.dart';
 import '../../../health_assessment/presentation/widgets/pet_avatar_widget.dart';
 import '../../data/repositories/pet_repository.dart';
 import '../../domain/pet_age_formatter.dart';
+import '../../domain/pet_blood_type_catalog.dart';
 import '../../domain/pet_breed_catalog.dart';
 
 enum _AuthScreen {
@@ -606,9 +607,21 @@ class _AuthOnboardingScreenState extends State<AuthOnboardingScreen> {
     final validForNewSpecies = PetBreedCatalog.forSpecies(
       value,
     ).contains(currentBreed);
+    final currentBloodType = _bloodType.text.trim();
+    final oldKnownBloodType =
+        currentSpecies != null &&
+        PetBloodTypeCatalog.forSpecies(
+          currentSpecies,
+        ).contains(currentBloodType);
+    final validBloodTypeForNewSpecies = PetBloodTypeCatalog.forSpecies(
+      value,
+    ).contains(currentBloodType);
     setState(() {
       _species = value;
       if (oldKnownBreed && !validForNewSpecies) _breed.clear();
+      if (oldKnownBloodType && !validBloodTypeForNewSpecies) {
+        _bloodType.clear();
+      }
     });
   }
 
@@ -2380,9 +2393,8 @@ class _DetailsStep extends StatelessWidget {
                           controller: breed,
                         ),
                         const SizedBox(height: 14),
-                        _IconInputField(
-                          icon: Icons.bloodtype_rounded,
-                          hint: 'Blood type',
+                        _BloodTypeSuggestionField(
+                          species: species,
                           controller: bloodType,
                         ),
                       ],
@@ -4513,6 +4525,100 @@ class _BreedSuggestionFieldState extends State<_BreedSuggestionField> {
                     dense: true,
                     leading: const Icon(
                       Icons.pets_rounded,
+                      color: _AuthOnboardingScreenState._red,
+                    ),
+                    title: Text(
+                      option,
+                      style: const TextStyle(
+                        fontFamily: AppTheme.sansFontFamily,
+                        color: _AuthOnboardingScreenState._deepRed,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    onTap: () => onSelected(option),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _BloodTypeSuggestionField extends StatefulWidget {
+  const _BloodTypeSuggestionField({
+    required this.species,
+    required this.controller,
+  });
+
+  final String species;
+  final TextEditingController controller;
+
+  @override
+  State<_BloodTypeSuggestionField> createState() =>
+      _BloodTypeSuggestionFieldState();
+}
+
+class _BloodTypeSuggestionFieldState extends State<_BloodTypeSuggestionField> {
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RawAutocomplete<String>(
+      textEditingController: widget.controller,
+      focusNode: _focusNode,
+      displayStringForOption: (option) => option,
+      optionsBuilder: (value) =>
+          PetBloodTypeCatalog.suggestions(widget.species, value.text),
+      onSelected: (option) {
+        widget.controller.value = TextEditingValue(
+          text: option,
+          selection: TextSelection.collapsed(offset: option.length),
+        );
+      },
+      fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
+        return _IconInputField(
+          icon: Icons.bloodtype_rounded,
+          hint: 'Blood type (optional)',
+          controller: controller,
+          focusNode: focusNode,
+        );
+      },
+      optionsViewBuilder: (context, onSelected, options) {
+        final visibleOptions = options.toList(growable: false);
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 8,
+            color: AppTheme.surfaceColor,
+            borderRadius: BorderRadius.circular(18),
+            clipBehavior: Clip.antiAlias,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 380, maxHeight: 220),
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                shrinkWrap: true,
+                itemCount: visibleOptions.length,
+                separatorBuilder: (_, _) => Divider(
+                  height: 1,
+                  color: _AuthOnboardingScreenState._paleRose.withValues(
+                    alpha: 0.45,
+                  ),
+                ),
+                itemBuilder: (context, index) {
+                  final option = visibleOptions[index];
+                  return ListTile(
+                    dense: true,
+                    leading: const Icon(
+                      Icons.bloodtype_rounded,
                       color: _AuthOnboardingScreenState._red,
                     ),
                     title: Text(
