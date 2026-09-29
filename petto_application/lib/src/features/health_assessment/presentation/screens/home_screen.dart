@@ -10,7 +10,6 @@ import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/config/app_config.dart';
-import '../../../../core/network/api_client.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/services/nfc_pet_card_service.dart';
@@ -632,33 +631,27 @@ class _HomeScreenState extends State<HomeScreen> {
       );
       return;
     }
-    final result = await Navigator.of(
-      context,
-    ).push<PetEntity>(PettoPageRoute(builder: (_) => const PetFormScreen()));
+    final result = await Navigator.of(context).push<PetEntity>(
+      PettoPageRoute(
+        builder: (_) => PetFormScreen(
+          onSubmit: (pet) async {
+            await PetRepository().createPet(
+              token: token,
+              name: pet.name,
+              species: pet.species,
+              breed: pet.breed,
+              gender: pet.gender,
+              dateOfBirth: pet.dateOfBirth,
+              weightKg: pet.weightKg,
+              bloodType: pet.bloodType,
+            );
+            if (mounted) await _loadPets();
+          },
+        ),
+      ),
+    );
     if (result == null || !mounted) return;
-    try {
-      await PetRepository().createPet(
-        token: token,
-        name: result.name,
-        species: result.species,
-        breed: result.breed,
-        gender: result.gender,
-        dateOfBirth: result.dateOfBirth,
-        weightKg: result.weightKg,
-        bloodType: result.bloodType,
-      );
-      if (!mounted) return;
-      await _loadPets();
-      if (!mounted) return;
-      showTopAlert(context, '${result.name} added!');
-    } catch (e) {
-      if (!mounted) return;
-      showTopAlert(
-        context,
-        ApiClient.describeError(e),
-        icon: Icons.error_outline_rounded,
-      );
-    }
+    showTopAlert(context, '${result.name} added!');
   }
 
   @override

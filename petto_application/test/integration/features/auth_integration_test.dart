@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:petto_application/src/features/auth/data/repositories/auth_repository.dart';
 import 'package:petto_application/src/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:petto_application/src/core/services/token_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../helpers/mock_dio.dart' show DioMockHelper;
 import '../helpers/mock_dio.mocks.dart' show MockDio;
@@ -515,6 +518,67 @@ void main() {
           expect(launched, isTrue);
           expect(redirectUrl, 'petto://login-callback');
           expect(controller.error, isNull);
+        },
+      );
+
+      test(
+        'restores the backend user when OAuth redirects into a fresh app',
+        () async {
+          final authChanges = StreamController<AuthState>(sync: true);
+          addTearDown(authChanges.close);
+          controller.dispose();
+
+          when(
+            mockDio.get(
+              argThat(contains('/auth/me')),
+              queryParameters: anyNamed('queryParameters'),
+              options: anyNamed('options'),
+            ),
+          ).thenAnswer(
+            (_) async => DioMockHelper.successResponse(
+              data: {
+                'id': 42,
+                'email': 'google.owner@petto.test',
+                'name': 'Google Owner',
+                'role': 'owner',
+              },
+            ),
+          );
+          when(mockTokenStorage.getPetId()).thenAnswer((_) async => null);
+          when(mockTokenStorage.saveToken(any)).thenAnswer((_) async {});
+          when(mockTokenStorage.saveUserId(any)).thenAnswer((_) async {});
+
+          controller = AuthController(
+            repository: repository,
+            storage: mockTokenStorage,
+            supabaseAuthStateChanges: authChanges.stream,
+            supabaseSessionProvider: () => null,
+          );
+          final session = Session.fromJson({
+            'access_token': 'google-access-token',
+            'token_type': 'bearer',
+            'user': {
+              'id': 'supabase-google-user',
+              'email': 'google.owner@petto.test',
+              'aud': 'authenticated',
+              'app_metadata': {'provider': 'google'},
+              'user_metadata': {'name': 'Google Owner'},
+              'created_at': '2026-09-29T00:00:00Z',
+            },
+          })!;
+
+          // This is the state after a full browser redirect: no pending flag
+          // survives, but Supabase emits the completed signed-in session.
+          authChanges.add(AuthState(AuthChangeEvent.signedIn, session));
+          await Future<void>.delayed(Duration.zero);
+          await Future<void>.delayed(Duration.zero);
+
+          expect(controller.status, AuthStatus.authenticated);
+          expect(controller.token, 'google-access-token');
+          expect(controller.userId, 42);
+          expect(controller.currentUser?.email, 'google.owner@petto.test');
+          verify(mockTokenStorage.saveToken('google-access-token')).called(1);
+          verify(mockTokenStorage.saveUserId(42)).called(1);
         },
       );
     });
