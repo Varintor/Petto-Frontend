@@ -8,6 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:petto_application/src/features/pet_management/domain/entities/pet_entity.dart';
 import 'package:petto_application/src/features/pet_management/presentation/screens/pet_form_screen.dart';
 
 Future<void> _advance(WidgetTester tester) async {
@@ -35,6 +36,62 @@ void _setUpSurface(WidgetTester tester) {
 }
 
 void main() {
+  testWidgets('new pet starts without a fabricated birthday', (
+    WidgetTester tester,
+  ) async {
+    _setUpSurface(tester);
+
+    await tester.pumpWidget(const MaterialApp(home: PetFormScreen()));
+    await _advance(tester);
+
+    expect(find.text('Birthday not set'), findsOneWidget);
+    expect(find.text('Optional — add it if known'), findsOneWidget);
+  });
+
+  testWidgets('breed field suggests breeds for the selected species', (
+    WidgetTester tester,
+  ) async {
+    _setUpSurface(tester);
+
+    await tester.pumpWidget(const MaterialApp(home: PetFormScreen()));
+    await _advance(tester);
+
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Breed (optional)'),
+      'Thai',
+    );
+    await tester.pump();
+
+    expect(find.text('Thai Ridgeback'), findsOneWidget);
+    expect(find.text('Siamese'), findsNothing);
+  });
+
+  testWidgets('blood type suggestions match the pet species', (
+    WidgetTester tester,
+  ) async {
+    _setUpSurface(tester);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: PetFormScreen(
+          initial: PetEntity(name: 'Milo', species: 'cat'),
+        ),
+      ),
+    );
+    await _advance(tester);
+
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Blood type (optional)'),
+      'Type',
+    );
+    await tester.pump();
+
+    expect(find.text('Type A'), findsOneWidget);
+    expect(find.text('Type B'), findsOneWidget);
+    expect(find.text('Type AB'), findsOneWidget);
+    expect(find.text('DEA 1 Positive'), findsNothing);
+  });
+
   testWidgets('empty name shows "Name is required" and blocks submission', (
     WidgetTester tester,
   ) async {
@@ -67,10 +124,7 @@ void main() {
 
     // Provide a valid name so validation reaches the weight check.
     await tester.enterText(find.widgetWithText(TextField, 'Pet name'), 'Milo');
-    await tester.enterText(
-      find.widgetWithText(TextField, 'Weight (kg)'),
-      '-3',
-    );
+    await tester.enterText(find.widgetWithText(TextField, 'Weight (kg)'), '-3');
     await _advance(tester);
 
     await tester.ensureVisible(find.text('ADD PET'));

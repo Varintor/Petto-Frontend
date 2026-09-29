@@ -79,7 +79,7 @@ class PetFixtures {
     'weight_kg': validWeight,
     'gender': validGender,
     'date_of_birth': '2020-01-01',
-    'blood_type': 'DEA 1.1',
+    'blood_type': 'DEA 1 Positive',
     'avatar_uri': null,
     'created_at': '2026-06-17T10:00:00',
   };
@@ -94,7 +94,7 @@ class PetFixtures {
     'weight_kg': 10.5,
     'gender': validGender,
     'date_of_birth': '2020-01-01',
-    'blood_type': 'DEA 1.1',
+    'blood_type': 'DEA 1 Positive',
     'avatar_uri': null,
     'created_at': '2026-06-17T10:00:00',
   };
@@ -111,7 +111,7 @@ class PetFixtures {
       'weight_kg': 4.5,
       'gender': 'Male',
       'date_of_birth': '2021-05-15',
-      'blood_type': 'DEA 1.1',
+      'blood_type': 'DEA 1 Positive',
       'avatar_uri': null,
       'created_at': '2026-06-16T14:30:00',
     },

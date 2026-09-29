@@ -30,6 +30,15 @@ void main() {
       expect(iosInfo, contains('<string>petto</string>'));
     });
 
+    test('Android registers the Supabase Google OAuth callback', () {
+      final manifest = File(
+        'android/app/src/main/AndroidManifest.xml',
+      ).readAsStringSync();
+
+      expect(manifest, contains('android:scheme="petto"'));
+      expect(manifest, contains('android:host="login-callback"'));
+    });
+
     test('calendar reminder ids are stable and separated from daily ids', () {
       final service = NotificationService.instance;
       final first = service.calendarEventId('calendar-event-42');

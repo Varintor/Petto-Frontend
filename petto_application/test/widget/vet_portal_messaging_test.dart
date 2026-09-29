@@ -239,7 +239,7 @@ void main() {
         'name': 'Milo',
         'species': 'Cat',
         'breed': 'Domestic Shorthair',
-        'blood_type': 'A',
+        'blood_type': 'Type A',
         'allergies': ['Chicken'],
         'chronic_conditions': ['Dermatitis'],
         'current_medications': ['Topical cream'],

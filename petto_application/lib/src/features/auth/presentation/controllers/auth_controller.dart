@@ -3,10 +3,13 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthUser;
 
+import '../../../../core/config/app_config.dart';
 import '../../../../core/services/token_storage.dart';
 import '../../data/repositories/auth_repository.dart';
 
 enum AuthStatus { loading, authenticated, unauthenticated, error }
+
+typedef GoogleOAuthLauncher = Future<bool> Function(String redirectUrl);
 
 /// Holds the authenticated session. Identity comes from the FastAPI backend
 /// (`/api/v1/auth/*`), which wraps Supabase Auth and returns a Supabase JWT
@@ -23,15 +26,24 @@ class AuthController extends ChangeNotifier {
   AuthUser? _currentUser;
   String? _error;
   bool _justLoggedOut = false;
+  bool _googleSignInPending = false;
+  bool _completingOAuthSession = false;
   StreamSubscription<AuthState>? _supabaseAuthSubscription;
+  final GoogleOAuthLauncher? _googleOAuthLauncher;
 
   /// Handlers invoked when [logout] runs, so other controllers can clear
   /// per-account in-memory state (stats, missions) before the new account
   /// loads. Registered from [main.dart] at provider wiring time.
   final List<VoidCallback> _logoutHandlers = [];
 
-  AuthController({required this.repository, TokenStorage? storage})
-    : storage = storage ?? TokenStorage();
+  AuthController({
+    required this.repository,
+    TokenStorage? storage,
+    GoogleOAuthLauncher? googleOAuthLauncher,
+  }) : storage = storage ?? TokenStorage(),
+       _googleOAuthLauncher = googleOAuthLauncher {
+    _watchSupabaseTokenRefresh();
+  }
 
   AuthStatus get status => _status;
   String? get token => _token;
@@ -70,7 +82,12 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final supabaseSession = _currentSupabaseSession();
       final storedToken = await storage.getToken();
+      if (storedToken == null && supabaseSession != null) {
+        await _completeSupabaseOAuthSession(supabaseSession);
+        return;
+      }
       if (storedToken == null) {
         _status = AuthStatus.unauthenticated;
         notifyListeners();
@@ -171,6 +188,33 @@ class AuthController extends ChangeNotifier {
       return true;
     } catch (e) {
       _error = _parseError(e);
+      return false;
+    }
+  }
+
+  /// Starts browser-based Google OAuth through Supabase. The completed
+  /// Supabase session is resolved through `/auth/me`, preserving Petto's
+  /// backend user id and role-based authorization.
+  Future<bool> loginWithGoogle() async {
+    _error = null;
+    _googleSignInPending = true;
+    _watchSupabaseTokenRefresh();
+    try {
+      final launcher =
+          _googleOAuthLauncher ??
+          (redirectUrl) => Supabase.instance.client.auth.signInWithOAuth(
+            OAuthProvider.google,
+            redirectTo: redirectUrl,
+          );
+      final launched = await launcher(AppConfig.googleAuthRedirectUrl);
+      if (!launched) {
+        _googleSignInPending = false;
+        _error = 'Could not open Google sign-in. Please try again.';
+      }
+      return launched;
+    } catch (error) {
+      _googleSignInPending = false;
+      _error = _parseError(error);
       return false;
     }
   }
@@ -298,19 +342,73 @@ class AuthController extends ChangeNotifier {
 
   void _watchSupabaseTokenRefresh() {
     if (_supabaseAuthSubscription != null) return;
-    _supabaseAuthSubscription = Supabase.instance.client.auth.onAuthStateChange
-        .listen((state) {
-          final session = state.session;
-          if (_status != AuthStatus.authenticated || session == null) return;
-          _token = session.accessToken;
-          unawaited(
-            Future.wait<void>([
-              storage.saveToken(session.accessToken),
-              if (session.refreshToken != null)
-                storage.saveRefreshToken(session.refreshToken!),
-            ]),
-          );
-        });
+    try {
+      _supabaseAuthSubscription = Supabase
+          .instance
+          .client
+          .auth
+          .onAuthStateChange
+          .listen((state) {
+            final session = state.session;
+            if (session == null) return;
+            if (_googleSignInPending &&
+                (state.event == AuthChangeEvent.signedIn ||
+                    state.event == AuthChangeEvent.initialSession)) {
+              unawaited(_completeSupabaseOAuthSession(session));
+              return;
+            }
+            if (_status != AuthStatus.authenticated) return;
+            _token = session.accessToken;
+            unawaited(
+              Future.wait<void>([
+                storage.saveToken(session.accessToken),
+                if (session.refreshToken != null)
+                  storage.saveRefreshToken(session.refreshToken!),
+              ]),
+            );
+          }, onError: (_) {});
+    } catch (_) {
+      // Unit/widget tests may construct the controller before Supabase.init.
+    }
+  }
+
+  Session? _currentSupabaseSession() {
+    try {
+      return Supabase.instance.client.auth.currentSession;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _completeSupabaseOAuthSession(Session session) async {
+    if (_completingOAuthSession) return;
+    _completingOAuthSession = true;
+    _status = AuthStatus.loading;
+    notifyListeners();
+    try {
+      final user = await repository.getMe(session.accessToken);
+      _token = session.accessToken;
+      _userId = user.id;
+      _currentUser = user;
+      _petId = await storage.getPetId();
+      await Future.wait<void>([
+        storage.saveToken(session.accessToken),
+        if (session.refreshToken != null)
+          storage.saveRefreshToken(session.refreshToken!),
+        storage.saveUserId(user.id),
+      ]);
+      _error = null;
+      _justLoggedOut = false;
+      _googleSignInPending = false;
+      _status = AuthStatus.authenticated;
+    } catch (error) {
+      _error = _parseError(error);
+      _googleSignInPending = false;
+      _status = AuthStatus.unauthenticated;
+    } finally {
+      _completingOAuthSession = false;
+      notifyListeners();
+    }
   }
 
   @override

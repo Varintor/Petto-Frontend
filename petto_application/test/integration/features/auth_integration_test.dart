@@ -341,33 +341,30 @@ void main() {
         },
       );
 
-      test(
-        'ITC-AUTH-05c: Storage cleanup failure still opens login',
-        () async {
-          when(
-            mockTokenStorage.getToken(),
-          ).thenAnswer((_) async => 'invalid-token');
-          when(mockTokenStorage.getPetId()).thenAnswer((_) async => 1);
-          when(
-            mockTokenStorage.clear(),
-          ).thenThrow(Exception('secure storage plugin unavailable'));
+      test('ITC-AUTH-05c: Storage cleanup failure still opens login', () async {
+        when(
+          mockTokenStorage.getToken(),
+        ).thenAnswer((_) async => 'invalid-token');
+        when(mockTokenStorage.getPetId()).thenAnswer((_) async => 1);
+        when(
+          mockTokenStorage.clear(),
+        ).thenThrow(Exception('secure storage plugin unavailable'));
 
-          when(
-            mockDio.get(
-              argThat(contains('/auth/me')),
-              options: anyNamed('options'),
-            ),
-          ).thenThrow(DioMockHelper.unauthorizedError());
+        when(
+          mockDio.get(
+            argThat(contains('/auth/me')),
+            options: anyNamed('options'),
+          ),
+        ).thenThrow(DioMockHelper.unauthorizedError());
 
-          await controller.tryAutoLogin();
+        await controller.tryAutoLogin();
 
-          expect(controller.status, AuthStatus.unauthenticated);
-          expect(controller.token, isNull);
-          expect(controller.userId, isNull);
-          expect(controller.petId, isNull);
-          verify(mockTokenStorage.clear()).called(1);
-        },
-      );
+        expect(controller.status, AuthStatus.unauthenticated);
+        expect(controller.token, isNull);
+        expect(controller.userId, isNull);
+        expect(controller.petId, isNull);
+        verify(mockTokenStorage.clear()).called(1);
+      });
     });
 
     group('Logout Flow', () {
@@ -494,6 +491,30 @@ void main() {
           expect(controller.userId, null);
           expect(controller.petId, null);
           expect(controller.isGuest, true);
+        },
+      );
+    });
+
+    group('Google OAuth', () {
+      test(
+        'launches Supabase Google sign-in with the mobile callback',
+        () async {
+          String? redirectUrl;
+          controller.dispose();
+          controller = AuthController(
+            repository: repository,
+            storage: mockTokenStorage,
+            googleOAuthLauncher: (url) async {
+              redirectUrl = url;
+              return true;
+            },
+          );
+
+          final launched = await controller.loginWithGoogle();
+
+          expect(launched, isTrue);
+          expect(redirectUrl, 'petto://login-callback');
+          expect(controller.error, isNull);
         },
       );
     });

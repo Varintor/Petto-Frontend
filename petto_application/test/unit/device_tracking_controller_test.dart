@@ -6,6 +6,7 @@ import 'package:petto_application/src/features/activity_tracking/presentation/co
 class _FakeDeviceRepository implements DeviceRepository {
   DeviceModel? device;
   final List<DeviceAlertModel> alerts = [];
+  String? lastSessionId;
 
   DeviceModel _device({int battery = 100, double? lat, double? lng}) =>
       DeviceModel(
@@ -59,6 +60,7 @@ class _FakeDeviceRepository implements DeviceRepository {
     double? sessionDistanceMeters,
     String? sessionId,
   }) async {
+    lastSessionId = sessionId;
     final abnormal = (samples.first['speed_kmh'] as num) > 35;
     device = _device(
       battery: batteryPercent ?? 100,
@@ -77,26 +79,31 @@ class _FakeDeviceRepository implements DeviceRepository {
 }
 
 void main() {
-  test(
-    'simulated collar exercises pair, GPS, alert, and unpair flow',
-    () async {
-      final repository = _FakeDeviceRepository();
-      final controller = DeviceTrackingController(repository: repository);
+  test('simulated collar exercises pair, GPS, alert, and unpair flow', () async {
+    final repository = _FakeDeviceRepository();
+    final controller = DeviceTrackingController(repository: repository);
 
-      expect(await controller.pairDemo(9), isTrue);
-      expect(controller.activeDevice?.identifier, 'PETTO-DEMO-9');
+    expect(await controller.pairDemo(9), isTrue);
+    expect(controller.activeDevice?.identifier, 'PETTO-DEMO-9');
 
-      expect(await controller.simulateTelemetry(), isTrue);
-      expect(controller.activeDevice?.lastLat, closeTo(18.79682, 0.00001));
-      expect(controller.activeDevice?.batteryPercent, 82);
-      expect(controller.alerts, isEmpty);
+    expect(await controller.simulateTelemetry(), isTrue);
+    expect(
+      repository.lastSessionId,
+      matches(
+        RegExp(
+          r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+        ),
+      ),
+    );
+    expect(controller.activeDevice?.lastLat, closeTo(18.79682, 0.00001));
+    expect(controller.activeDevice?.batteryPercent, 82);
+    expect(controller.alerts, isEmpty);
 
-      expect(await controller.simulateTelemetry(anomaly: true), isTrue);
-      expect(controller.alerts, ['Abnormal speed detected']);
-      expect(controller.activeDevice?.batteryPercent, 18);
+    expect(await controller.simulateTelemetry(anomaly: true), isTrue);
+    expect(controller.alerts, ['Abnormal speed detected']);
+    expect(controller.activeDevice?.batteryPercent, 18);
 
-      expect(await controller.unpair(), isTrue);
-      expect(controller.devices, isEmpty);
-    },
-  );
+    expect(await controller.unpair(), isTrue);
+    expect(controller.devices, isEmpty);
+  });
 }

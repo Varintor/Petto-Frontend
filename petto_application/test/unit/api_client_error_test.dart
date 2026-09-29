@@ -39,6 +39,31 @@ void main() {
     );
   });
 
+  test(
+    'FastAPI validation details are presented instead of a generic error',
+    () {
+      final error = DioException.badResponse(
+        statusCode: 422,
+        requestOptions: request(),
+        response: Response<dynamic>(
+          requestOptions: request(),
+          statusCode: 422,
+          data: const {
+            'detail': [
+              {
+                'type': 'uuid_parsing',
+                'loc': ['body', 'session_id'],
+                'msg': 'Input should be a valid UUID',
+              },
+            ],
+          },
+        ),
+      );
+
+      expect(ApiClient.describeError(error), 'Input should be a valid UUID');
+    },
+  );
+
   test('timeout is presented as a retryable message', () {
     final error = DioException(
       requestOptions: request(),

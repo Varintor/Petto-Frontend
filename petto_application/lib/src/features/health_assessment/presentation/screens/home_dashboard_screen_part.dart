@@ -1,3 +1,7 @@
+// Legacy dashboard variants are intentionally retained while the current
+// responsive dashboard is validated across mobile and web layouts.
+// ignore_for_file: unused_element, unused_element_parameter
+
 part of 'home_screen.dart';
 
 const _homeCreamSurface = Color(0xFFFFFAF5);

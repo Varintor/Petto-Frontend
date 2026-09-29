@@ -69,7 +69,7 @@ class _NotificationData {
     required this.time,
     required this.icon,
     required this.tint,
-    this.unread = false,
+    required this.unread,
   });
 
   final String title;

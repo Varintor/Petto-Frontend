@@ -158,18 +158,6 @@ extension _HomeConsultScreenPart on _HomeScreenState {
     );
   }
 
-  void _showAssessmentDetail(AssessmentEntity assessment) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => _AssessmentDetailSheet(
-        assessment: assessment,
-        onShareWithVet: () => _shareAssessmentWithAvailableVet(assessment),
-      ),
-    );
-  }
-
   void _shareAssessmentWithAvailableVet(AssessmentEntity assessment) {
     var vet = _activeChatVet;
     if (vet == null) {

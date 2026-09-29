@@ -115,6 +115,15 @@ class AppConfig {
           defaultValue: 'petto://reset-password',
         );
 
+  /// Supabase OAuth returns to the current web origin or to Petto's mobile
+  /// deep link. Both URLs must be allow-listed in Supabase Auth settings.
+  static String get googleAuthRedirectUrl => kIsWeb
+      ? Uri.base.origin
+      : const String.fromEnvironment(
+          'GOOGLE_AUTH_REDIRECT_URL',
+          defaultValue: 'petto://login-callback',
+        );
+
   /// Create pet (authenticated) -> POST /api/v1/pets
   static const String petsEndpoint = '$apiPrefix/pets';
 
