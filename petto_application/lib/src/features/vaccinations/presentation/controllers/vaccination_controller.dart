@@ -5,20 +5,10 @@ import '../../data/repositories/vaccination_repository.dart';
 import '../../domain/entities/vaccination_entity.dart';
 
 /// Vaccination Status Enum
-enum VaccinationStatus {
-  idle,
-  loading,
-  success,
-  error,
-}
+enum VaccinationStatus { idle, loading, success, error }
 
 /// Error Type Enum
-enum ErrorType {
-  networkError,
-  serverError,
-  validationError,
-  unknown,
-}
+enum ErrorType { networkError, serverError, validationError, unknown }
 
 /// Vaccination Error Class
 class VaccinationError {
@@ -66,10 +56,12 @@ class VaccinationController extends ChangeNotifier {
     final now = DateTime.now();
     final thirtyDaysLater = now.add(const Duration(days: 30));
     return _vaccinations
-        .where((v) =>
-            v.nextDueDate != null &&
-            v.nextDueDate!.isAfter(now) &&
-            v.nextDueDate!.isBefore(thirtyDaysLater))
+        .where(
+          (v) =>
+              v.nextDueDate != null &&
+              v.nextDueDate!.isAfter(now) &&
+              v.nextDueDate!.isBefore(thirtyDaysLater),
+        )
         .toList()
       ..sort((a, b) => a.nextDueDate!.compareTo(b.nextDueDate!));
   }
@@ -88,7 +80,8 @@ class VaccinationController extends ChangeNotifier {
       switch (error.type) {
         case DioExceptionType.connectionError:
           return VaccinationError(
-            message: 'Cannot connect to server.\nPlease check your internet connection.',
+            message:
+                'Cannot connect to server.\nPlease check your internet connection.',
             type: ErrorType.networkError,
             technicalDetails: error.error?.toString(),
           );
@@ -143,21 +136,10 @@ class VaccinationController extends ChangeNotifier {
       _vaccinations = await repository.getPetVaccinations(petId);
       _status = VaccinationStatus.success;
 
-      if (kDebugMode) {
-        print('✅ Controller: Loaded ${_vaccinations.length} vaccinations');
-        print('   Upcoming: ${upcomingVaccinations.length}');
-        print('   Overdue: ${overdueVaccinations.length}');
-      }
-
       notifyListeners();
     } catch (e) {
       _status = VaccinationStatus.error;
       _error = _parseError(e);
-
-      if (kDebugMode) {
-        print('❌ Controller: Failed to load vaccinations');
-        print('   Error: ${_error!.message}');
-      }
 
       notifyListeners();
     }
@@ -189,22 +171,11 @@ class VaccinationController extends ChangeNotifier {
       _vaccinations.add(newVaccination);
       _status = VaccinationStatus.success;
 
-      if (kDebugMode) {
-        print('✅ Controller: Vaccination created successfully!');
-        print('   ID: ${newVaccination.id}');
-        print('   Vaccine: ${newVaccination.vaccineName}');
-      }
-
       notifyListeners();
       return true;
     } catch (e) {
       _status = VaccinationStatus.error;
       _error = _parseError(e);
-
-      if (kDebugMode) {
-        print('❌ Controller: Failed to create vaccination');
-        print('   Error: ${_error!.message}');
-      }
 
       notifyListeners();
       return false;
@@ -215,10 +186,6 @@ class VaccinationController extends ChangeNotifier {
   void reset() {
     _status = VaccinationStatus.idle;
     _error = null;
-
-    if (kDebugMode) {
-      print('🔄 Controller: State reset');
-    }
 
     notifyListeners();
   }
