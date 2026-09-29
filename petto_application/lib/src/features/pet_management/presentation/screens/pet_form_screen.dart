@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../health_assessment/presentation/widgets/pet_avatar_widget.dart';
 import '../../domain/entities/pet_entity.dart';
+import '../../domain/pet_blood_type_catalog.dart';
 import '../../domain/pet_breed_catalog.dart';
 
 /// Add / edit pet profile.
@@ -24,10 +25,10 @@ class _PetFormScreenState extends State<PetFormScreen> {
   late final TextEditingController _name;
   late final TextEditingController _breed;
   late final TextEditingController _weight;
+  late final TextEditingController _bloodType;
 
   String _species = 'dog';
   String? _gender;
-  String? _bloodType;
   DateTime? _birthday;
 
   @override
@@ -37,9 +38,9 @@ class _PetFormScreenState extends State<PetFormScreen> {
     _name = TextEditingController(text: pet?.name ?? '');
     _breed = TextEditingController(text: pet?.breed ?? '');
     _weight = TextEditingController(text: pet?.weightKg?.toString() ?? '');
+    _bloodType = TextEditingController(text: pet?.bloodType ?? '');
     _species = (pet?.species ?? 'dog').toLowerCase() == 'cat' ? 'cat' : 'dog';
     _gender = pet?.gender;
-    _bloodType = pet?.bloodType;
     _birthday = pet?.dateOfBirth;
     _name.addListener(_refreshNamePreview);
   }
@@ -50,6 +51,7 @@ class _PetFormScreenState extends State<PetFormScreen> {
     _name.dispose();
     _breed.dispose();
     _weight.dispose();
+    _bloodType.dispose();
     super.dispose();
   }
 
@@ -77,9 +79,19 @@ class _PetFormScreenState extends State<PetFormScreen> {
     final validForNewSpecies = PetBreedCatalog.forSpecies(
       value,
     ).contains(currentBreed);
+    final currentBloodType = _bloodType.text.trim();
+    final oldKnownBloodType = PetBloodTypeCatalog.forSpecies(
+      _species,
+    ).contains(currentBloodType);
+    final validBloodTypeForNewSpecies = PetBloodTypeCatalog.forSpecies(
+      value,
+    ).contains(currentBloodType);
     setState(() {
       _species = value;
       if (oldKnownBreed && !validForNewSpecies) _breed.clear();
+      if (oldKnownBloodType && !validBloodTypeForNewSpecies) {
+        _bloodType.clear();
+      }
     });
   }
 
@@ -110,7 +122,9 @@ class _PetFormScreenState extends State<PetFormScreen> {
         gender: _gender,
         dateOfBirth: _birthday,
         weightKg: weight,
-        bloodType: _bloodType,
+        bloodType: _bloodType.text.trim().isEmpty
+            ? null
+            : _bloodType.text.trim(),
         avatarUri: widget.initial?.avatarUri,
       ),
     );
@@ -255,13 +269,9 @@ class _PetFormScreenState extends State<PetFormScreen> {
                           ],
                         ),
                         const SizedBox(height: 12),
-                        _BloodTypePicker(
-                          value: _bloodType,
-                          onChanged: (value) {
-                            setState(() {
-                              _bloodType = value == _bloodType ? null : value;
-                            });
-                          },
+                        _PetBloodTypeField(
+                          species: _species,
+                          controller: _bloodType,
                         ),
                         const SizedBox(height: 12),
                         _BirthdayCard(
@@ -820,113 +830,86 @@ class _GenderCard extends StatelessWidget {
   }
 }
 
-class _BloodTypePicker extends StatelessWidget {
-  const _BloodTypePicker({required this.value, required this.onChanged});
+class _PetBloodTypeField extends StatefulWidget {
+  const _PetBloodTypeField({required this.species, required this.controller});
 
-  final String? value;
-  final ValueChanged<String> onChanged;
+  final String species;
+  final TextEditingController controller;
 
-  static const _types = ['A', 'B', 'AB', 'O'];
+  @override
+  State<_PetBloodTypeField> createState() => _PetBloodTypeFieldState();
+}
+
+class _PetBloodTypeFieldState extends State<_PetBloodTypeField> {
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
-      decoration: BoxDecoration(
-        color: AppTheme.primaryColor.withValues(alpha: 0.045),
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: Colors.white, width: 2),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.08),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.bloodtype_rounded,
-                  color: AppTheme.primaryColor,
-                  size: 19,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Blood type',
-                      style: TextStyle(
-                        fontFamily: AppTheme.displayFontFamily,
-                        color: AppTheme.secondaryText,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                      ),
+    return RawAutocomplete<String>(
+      textEditingController: widget.controller,
+      focusNode: _focusNode,
+      optionsBuilder: (value) =>
+          PetBloodTypeCatalog.suggestions(widget.species, value.text),
+      onSelected: (option) {
+        widget.controller.value = TextEditingValue(
+          text: option,
+          selection: TextSelection.collapsed(offset: option.length),
+        );
+      },
+      fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
+        return _PetTextField(
+          controller: controller,
+          focusNode: focusNode,
+          icon: Icons.bloodtype_rounded,
+          hint: 'Blood type (optional)',
+          textInputAction: TextInputAction.next,
+        );
+      },
+      optionsViewBuilder: (context, onSelected, options) {
+        final visibleOptions = options.toList(growable: false);
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 8,
+            color: AppTheme.surfaceColor,
+            borderRadius: BorderRadius.circular(18),
+            clipBehavior: Clip.antiAlias,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 360, maxHeight: 220),
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                shrinkWrap: true,
+                itemCount: visibleOptions.length,
+                itemBuilder: (context, index) {
+                  final option = visibleOptions[index];
+                  return ListTile(
+                    dense: true,
+                    leading: const Icon(
+                      Icons.bloodtype_rounded,
+                      color: AppTheme.primaryColor,
                     ),
-                    Text(
-                      value == null ? 'Optional' : 'Type $value selected',
-                      style: TextStyle(
+                    title: Text(
+                      option,
+                      style: const TextStyle(
                         fontFamily: AppTheme.sansFontFamily,
-                        color: AppTheme.mutedText.withValues(alpha: 0.82),
-                        fontSize: 12,
+                        color: AppTheme.secondaryText,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                  ],
-                ),
+                    onTap: () => onSelected(option),
+                  );
+                },
               ),
-            ],
+            ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: _types.map((type) {
-              final selected = value == type;
-              return Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(right: type == _types.last ? 0 : 8),
-                  child: InkWell(
-                    onTap: () => onChanged(type),
-                    borderRadius: BorderRadius.circular(18),
-                    child: AnimatedContainer(
-                      duration: AppTheme.motionFast,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: selected
-                            ? AppTheme.primaryColor
-                            : AppTheme.surfaceColor.withValues(alpha: 0.92),
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(
-                          color: Colors.white,
-                          width: selected ? 3 : 2,
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          type,
-                          style: TextStyle(
-                            fontFamily: AppTheme.displayFontFamily,
-                            color: selected
-                                ? Colors.white
-                                : AppTheme.secondaryText,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

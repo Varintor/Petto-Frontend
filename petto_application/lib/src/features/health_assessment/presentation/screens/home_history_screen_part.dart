@@ -144,7 +144,7 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
           gender: _activePet.gender ?? 'Male',
           dateOfBirth: _activePet.dateOfBirth,
           weightKg: _activePet.weightKg ?? 4.5,
-          bloodType: _activePet.bloodType ?? 'DEA 1.1',
+          bloodType: _activePet.bloodType,
           allergies: const ['None recorded'],
           currentMedications: const [],
           chronicConditions: const [],
