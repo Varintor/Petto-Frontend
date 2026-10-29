@@ -222,13 +222,16 @@ extension _HomeHistoryScreenPart on _HomeScreenState {
   ) async {
     final existing = controller.publicCard;
     final selected = Set<String>.from(
-      existing?.visibleFields ?? const {'name', 'species', 'allergies'},
+      existing?.visibleFields ??
+          const {'name', 'species', 'health_card', 'health_timeline'},
     );
     final contact = TextEditingController(text: existing?.contactMethod ?? '');
     final emergency = TextEditingController(
       text: existing?.emergencyNotes ?? '',
     );
     const options = <(String, String)>[
+      ('health_card', 'Health card'),
+      ('health_timeline', 'Health timeline'),
       ('name', 'Pet name'),
       ('species', 'Species'),
       ('breed', 'Breed'),

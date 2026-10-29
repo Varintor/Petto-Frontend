@@ -81,29 +81,13 @@ class _WellnessTrackingViewState extends State<WellnessTrackingView> {
     if (!mounted || controller.bleCandidates.isEmpty) return;
     final candidate = await showModalBottomSheet<BleDeviceCandidate>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.only(bottom: 16),
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-              child: Text(
-                'Choose GPS collar',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ),
-            for (final item in controller.bleCandidates)
-              ListTile(
-                leading: const Icon(Icons.bluetooth),
-                title: Text(item.name),
-                subtitle: Text('${item.id} · signal ${item.rssi} dBm'),
-                onTap: () => Navigator.pop(context, item),
-              ),
-          ],
-        ),
-      ),
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: false,
+      barrierColor: AppTheme.secondaryText.withValues(alpha: 0.38),
+      backgroundColor: Colors.transparent,
+      builder: (context) =>
+          _BleDevicePickerSheet(candidates: controller.bleCandidates),
     );
     if (candidate == null || !mounted) return;
     final connected = await controller.connectBle(petId, candidate);
@@ -362,6 +346,246 @@ class _WellnessTrackingViewState extends State<WellnessTrackingView> {
     margin: const EdgeInsets.symmetric(horizontal: 8),
     color: AppTheme.secondaryColor.withValues(alpha: 0.1),
   );
+}
+
+class _BleDevicePickerSheet extends StatelessWidget {
+  const _BleDevicePickerSheet({required this.candidates});
+
+  final List<BleDeviceCandidate> candidates;
+
+  @override
+  Widget build(BuildContext context) {
+    final availableHeight = MediaQuery.sizeOf(context).height;
+    final sheetHeight = (availableHeight * 0.68).clamp(360.0, 620.0);
+
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Container(
+        height: sheetHeight,
+        margin: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+        decoration: BoxDecoration(
+          color: AppTheme.backgroundColor,
+          borderRadius: BorderRadius.circular(34),
+          border: Border.all(color: Colors.white, width: 3),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.secondaryText.withValues(alpha: 0.18),
+              blurRadius: 34,
+              spreadRadius: -8,
+              offset: const Offset(0, -8),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 12, 14, 14),
+              child: Column(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.13),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor,
+                          borderRadius: BorderRadius.circular(17),
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: const Icon(
+                          Icons.bluetooth_searching_rounded,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Choose GPS collar',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${candidates.length} nearby ${candidates.length == 1 ? 'device' : 'devices'} found',
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: AppTheme.mutedText),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Close',
+                        onPressed: () => Navigator.pop(context),
+                        style: IconButton.styleFrom(
+                          fixedSize: const Size(44, 44),
+                          backgroundColor: AppTheme.surfaceColor,
+                          side: const BorderSide(color: Colors.white, width: 2),
+                        ),
+                        icon: const Icon(
+                          Icons.close_rounded,
+                          color: AppTheme.primaryColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(16, 2, 16, 22),
+                itemCount: candidates.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 10),
+                itemBuilder: (context, index) {
+                  final item = candidates[index];
+                  return _BleDeviceCandidateCard(candidate: item);
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BleDeviceCandidateCard extends StatelessWidget {
+  const _BleDeviceCandidateCard({required this.candidate});
+
+  final BleDeviceCandidate candidate;
+
+  @override
+  Widget build(BuildContext context) {
+    final signalColor = candidate.rssi >= -60
+        ? AppTheme.successColor
+        : candidate.rssi >= -80
+        ? AppTheme.accentColor
+        : AppTheme.dangerColor;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => Navigator.pop(context, candidate),
+        borderRadius: BorderRadius.circular(24),
+        child: Ink(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceColor,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white, width: 2.5),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primaryColor.withValues(alpha: 0.055),
+                blurRadius: 16,
+                spreadRadius: -8,
+                offset: const Offset(0, 7),
+              ),
+            ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: AppTheme.blushSurfaceColor,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.bluetooth_rounded,
+                  color: AppTheme.primaryColor,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      candidate.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppTheme.secondaryText,
+                        fontWeight: FontWeight.w900,
+                        height: 1.12,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      candidate.id,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.mutedText,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 9),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: signalColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.signal_cellular_alt_rounded,
+                            size: 14,
+                            color: signalColor,
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            '${candidate.rssi} dBm',
+                            style: TextStyle(
+                              color: signalColor,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Padding(
+                padding: EdgeInsets.only(top: 12),
+                child: Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 16,
+                  color: AppTheme.primaryColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _SimulatorButton extends StatelessWidget {
